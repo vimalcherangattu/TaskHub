@@ -132,6 +132,11 @@ section{margin-bottom:28px}
 .chk{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--faint);background:none;margin-top:1px;display:grid;place-items:center;padding:0}
 .chk:hover{border-color:var(--ok)}
 .task.done .chk{background:var(--ok);border-color:var(--ok)}
+.task.doing .chk{border-color:var(--accent);background:linear-gradient(90deg,var(--accent) 50%,transparent 50%)}
+.task.doing .title{font-weight:600}
+.meta .resume{flex-basis:100%;color:var(--ink);font-style:italic;opacity:.85}
+.meta .carry{color:var(--warn);font-weight:600}
+.meta .started{color:var(--accent);font-weight:600}
 .chk svg{width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;opacity:0}
 .task.done .chk svg{opacity:1}
 .body{flex:1;min-width:0}
@@ -217,7 +222,7 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
   <div class="row">
     <label>Project<select name="projectId"></select></label>
     <label>Status<select name="status">
-      <option value="todo">To do</option><option value="doing">In progress</option>
+      <option value="todo">To do</option><option value="doing">Started</option>
       <option value="waiting">Waiting on someone</option><option value="suggested">Suggested by Claude</option><option value="done">Done</option></select></label>
   </div>
   <div class="row">
@@ -228,6 +233,7 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
     <label><input type="checkbox" name="onToday"> On today's list</label>
     <label><input type="checkbox" name="onWeek"> Finish this week</label>
   </div>
+  <label>Where you left it<textarea name="resumeNote" style="min-height:56px" placeholder="Optional: next step when you come back"></textarea></label>
   <label>Notes<textarea name="notes"></textarea></label>
   <div class="foot">
     <button type="button" class="btn danger" id="delTask">Delete</button>
@@ -253,6 +259,11 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
   </div>
 </form></dialog>
 
+<dialog id="resumeDlg"><form class="dlg" id="resumeForm" method="dialog">
+  <h3 id="resumeTitle">Where you left it</h3>
+  <label>Where are you leaving it? What's the very next step?<textarea name="rn" placeholder="e.g. Alternatives section done, unique value next"></textarea></label>
+  <div class="foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="resumeSave">Save note</button></div>
+</form></dialog>
 <dialog id="noteDlg"><form class="dlg" id="noteForm" method="dialog">
   <h3 id="noteDlgTitle">Note</h3>
   <div class="row">
@@ -298,7 +309,11 @@ const inWeek=s=>{const w=week();return s&&s>=w[0]&&s<=w[6]};
 const onWeek=t=>open(t)&&(t.weekOf===week()[0]||inWeek(t.due)||inWeek(t.todayDate)||overdue(t));
 const doneOn=(t,d)=>t.status==="done"&&t.doneAt&&iso(new Date(t.doneAt))===d;
 const doneThisWeek=t=>t.status==="done"&&t.doneAt&&inWeek(iso(new Date(t.doneAt)));
-const stale=t=>open(t)&&t.status!=="waiting"&&t.updatedAt&&(Date.now()-new Date(t.updatedAt))>7*864e5;
+const doing=t=>t.status==="doing";
+const ago=s=>{const d=Math.floor((Date.now()-new Date(s))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
+const stalled=t=>doing(t)&&(Date.now()-new Date(t.updatedAt||t.startedAt||Date.now()))>3*864e5;
+const decide=t=>open(t)&&(t.carryCount||0)>=3;
+const stale=t=>open(t)&&t.status!=="waiting"&&!doing(t)&&t.updatedAt&&(Date.now()-new Date(t.updatedAt))>7*864e5;
 const sortT=a=>a.slice().sort((x,y)=>(PR[x.priority||"med"]-PR[y.priority||"med"])||((x.due||"9")<(y.due||"9")?-1:(x.due||"9")>(y.due||"9")?1:0)||String(x.createdAt||"").localeCompare(String(y.createdAt||"")));
 const proj=id=>S.projects.find(p=>p.id===id);
 const ordSort=(x,y)=>(x.order??99)-(y.order??99)||x.name.localeCompare(y.name);
@@ -320,7 +335,7 @@ const ICON={
  all:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
  attention:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
-function attentionCount(){return S.tasks.filter(t=>overdue(t)||stale(t)).length}
+function attentionCount(){return S.tasks.filter(t=>overdue(t)||stale(t)||stalled(t)||decide(t)).length}
 
 function renderSide(){
   const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
@@ -358,12 +373,14 @@ function row(t){
   if(!(S.view==="project"&&(S.pid===t.projectId||p?.parentId===S.pid)))bits.push(`<span class="proj"><span class="dot" style="background:${esc(p?.color||"var(--faint)")}"></span>${esc(fullName(p))}</span>`);
   if(t.due)bits.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"soon":""}">${overdue(t)?"Overdue, ":"Due "}${esc(nice(t.due))}</span>`);
   if(t.status==="waiting")bits.push(`<span class="wait">Waiting</span>`);
-  if(t.status==="doing")bits.push(`<span>In progress</span>`);
+  if(doing(t))bits.push(`<span class="${stalled(t)?"late":"started"}">${stalled(t)?"Stalled, started ":"Started "}${esc(ago(t.startedAt||t.updatedAt))}</span>`);
+  if((t.carryCount||0)>0&&open(t))bits.push(`<span class="${decide(t)?"late":"carry"}" title="Carried forward ${t.carryCount} times">${decide(t)?"Decide: ":""}→ ×${t.carryCount}</span>`);
   if(stale(t))bits.push(`<span class="stale">Untouched ${Math.floor((Date.now()-new Date(t.updatedAt))/864e5)} days</span>`);
   if(sugg(t)&&t.sourceChat)bits.push(`<span>From: ${esc(t.sourceChat)}</span>`);
+  if(t.resumeNote&&open(t))bits.push(`<span class="resume">↳ ${esc(t.resumeNote)}</span>`);
   if(t.notes)bits.push(`<span>Has notes</span>`);
-  const tools=sugg(t)?`<div class="tools" style="opacity:1"><button class="tool" data-accept="${esc(t.id)}" style="color:var(--ok)">Accept</button><button class="tool" data-dismiss="${esc(t.id)}">Dismiss</button></div>`:open(t)?`<div class="tools"><button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
-  return `<div class="task ${t.status==="done"?"done":""} p-${esc(t.priority||"med")}">${sugg(t)?`<span class="chk" style="border-style:dashed" aria-hidden="true"></span>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":"Mark done"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div></div>${tools}</div>`;
+  const tools=sugg(t)?`<div class="tools" style="opacity:1"><button class="tool" data-accept="${esc(t.id)}" style="color:var(--ok)">Accept</button><button class="tool" data-dismiss="${esc(t.id)}">Dismiss</button></div>`:open(t)?`<div class="tools">${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
+  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""} p-${esc(t.priority||"med")}">${sugg(t)?`<span class="chk" style="border-style:dashed" aria-hidden="true"></span>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div></div>${tools}</div>`;
 }
 function sec(title,list,{empty="",action="",cls=""}={}){
   if(!list.length&&!empty)return"";
@@ -378,11 +395,12 @@ function progress(done,total,label){const pct=total?Math.round(done/total*100):0
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
-    const list=sortT(S.tasks.filter(onToday));const doneT=S.tasks.filter(x=>doneOn(x,t));
-    const left=sortT(S.tasks.filter(leftover));
-    h+=`<div class="head"><div><h1>Today</h1><div class="sub">${esc(parse(t).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</div></div>${progress(doneT.length,doneT.length+list.length,"done")}</div>`;
+    const motion=sortT(S.tasks.filter(doing));const list=sortT(S.tasks.filter(x=>onToday(x)&&!doing(x)));const doneT=S.tasks.filter(x=>doneOn(x,t));
+    const left=sortT(S.tasks.filter(x=>leftover(x)&&!doing(x)));
+    h+=`<div class="head"><div><h1>Today</h1><div class="sub">${esc(parse(t).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</div></div>${progress(doneT.length,doneT.length+list.length+motion.length,"done")}</div>`;
     h+=strip()+quick("Add something for today");
     if(S.day&&S.day!==t){const dl=sortT(S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)));h+=sec(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
+    h+=sec(`In motion <span class="n" style="font-weight:500">${motion.length>3?"· more than 3 started":""}</span>`,motion,{empty:"Nothing started. Tap a task's circle once to start it, twice to finish."});
     h+=sec("To do today",list,{empty:"Your list for today is clear. Pull something in from This week or a project."});
     h+=sec("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move all to today</button>`:""});
     h+=sec("Done today",doneT);
@@ -398,8 +416,10 @@ function renderView(){
     h+=sec("Finished this week",S.tasks.filter(doneThisWeek));
   }
   else if(S.view==="attention"){
-    h+=`<div class="head"><div><h1>Needs attention</h1><div class="sub">Overdue, stalled, or waiting on someone else</div></div></div>`;
+    h+=`<div class="head"><div><h1>Needs attention</h1><div class="sub">Overdue, stalled, pushed too often, or waiting on someone else</div></div></div>`;
     h+=sec("Overdue",sortT(S.tasks.filter(overdue)),{cls:"danger",empty:"Nothing overdue."});
+    h+=sec("Started, then stalled",sortT(S.tasks.filter(x=>stalled(x)&&!overdue(x))),{empty:"Everything you started has moved in the last 3 days."});
+    h+=sec("Decide: carried forward 3+ times",sortT(S.tasks.filter(x=>decide(x)&&!overdue(x)&&!stalled(x))),{empty:"Nothing keeps getting pushed."});
     h+=sec("Untouched for a week or more",sortT(S.tasks.filter(x=>stale(x)&&!overdue(x))),{empty:"Everything has moved in the last 7 days."});
     h+=sec("Waiting on someone",sortT(S.tasks.filter(x=>x.status==="waiting")),{empty:"Not waiting on anyone."});
   }
@@ -437,7 +457,7 @@ function renderView(){
     h+=quick(`Add a task${p?` to ${esc(p.name)}`:""}`);
     h+=sec("Suggested by Claude",sortT(ts.filter(sugg)));
     h+=sec("Overdue",sortT(ts.filter(overdue)),{cls:"danger"});
-    h+=sec("In progress",sortT(ts.filter(x=>x.status==="doing"&&!overdue(x))));
+    h+=sec("In motion",sortT(ts.filter(x=>x.status==="doing"&&!overdue(x))));
     h+=sec("To do",sortT(ts.filter(x=>x.status==="todo"&&!overdue(x))),{empty:"No open tasks here."});
     h+=sec("Waiting on someone",sortT(ts.filter(x=>x.status==="waiting"&&!overdue(x))));
     h+=sec("Done",ts.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,15));
@@ -500,7 +520,7 @@ function drawBrain(){
     .attr("opacity",d=>q&&d.depth>1&&!d.data.match&&!(d.children||[]).some(c=>c.data.match)?.35:1);
   const rad=d=>({root:24,area:12,project:d.data.ws?11:d.data.hasKids?9:7}[d.data.type]||5);
   node.append("circle").attr("r",rad)
-    .attr("fill",d=>{const x=d.data;if(x.type==="root")return"var(--ink)";if(x.type==="area")return"var(--raised)";if(x.type==="project")return x.children||!x.hasKids?x.color:"var(--raised)";if(x.type==="task")return overdue(x.task)?"var(--danger)":"var(--raised)";return KIND[x.note.kind]?.c||"var(--ink)"})
+    .attr("fill",d=>{const x=d.data;if(x.type==="root")return"var(--ink)";if(x.type==="area")return"var(--raised)";if(x.type==="project")return x.children||!x.hasKids?x.color:"var(--raised)";if(x.type==="task")return overdue(x.task)?"var(--danger)":doing(x.task)?"var(--accent)":"var(--raised)";return KIND[x.note.kind]?.c||"var(--ink)"})
     .attr("stroke",d=>{const x=d.data;if(x.id===S.bsel)return"var(--accent)";if(x.type==="area")return"var(--ink)";if(x.type==="task")return overdue(x.task)?"var(--danger)":"var(--muted)";return x.color||"var(--ink)"})
     .attr("stroke-width",d=>d.data.id===S.bsel?3.5:d.data.type==="project"?2.5:1.5)
     .attr("stroke-dasharray",d=>d.data.type==="task"&&sugg(d.data.task)?"2 2":null);
@@ -578,7 +598,11 @@ function render(){if(!S.ready.p||!S.ready.t)return;const a=document.activeElemen
 
 /* ---------- writes ---------- */
 let toastTimer;function toast(m){const e=document.getElementById("toast");e.textContent=m;e.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove("show"),2200)}
-async function upd(id,patch){try{await S.db.doc("tasks/"+id).update({...patch,updatedAt:now()})}catch(e){toast(e.code==="invalid_argument"?"You can view this list but not change it.":"That change didn't save. Try again.")}}
+function carryBump(t,patch){const td=T();let c=false;
+  if(patch.todayDate&&t.todayDate&&t.todayDate<td&&patch.todayDate>t.todayDate)c=true;
+  if(patch.due&&t.due&&t.due<td&&patch.due>t.due)c=true;
+  return c?{carryCount:(t.carryCount||0)+1}:{}}
+async function upd(id,patch){const cur=S.tasks.find(x=>x.id===id);const extra=cur?carryBump(cur,patch):{};try{await S.db.doc("tasks/"+id).update({...patch,...extra,updatedAt:now()})}catch(e){toast(e.code==="invalid_argument"?"You can view this list but not change it.":"That change didn't save. Try again.")}}
 async function addTask(data){try{await S.db.collection("tasks").add({status:"todo",priority:"med",createdAt:now(),updatedAt:now(),source:"hub",...data})}catch(e){toast(e.code==="quota_exceeded"?"Storage is full. Delete some finished tasks first.":"Couldn't add that task. Try again.")}}
 
 /* ---------- events ---------- */
@@ -595,7 +619,14 @@ document.addEventListener("click",async e=>{
   if(b.dataset.editnote){openNote(S.notes.find(n=>n.id===b.dataset.editnote));return}
   if(b.dataset.fs){S.fs=b.dataset.fs;render();return}
   if(b.dataset.day){S.day=S.day===b.dataset.day?null:b.dataset.day;render();return}
-  if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;const d=t.status==="done";await upd(t.id,d?{status:"todo",doneAt:null}:{status:"done",doneAt:now()});if(!d)toast("Marked done");return}
+  if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;
+    if(t.status==="done"){await upd(t.id,{status:"todo",doneAt:null});return}
+    if(doing(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
+    await startTask(t);return}
+  if(b.dataset.quickdone){await upd(b.dataset.quickdone,{status:"done",doneAt:now()});toast("Marked done");return}
+  if(b.dataset.park){openResume(S.tasks.find(x=>x.id===b.dataset.park),"park");return}
+  if(b.dataset.rnote){openResume(S.tasks.find(x=>x.id===b.dataset.rnote),"note");return}
+  if(b.dataset.drop){if(!confirm("Drop this task? It will be deleted."))return;try{await S.db.doc("tasks/"+b.dataset.drop).delete();toast("Dropped")}catch{toast("Couldn't drop that task.")}return}
   if(b.dataset.tog){const t=S.tasks.find(x=>x.id===b.dataset.id);if(!t)return;
     if(b.dataset.tog==="today")await upd(t.id,{todayDate:t.todayDate===T()?null:T()});
     else await upd(t.id,{weekOf:t.weekOf===week()[0]?null:week()[0]});return}
@@ -628,20 +659,34 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   document.getElementById("delTask").hidden=!t;document.getElementById("taskDlg").showModal();
 }
 document.getElementById("taskForm").addEventListener("submit",async e=>{
   const f=e.target;const st=f.status.value;
   const data={title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
-    weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),notes:f.notes.value.trim()};
+    weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null};
+  if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
   if(!data.title)return;
   if(editing){if(st==="done"&&editing.status!=="done")data.doneAt=now();if(st!=="done")data.doneAt=null;await upd(editing.id,data);toast("Task saved")}
   else{if(st==="done")data.doneAt=now();await addTask(data);toast("Task added")}
 });
 document.getElementById("delTask").addEventListener("click",async()=>{if(!editing)return;if(!confirm("Delete this task?"))return;try{await S.db.doc("tasks/"+editing.id).delete();toast("Task deleted")}catch{toast("Couldn't delete that task.")}document.getElementById("taskDlg").close()});
 
+/* started state */
+async function startTask(t){
+  const m=S.tasks.filter(x=>doing(x)&&x.id!==t.id);
+  if(m.length>=3&&!confirm(`You already have ${m.length} things in motion:\n\n${m.map(x=>"• "+x.title).join("\n")}\n\nFinish or park one first? Press OK to start this anyway.`))return;
+  await upd(t.id,{status:"doing",startedAt:now()});toast("Started. Tap Park when you pause.");
+}
+let resumeT=null,resumeMode="note";
+function openResume(t,mode){if(!t)return;resumeT=t;resumeMode=mode;const f=document.getElementById("resumeForm").elements;
+  document.getElementById("resumeTitle").textContent=mode==="park"?"Park: "+t.title:"Where you left it";
+  f.rn.value=t.resumeNote||"";document.getElementById("resumeSave").textContent=mode==="park"?"Park task":"Save note";
+  document.getElementById("resumeDlg").showModal();setTimeout(()=>f.rn.focus(),50)}
+document.getElementById("resumeForm").addEventListener("submit",async e=>{if(!resumeT)return;const note=e.target.elements.rn.value.trim()||null;
+  await upd(resumeT.id,resumeMode==="park"?{status:"todo",resumeNote:note}:{resumeNote:note});toast(resumeMode==="park"?"Parked. Your note will be waiting.":"Note saved")});
 /* note dialog */
 let editingN=null;
 function openNote(n,pid){
@@ -687,7 +732,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
