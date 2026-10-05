@@ -118,6 +118,8 @@ main{overflow-y:auto;padding:28px clamp(16px,4vw,48px) 120px}
 .chips{display:flex;gap:4px;flex-wrap:wrap}
 .chip{border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted)}
 .chip span{font-weight:500;opacity:.8}
+.gh{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:14px 0 2px}
+.gh span{font-weight:500}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 section{margin-bottom:28px}
 .sh{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
@@ -387,7 +389,7 @@ function sec(title,list,{empty="",action="",cls=""}={}){
   return `<section><div class="sh ${cls}"><h2>${title}</h2><span class="n">${list.length||""}</span>${action}</div>${list.length?list.map(row).join(""):`<div class="empty">${empty}</div>`}</section>`;
 }
 function quick(ph){
-  const opts=projOptions(S.view==="project"?S.pid:null);
+  const opts=projOptions(S.view==="project"?S.pid:S.view==="today"&&S.tf!=="__none"?(S.tsub||S.tf||null):null);
   return `<form class="quick" id="quick"><input name="q" placeholder="${ph}" autocomplete="off" aria-label="New task"><select name="p" aria-label="Project">${opts}</select><button type="submit">Add</button></form>`;
 }
 function progress(done,total,label){const pct=total?Math.round(done/total*100):0;return `<div class="right"><div class="meter">${done}<span> of ${total} ${label}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`}
@@ -395,15 +397,17 @@ function progress(done,total,label){const pct=total?Math.round(done/total*100):0
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
-    const motion=sortT(S.tasks.filter(doing));const list=sortT(S.tasks.filter(x=>onToday(x)&&!doing(x)));const doneT=S.tasks.filter(x=>doneOn(x,t));
-    const left=sortT(S.tasks.filter(x=>leftover(x)&&!doing(x)));
+    const motionA=S.tasks.filter(doing),listA=S.tasks.filter(x=>onToday(x)&&!doing(x)),leftA=S.tasks.filter(x=>leftover(x)&&!doing(x)),doneA=S.tasks.filter(x=>doneOn(x,t));
+    const pool=[...motionA,...listA,...leftA];
+    const motion=motionA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
     h+=`<div class="head"><div><h1>Today</h1><div class="sub">${esc(parse(t).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</div></div>${progress(doneT.length,doneT.length+list.length+motion.length,"done")}</div>`;
     h+=strip()+quick("Add something for today");
-    if(S.day&&S.day!==t){const dl=sortT(S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)));h+=sec(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
-    h+=sec(`In motion <span class="n" style="font-weight:500">${motion.length>3?"· more than 3 started":""}</span>`,motion,{empty:"Nothing started. Tap a task's circle once to start it, twice to finish."});
-    h+=sec("To do today",list,{empty:"Your list for today is clear. Pull something in from This week or a project."});
-    h+=sec("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move all to today</button>`:""});
-    h+=sec("Done today",doneT);
+    h+=todayFilters(pool);
+    if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
+    h+=secT(`In motion <span class="n" style="font-weight:500">${motion.length>3?"· more than 3 started":""}</span>`,motion,{empty:"Nothing started. Tap a task's circle once to start it, twice to finish."});
+    h+=secT("To do today",list,{empty:S.tf?"Nothing for today in this filter.":"Your list for today is clear. Pull something in from This week or a project."});
+    h+=secT("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move ${S.tf?"these":"all"} to today</button>`:""});
+    h+=secT("Done today",doneT);
   }
   else if(S.view==="week"){
     const w=week();const openW=S.tasks.filter(onWeek);const doneW=S.tasks.filter(doneThisWeek);
@@ -582,6 +586,37 @@ function brainPanel(){
   const recent=S.notes.slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,6);
   return `<div class="k">Everything</div><h3>Your world</h3><div class="about">${S.projects.length} projects, ${o.length} open tasks${late?` (${late} overdue)`:""}, ${S.notes.length} notes. Tap a project to open its branch, tap again to fold it.</div><h4>Latest notes</h4>${recent.map(noteItem).join("")||`<div class="empty">No notes yet.</div>`}`;
 }
+/* ---------- today filters ---------- */
+(()=>{try{const s=JSON.parse(localStorage.getItem("hub.today")||"{}");Object.assign(S,{tf:s.tf||"",tsub:s.tsub||"",tgroup:!!s.tgroup,tsort:s.tsort||"priority"})}catch{Object.assign(S,{tf:"",tsub:"",tgroup:false,tsort:"priority"})}})();
+function saveTF(){try{localStorage.setItem("hub.today",JSON.stringify({tf:S.tf,tsub:S.tsub,tgroup:S.tgroup,tsort:S.tsort}))}catch{}}
+const topOf=p=>parentOf(p)||p;
+function tfilter(t){if(!S.tf)return true;const p=proj(t.projectId);if(S.tf==="__none")return!p;if(!p)return false;if(S.tsub)return p.id===S.tsub;return topOf(p).id===S.tf}
+function tsortList(l){
+  if(S.tsort==="due")return l.slice().sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999")||PR[a.priority||"med"]-PR[b.priority||"med"]);
+  if(S.tsort==="project")return l.slice().sort((a,b)=>(proj(a.projectId)?fullName(proj(a.projectId)):"~").localeCompare(proj(b.projectId)?fullName(proj(b.projectId)):"~")||PR[a.priority||"med"]-PR[b.priority||"med"]);
+  return sortT(l);
+}
+function secT(title,list,opts={}){
+  if(!S.tgroup||!list.length)return sec(title,tsortList(list),opts);
+  const g=new Map();for(const x of tsortList(list)){const k=proj(x.projectId)?fullName(proj(x.projectId)):"Unsorted";if(!g.has(k))g.set(k,[]);g.get(k).push(x)}
+  const keys=[...g.keys()].sort((a,b)=>a==="Unsorted"?1:b==="Unsorted"?-1:a.localeCompare(b));
+  return `<section><div class="sh ${opts.cls||""}"><h2>${title}</h2><span class="n">${list.length}</span>${opts.action||""}</div>${keys.map(k=>`<div class="gh">${esc(k)} <span>${g.get(k).length}</span></div>${g.get(k).map(row).join("")}`).join("")}</section>`;
+}
+function todayFilters(pool){
+  if(S.tf&&S.tf!=="__none"&&!proj(S.tf)){S.tf="";S.tsub=""}
+  const cnt=new Map();let none=0;
+  for(const x of pool){const p=proj(x.projectId);if(!p){none++;continue}const k=topOf(p).id;cnt.set(k,(cnt.get(k)||0)+1)}
+  const topsHere=S.projects.filter(p=>cnt.has(p.id)||p.id===S.tf).sort((a,b)=>(cnt.get(b.id)||0)-(cnt.get(a.id)||0)||a.name.localeCompare(b.name));
+  const chip=(k,label,n,attr="tf",on=S.tf===k)=>`<button class="chip" data-${attr}="${esc(k)}" aria-pressed="${on}">${label}${n!=null?` <span>${n}</span>`:""}</button>`;
+  let out=`<div class="filters" style="margin-bottom:8px"><div class="chips">${chip("","All",pool.length)}${topsHere.map(p=>chip(p.id,`<span class="dot" style="display:inline-block;width:7px;height:7px;background:${esc(p.color)};margin-right:5px;vertical-align:1px"></span>${esc(p.name)}`,cnt.get(p.id)||0)).join("")}${none?chip("__none","Unsorted",none):""}</div></div>`;
+  const ws=proj(S.tf);
+  if(ws&&isWs(ws)){
+    const sc=new Map();for(const x of pool){const p=proj(x.projectId);if(p&&topOf(p).id===ws.id)sc.set(p.id,(sc.get(p.id)||0)+1)}
+    out+=`<div class="filters" style="margin-bottom:8px"><div class="chips">${chip("",`All of ${esc(ws.name)}`,null,"tsub",!S.tsub)}${[ws,...kidsOf(ws.id)].filter(p=>sc.has(p.id)||p.id===S.tsub).map(p=>chip(p.id,p.id===ws.id?"General":esc(p.name),sc.get(p.id)||0,"tsub",S.tsub===p.id)).join("")}</div></div>`;
+  }
+  out+=`<div class="filters" style="margin-bottom:18px"><select id="tsort" aria-label="Sort today">${[["priority","Sort by priority"],["due","Sort by deadline"],["project","Sort by project"]].map(([k,l])=>`<option value="${k}" ${S.tsort===k?"selected":""}>${l}</option>`).join("")}</select><button class="chip" data-tgroup aria-pressed="${S.tgroup}">Group by project</button></div>`;
+  return out;
+}
 function allList(){
   const q=S.q.trim().toLowerCase();
   let l=S.tasks.filter(t=>S.fs==="all"?true:S.fs==="open"?open(t):S.fs==="suggested"?sugg(t):t.status==="done");
@@ -617,6 +652,9 @@ document.addEventListener("click",async e=>{
   if("bfit" in b.dataset){S.brainFit&&S.brainFit();return}
   if("addnote" in b.dataset){openNote(null,b.dataset.addnote||null);return}
   if(b.dataset.editnote){openNote(S.notes.find(n=>n.id===b.dataset.editnote));return}
+  if(b.dataset.tf!==undefined){S.tf=S.tf===b.dataset.tf&&b.dataset.tf?"":b.dataset.tf;S.tsub="";saveTF();render();return}
+  if(b.dataset.tsub!==undefined){S.tsub=b.dataset.tsub;saveTF();render();return}
+  if("tgroup" in b.dataset){S.tgroup=!S.tgroup;saveTF();render();return}
   if(b.dataset.fs){S.fs=b.dataset.fs;render();return}
   if(b.dataset.day){S.day=S.day===b.dataset.day?null:b.dataset.day;render();return}
   if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;
@@ -630,7 +668,7 @@ document.addEventListener("click",async e=>{
   if(b.dataset.tog){const t=S.tasks.find(x=>x.id===b.dataset.id);if(!t)return;
     if(b.dataset.tog==="today")await upd(t.id,{todayDate:t.todayDate===T()?null:T()});
     else await upd(t.id,{weekOf:t.weekOf===week()[0]?null:week()[0]});return}
-  if("carry" in b.dataset){for(const t of S.tasks.filter(leftover))await upd(t.id,{todayDate:T()});toast("Moved to today");return}
+  if("carry" in b.dataset){for(const t of S.tasks.filter(x=>leftover(x)&&!doing(x)&&tfilter(x)))await upd(t.id,{todayDate:T()});toast("Moved to today");return}
   if(b.dataset.accept){await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
   if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
@@ -650,7 +688,7 @@ document.addEventListener("submit",async e=>{
 });
 
 document.addEventListener("input",e=>{if(e.target.id==="bsearch"){S.bq=e.target.value;drawBrain();return}if(e.target.id==="search"){S.q=e.target.value;document.getElementById("allList").innerHTML=allList()}});
-document.addEventListener("change",e=>{if(e.target.id==="sortSel"){S.sort=e.target.value;document.getElementById("allList").innerHTML=allList()}});
+document.addEventListener("change",e=>{if(e.target.id==="tsort"){S.tsort=e.target.value;saveTF();render();return}if(e.target.id==="sortSel"){S.sort=e.target.value;document.getElementById("allList").innerHTML=allList()}});
 /* task dialog */
 let editing=null;
 function projOptions(sel){const o=(p,l)=>`<option value="${esc(p.id)}" ${p.id===sel?"selected":""}>${esc(l)}</option>`;
