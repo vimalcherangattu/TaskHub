@@ -231,6 +231,10 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
     <label>Deadline<input type="date" name="due"></label>
     <label>Priority<select name="priority"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
   </div>
+  <div class="row">
+    <label>Work needed (days)<input type="number" name="effortDays" min="0" max="365" step="1" placeholder="e.g. 10"></label>
+    <label>Start by<input type="date" name="startDate"><span id="sbHint" style="font-weight:400;font-size:12px"></span></label>
+  </div>
   <div class="checks">
     <label><input type="checkbox" name="onToday"> On today's list</label>
     <label><input type="checkbox" name="onWeek"> Finish this week</label>
@@ -312,6 +316,10 @@ const onWeek=t=>open(t)&&(t.weekOf===week()[0]||inWeek(t.due)||inWeek(t.todayDat
 const doneOn=(t,d)=>t.status==="done"&&t.doneAt&&iso(new Date(t.doneAt))===d;
 const doneThisWeek=t=>t.status==="done"&&t.doneAt&&inWeek(iso(new Date(t.doneAt)));
 const doing=t=>t.status==="doing";
+const startBy=t=>t.startDate||(t.due&&t.effortDays>0?addDays(t.due,-t.effortDays):null);
+const startNow=t=>open(t)&&!doing(t)&&!!startBy(t)&&startBy(t)<=T()&&!(t.due&&t.due<=T())&&!onToday(t);
+const behind=t=>startNow(t)&&startBy(t)<T();
+const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const ago=s=>{const d=Math.floor((Date.now()-new Date(s))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
 const stalled=t=>doing(t)&&(Date.now()-new Date(t.updatedAt||t.startedAt||Date.now()))>3*864e5;
 const decide=t=>open(t)&&(t.carryCount||0)>=3;
@@ -337,7 +345,7 @@ const ICON={
  all:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
  attention:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
-function attentionCount(){return S.tasks.filter(t=>overdue(t)||stale(t)||stalled(t)||decide(t)).length}
+function attentionCount(){return S.tasks.filter(t=>overdue(t)||stale(t)||stalled(t)||decide(t)||behind(t)).length}
 
 function renderSide(){
   const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
@@ -363,7 +371,7 @@ function renderSide(){
 
 function strip(){
   const t=T();return `<div class="strip">`+week().map((d,i)=>{
-    const due=S.tasks.filter(x=>open(x)&&(x.due===d||x.todayDate===d)).length;
+    const due=S.tasks.filter(x=>open(x)&&(x.due===d||x.todayDate===d||(!doing(x)&&startBy(x)===d))).length;
     const dn=S.tasks.filter(x=>doneOn(x,d)).length;
     const cls=d===t?"is-today":d<t?"is-past":"";
     const lbl=[due?`${due} planned`:"",dn?`${dn} done`:""].filter(Boolean).join(", ")||"Free";
@@ -373,6 +381,8 @@ function strip(){
 function row(t){
   const p=proj(t.projectId);const bits=[];
   if(!(S.view==="project"&&(S.pid===t.projectId||p?.parentId===S.pid)))bits.push(`<span class="proj"><span class="dot" style="background:${esc(p?.color||"var(--faint)")}"></span>${esc(fullName(p))}</span>`);
+  {const sb=startBy(t);if(sb&&open(t)&&!doing(t)&&!(t.due&&t.due<=T())){if(sb<T())bits.push(`<span class="late">Should have started ${(n=>n===1?"yesterday":n+" days ago")(daysBetween(sb,T()))}</span>`);else if(sb===T())bits.push(`<span class="started">Start today</span>`);else bits.push(`<span>Start by ${esc(nice(sb))}</span>`)}}
+  if(t.effortDays>0&&open(t))bits.push(`<span>~${t.effortDays} day${t.effortDays===1?"":"s"} of work</span>`);
   if(t.due)bits.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"soon":""}">${overdue(t)?"Overdue, ":"Due "}${esc(nice(t.due))}</span>`);
   if(t.status==="waiting")bits.push(`<span class="wait">Waiting</span>`);
   if(doing(t))bits.push(`<span class="${stalled(t)?"late":"started"}">${stalled(t)?"Stalled, started ":"Started "}${esc(ago(t.startedAt||t.updatedAt))}</span>`);
@@ -398,13 +408,15 @@ function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
     const motionA=S.tasks.filter(doing),listA=S.tasks.filter(x=>onToday(x)&&!doing(x)),leftA=S.tasks.filter(x=>leftover(x)&&!doing(x)),doneA=S.tasks.filter(x=>doneOn(x,t));
-    const pool=[...motionA,...listA,...leftA];
-    const motion=motionA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
+    const startA=S.tasks.filter(x=>startNow(x)&&!leftover(x));
+    const pool=[...motionA,...startA,...listA,...leftA];
+    const motion=motionA.filter(tfilter),starts=startA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
     h+=`<div class="head"><div><h1>Today</h1><div class="sub">${esc(parse(t).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</div></div>${progress(doneT.length,doneT.length+list.length+motion.length,"done")}</div>`;
     h+=strip()+quick("Add something for today");
     h+=todayFilters(pool);
     if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
     h+=secT(`In motion <span class="n" style="font-weight:500">${motion.length>3?"· more than 3 started":""}</span>`,motion,{empty:"Nothing started. Tap a task's circle once to start it, twice to finish."});
+    h+=secT(`Start today <span class="n" style="font-weight:500">${starts.some(behind)?"· some are behind":""}</span>`,starts.sort((a,b)=>startBy(a).localeCompare(startBy(b))));
     h+=secT("To do today",list,{empty:S.tf?"Nothing for today in this filter.":"Your list for today is clear. Pull something in from This week or a project."});
     h+=secT("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move ${S.tf?"these":"all"} to today</button>`:""});
     h+=secT("Done today",doneT);
@@ -422,6 +434,7 @@ function renderView(){
   else if(S.view==="attention"){
     h+=`<div class="head"><div><h1>Needs attention</h1><div class="sub">Overdue, stalled, pushed too often, or waiting on someone else</div></div></div>`;
     h+=sec("Overdue",sortT(S.tasks.filter(overdue)),{cls:"danger",empty:"Nothing overdue."});
+    h+=sec("Behind: should have started already",S.tasks.filter(behind).sort((a,b)=>startBy(a).localeCompare(startBy(b))),{cls:"danger",empty:"Nothing is behind its start date."});
     h+=sec("Started, then stalled",sortT(S.tasks.filter(x=>stalled(x)&&!overdue(x))),{empty:"Everything you started has moved in the last 3 days."});
     h+=sec("Decide: carried forward 3+ times",sortT(S.tasks.filter(x=>decide(x)&&!overdue(x)&&!stalled(x))),{empty:"Nothing keeps getting pushed."});
     h+=sec("Untouched for a week or more",sortT(S.tasks.filter(x=>stale(x)&&!overdue(x))),{empty:"Everything has moved in the last 7 days."});
@@ -697,12 +710,13 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   document.getElementById("delTask").hidden=!t;document.getElementById("taskDlg").showModal();
 }
 document.getElementById("taskForm").addEventListener("submit",async e=>{
   const f=e.target;const st=f.status.value;
-  const data={title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
+  const ef=parseInt(f.elements.effortDays.value,10);
+  const data={effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null};
   if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
@@ -725,6 +739,10 @@ function openResume(t,mode){if(!t)return;resumeT=t;resumeMode=mode;const f=docum
   document.getElementById("resumeDlg").showModal();setTimeout(()=>f.rn.focus(),50)}
 document.getElementById("resumeForm").addEventListener("submit",async e=>{if(!resumeT)return;const note=e.target.elements.rn.value.trim()||null;
   await upd(resumeT.id,resumeMode==="park"?{status:"todo",resumeNote:note}:{resumeNote:note});toast(resumeMode==="park"?"Parked. Your note will be waiting.":"Note saved")});
+function sbHint(){const f=document.getElementById("taskForm").elements;const ef=parseInt(f.effortDays.value,10);const el=document.getElementById("sbHint");
+  if(f.startDate.value){el.textContent="Set by you";return}
+  el.textContent=f.due.value&&ef>0?`Auto: ${nice(addDays(f.due.value,-ef))} (deadline minus work)`:"Leave blank to work it out from deadline and work needed"}
+document.getElementById("taskForm").addEventListener("input",e=>{if(["effortDays","startDate","due"].includes(e.target.name))sbHint()});
 /* note dialog */
 let editingN=null;
 function openNote(n,pid){
@@ -770,7 +788,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
