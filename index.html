@@ -195,8 +195,8 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
   .app{grid-template-columns:1fr}
   aside{display:none}
   main{padding-top:18px}
-  .tabs{display:grid;grid-template-columns:repeat(7,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
-  .tabs button{border:0;background:none;padding:8px 0;font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tabs{display:grid;grid-template-columns:repeat(8,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
+  .tabs button{border:0;background:none;padding:8px 0;font-size:11px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
   .tabs button[aria-current="true"]{color:var(--accent)}
   .tabs svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
   .strip{gap:3px}
@@ -232,6 +232,10 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
     <label>Priority<select name="priority"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
   </div>
   <div class="row">
+    <label>Waiting on<input name="waitingOn" autocomplete="off" placeholder="Only if status is Waiting"></label>
+    <label>Next follow-up<input type="date" name="followUpOn"></label>
+  </div>
+  <div class="row">
     <label>Work needed (days)<input type="number" name="effortDays" min="0" max="365" step="1" placeholder="e.g. 10"></label>
     <label>Start by<input type="date" name="startDate"><span id="sbHint" style="font-weight:400;font-size:12px"></span></label>
   </div>
@@ -265,6 +269,13 @@ dialog::backdrop{background:rgba(10,20,18,.45)}
   </div>
 </form></dialog>
 
+<dialog id="handoffDlg"><form class="dlg" id="handoffForm" method="dialog">
+  <h3 id="handoffTitle">Hand off</h3>
+  <label>Waiting on<input name="who" list="whoList" required autocomplete="off" placeholder="e.g. Ravi"><datalist id="whoList"></datalist></label>
+  <label>What you sent or asked<textarea name="what" style="min-height:56px" placeholder="e.g. Sent prompt doc for approval on Slack"></textarea></label>
+  <label>First follow-up<input type="date" name="fu"><span style="font-weight:400;font-size:12px">Defaults to the next working day. After that: every 2 working days, then every 3.</span></label>
+  <div class="foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">Start waiting</button></div>
+</form></dialog>
 <dialog id="resumeDlg"><form class="dlg" id="resumeForm" method="dialog">
   <h3 id="resumeTitle">Where you left it</h3>
   <label>Where are you leaving it? What's the very next step?<textarea name="rn" placeholder="e.g. Alternatives section done, unique value next"></textarea></label>
@@ -316,8 +327,14 @@ const onWeek=t=>open(t)&&(t.weekOf===week()[0]||inWeek(t.due)||inWeek(t.todayDat
 const doneOn=(t,d)=>t.status==="done"&&t.doneAt&&iso(new Date(t.doneAt))===d;
 const doneThisWeek=t=>t.status==="done"&&t.doneAt&&inWeek(iso(new Date(t.doneAt)));
 const doing=t=>t.status==="doing";
+const waiting=t=>t.status==="waiting";
+const nextWork=(iso,n=1)=>{let d=parse(iso);while(n>0){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)n--}return iso2(d)};
+const iso2=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fuDue=t=>waiting(t)&&(t.followUpOn||T())<=T();
+const chase=t=>waiting(t)&&(t.followUps||0)>=3;
+const gapAfter=k=>k>=3?3:2;
 const startBy=t=>t.startDate||(t.due&&t.effortDays>0?addDays(t.due,-t.effortDays):null);
-const startNow=t=>open(t)&&!doing(t)&&!!startBy(t)&&startBy(t)<=T()&&!(t.due&&t.due<=T())&&!onToday(t);
+const startNow=t=>open(t)&&!doing(t)&&!waiting(t)&&!!startBy(t)&&startBy(t)<=T()&&!(t.due&&t.due<=T())&&!onToday(t);
 const behind=t=>startNow(t)&&startBy(t)<T();
 const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const ago=s=>{const d=Math.floor((Date.now()-new Date(s))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
@@ -342,15 +359,16 @@ const ICON={
  projects:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
  suggested:'<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>',
  brain:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="5" r="2"/><circle cx="20" cy="5" r="2"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/><path d="M6 6l4 4M18 6l-4 4M6 18l4-4M18 18l-4-4"/></svg>',
+ followups:'<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4"/></svg>',
  all:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
  attention:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
-function attentionCount(){return S.tasks.filter(t=>overdue(t)||stale(t)||stalled(t)||decide(t)||behind(t)).length}
+function attentionCount(){return S.tasks.filter(t=>(overdue(t)&&!waiting(t))||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
 
 function renderSide(){
-  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
+  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["followups","Waiting on others",S.tasks.filter(fuDue).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
   let h=`<div class="brand">Task Hub<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="nav">`;
-  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":v==="suggested"&&c?"new":""}">${c||""}</span></button>`;
+  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups")&&c?"new":""}">${c||""}</span></button>`;
   h+=`</div>`;
   for(const a of AREAS){
     const ps=tops(a);
@@ -365,7 +383,7 @@ function renderSide(){
   if(inbox)h+=`<div class="nav"><button data-proj="__inbox" aria-current="${S.pid==="__inbox"}"><span class="dot" style="background:var(--faint)"></span>Unsorted<span class="count">${inbox}</span></button></div>`;
   h+=`<button class="side-add" data-newproj>+ New project</button><button class="side-out" data-signout>Sign out</button>`;
   document.getElementById("side").innerHTML=h;
-  const tabs=[["today","Today"],["week","Week"],["projects","Projects"],["attention","Attention"],["suggested","Ideas"],["brain","Map"],["all","All"]];
+  const tabs=[["today","Today"],["week","Week"],["projects","Projects"],["followups","Chase"],["attention","Attention"],["suggested","Ideas"],["brain","Map"],["all","All"]];
   document.getElementById("tabs").innerHTML=tabs.map(([v,l])=>`<button data-go="${v}" aria-current="${S.view===v||(v==="projects"&&S.view==="project")}">${ICON[v]}${l}${v==="attention"&&attentionCount()?` (${attentionCount()})`:""}${v==="suggested"&&S.tasks.filter(sugg).length?` (${S.tasks.filter(sugg).length})`:""}</button>`).join("");
 }
 
@@ -384,14 +402,17 @@ function row(t){
   {const sb=startBy(t);if(sb&&open(t)&&!doing(t)&&!(t.due&&t.due<=T())){if(sb<T())bits.push(`<span class="late">Should have started ${(n=>n===1?"yesterday":n+" days ago")(daysBetween(sb,T()))}</span>`);else if(sb===T())bits.push(`<span class="started">Start today</span>`);else bits.push(`<span>Start by ${esc(nice(sb))}</span>`)}}
   if(t.effortDays>0&&open(t))bits.push(`<span>~${t.effortDays} day${t.effortDays===1?"":"s"} of work</span>`);
   if(t.due)bits.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"soon":""}">${overdue(t)?"Overdue, ":"Due "}${esc(nice(t.due))}</span>`);
-  if(t.status==="waiting")bits.push(`<span class="wait">Waiting</span>`);
+  if(waiting(t)){const n=t.followUps||0;const fu=t.followUpOn||T();
+    bits.push(`<span class="wait">Waiting on ${esc(t.waitingOn||"someone")}${t.waitingSince?` since ${esc(nice(iso2(new Date(t.waitingSince))))}`:""}</span>`);
+    if(n)bits.push(`<span class="${chase(t)?"late":""}">Chased ×${n}${chase(t)?": escalate or change route":""}</span>`);
+    bits.push(fu<T()?`<span class="late">Follow-up was due ${esc(nice(fu))}</span>`:fu===T()?`<span class="started">Follow up today</span>`:`<span>Next follow-up ${esc(nice(fu))}</span>`);}
   if(doing(t))bits.push(`<span class="${stalled(t)?"late":"started"}">${stalled(t)?"Stalled, started ":"Started "}${esc(ago(t.startedAt||t.updatedAt))}</span>`);
   if((t.carryCount||0)>0&&open(t))bits.push(`<span class="${decide(t)?"late":"carry"}" title="Carried forward ${t.carryCount} times">${decide(t)?"Decide: ":""}→ ×${t.carryCount}</span>`);
   if(stale(t))bits.push(`<span class="stale">Untouched ${Math.floor((Date.now()-new Date(t.updatedAt))/864e5)} days</span>`);
   if(sugg(t)&&t.sourceChat)bits.push(`<span>From: ${esc(t.sourceChat)}</span>`);
   if(t.resumeNote&&open(t))bits.push(`<span class="resume">↳ ${esc(t.resumeNote)}</span>`);
   if(t.notes)bits.push(`<span>Has notes</span>`);
-  const tools=sugg(t)?`<div class="tools" style="opacity:1"><button class="tool" data-accept="${esc(t.id)}" style="color:var(--ok)">Accept</button><button class="tool" data-dismiss="${esc(t.id)}">Dismiss</button></div>`:open(t)?`<div class="tools">${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
+  const tools=sugg(t)?`<div class="tools" style="opacity:1"><button class="tool" data-accept="${esc(t.id)}" style="color:var(--ok)">Accept</button><button class="tool" data-dismiss="${esc(t.id)}">Dismiss</button></div>`:waiting(t)?`<div class="tools" style="opacity:1"><button class="tool" data-chased="${esc(t.id)}" title="I followed up; schedule the next nudge">Followed up</button><button class="tool" data-backtome="${esc(t.id)}" title="They replied and it needs more work from me">Back to me</button><button class="tool" data-quickdone="${esc(t.id)}" style="color:var(--ok)" title="They replied and it's closed">Closed</button></div>`:open(t)?`<div class="tools"><button class="tool" data-handoff="${esc(t.id)}" title="Sent to someone, now waiting on them">Hand off</button>${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
   return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""} p-${esc(t.priority||"med")}">${sugg(t)?`<span class="chk" style="border-style:dashed" aria-hidden="true"></span>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div></div>${tools}</div>`;
 }
 function sec(title,list,{empty="",action="",cls=""}={}){
@@ -407,15 +428,16 @@ function progress(done,total,label){const pct=total?Math.round(done/total*100):0
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
-    const motionA=S.tasks.filter(doing),listA=S.tasks.filter(x=>onToday(x)&&!doing(x)),leftA=S.tasks.filter(x=>leftover(x)&&!doing(x)),doneA=S.tasks.filter(x=>doneOn(x,t));
+    const fuA=S.tasks.filter(fuDue),motionA=S.tasks.filter(doing),listA=S.tasks.filter(x=>onToday(x)&&!doing(x)&&!waiting(x)),leftA=S.tasks.filter(x=>leftover(x)&&!doing(x)&&!waiting(x)),doneA=S.tasks.filter(x=>doneOn(x,t));
     const startA=S.tasks.filter(x=>startNow(x)&&!leftover(x));
-    const pool=[...motionA,...startA,...listA,...leftA];
-    const motion=motionA.filter(tfilter),starts=startA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
+    const pool=[...fuA,...motionA,...startA,...listA,...leftA];
+    const fus=fuA.filter(tfilter),motion=motionA.filter(tfilter),starts=startA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
     h+=`<div class="head"><div><h1>Today</h1><div class="sub">${esc(parse(t).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</div></div>${progress(doneT.length,doneT.length+list.length+motion.length,"done")}</div>`;
     h+=strip()+quick("Add something for today");
     h+=todayFilters(pool);
     if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
     h+=secT(`In motion <span class="n" style="font-weight:500">${motion.length>3?"· more than 3 started":""}</span>`,motion,{empty:"Nothing started. Tap a task's circle once to start it, twice to finish."});
+    h+=secT("Follow up today",fus.sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||"")));
     h+=secT(`Start today <span class="n" style="font-weight:500">${starts.some(behind)?"· some are behind":""}</span>`,starts.sort((a,b)=>startBy(a).localeCompare(startBy(b))));
     h+=secT("To do today",list,{empty:S.tf?"Nothing for today in this filter.":"Your list for today is clear. Pull something in from This week or a project."});
     h+=secT("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move ${S.tf?"these":"all"} to today</button>`:""});
@@ -438,7 +460,7 @@ function renderView(){
     h+=sec("Started, then stalled",sortT(S.tasks.filter(x=>stalled(x)&&!overdue(x))),{empty:"Everything you started has moved in the last 3 days."});
     h+=sec("Decide: carried forward 3+ times",sortT(S.tasks.filter(x=>decide(x)&&!overdue(x)&&!stalled(x))),{empty:"Nothing keeps getting pushed."});
     h+=sec("Untouched for a week or more",sortT(S.tasks.filter(x=>stale(x)&&!overdue(x))),{empty:"Everything has moved in the last 7 days."});
-    h+=sec("Waiting on someone",sortT(S.tasks.filter(x=>x.status==="waiting")),{empty:"Not waiting on anyone."});
+    h+=sec("Chased 3+ times: escalate, call, or change route",S.tasks.filter(chase),{cls:"danger",empty:"Nobody needs escalating."});
   }
   else if(S.view==="suggested"){
     const ss=S.tasks.filter(sugg);
@@ -450,6 +472,16 @@ function renderView(){
   else if(S.view==="brain"){
     h+=`<div class="head"><div><h1>Mind map</h1><div class="sub">Your world by area and project: tasks, people, ideas, decisions and notes</div></div><div class="right"><button class="btn primary" data-addnote="${S.bsel.startsWith("p:")?esc(S.bsel.slice(2)):""}">Add note</button></div></div>`;
     h+=`<div class="brain"><div class="brain-canvas"><div class="brain-tools"><input id="bsearch" type="search" placeholder="Search your brain" value="${esc(S.bq)}" aria-label="Search the mind map"><button class="btn" data-bexpand>Expand all</button><button class="btn" data-bcollapse>Collapse</button><button class="btn" data-bfit>Recenter</button></div><svg id="brainSvg" role="img" aria-label="Mind map of your projects, tasks and notes"></svg><div class="legend">${Object.entries(KIND).map(([k,v])=>`<span><i style="background:${v.c}"></i>${v.l}</span>`).join("")}<span><i style="background:var(--raised);box-shadow:inset 0 0 0 2px var(--muted)"></i>Task</span><span><i style="background:var(--danger)"></i>Overdue</span></div></div><div class="bpanel" id="bpanel">${brainPanel()}</div></div>`;
+  }
+  else if(S.view==="followups"){
+    const w=S.tasks.filter(waiting);const due=w.filter(fuDue).sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||""));
+    h+=`<div class="head"><div><h1>Waiting on others</h1><div class="sub">You've done your part. Nudge on schedule until it closes.</div></div><div class="right"><div class="meter">${w.length}<span> open loops</span></div></div></div>`;
+    h+=sec("Follow up today",due,{empty:"No nudges due today."});
+    h+=sec("Chased 3+ times: escalate or change route",w.filter(x=>chase(x)&&!fuDue(x)),{cls:"danger"});
+    const later=w.filter(x=>!fuDue(x)&&!chase(x));const g=new Map();
+    for(const x of later){const k=x.waitingOn||"Someone";if(!g.has(k))g.set(k,[]);g.get(k).push(x)}
+    for(const k of [...g.keys()].sort())h+=sec(`Waiting on ${esc(k)}`,g.get(k).sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||"")));
+    if(!w.length)h+=`<div class="empty">Nothing waiting on anyone. Use Hand off on a task when you send it to someone.</div>`;
   }
   else if(S.view==="projects"){
     h+=`<div class="head"><div><h1>Projects</h1></div><div class="right"><button class="btn" data-newproj>New project</button></div></div>`;
@@ -675,6 +707,9 @@ document.addEventListener("click",async e=>{
     if(doing(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
     await startTask(t);return}
   if(b.dataset.quickdone){await upd(b.dataset.quickdone,{status:"done",doneAt:now()});toast("Marked done");return}
+  if(b.dataset.handoff){openHandoff(S.tasks.find(x=>x.id===b.dataset.handoff));return}
+  if(b.dataset.chased){const x=S.tasks.find(y=>y.id===b.dataset.chased);if(!x)return;const n=(x.followUps||0)+1;const nx=nextWork(T(),gapAfter(n));await upd(x.id,{followUps:n,followUpOn:nx});toast(`Logged. Next nudge ${nice(nx)}${n>=3?" (time to escalate)":""}`);return}
+  if(b.dataset.backtome){await upd(b.dataset.backtome,{status:"todo",todayDate:T(),followUpOn:null});toast("Back on your list for today");return}
   if(b.dataset.park){openResume(S.tasks.find(x=>x.id===b.dataset.park),"park");return}
   if(b.dataset.rnote){openResume(S.tasks.find(x=>x.id===b.dataset.rnote),"note");return}
   if(b.dataset.drop){if(!confirm("Drop this task? It will be deleted."))return;try{await S.db.doc("tasks/"+b.dataset.drop).delete();toast("Dropped")}catch{toast("Couldn't drop that task.")}return}
@@ -710,13 +745,14 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   document.getElementById("delTask").hidden=!t;document.getElementById("taskDlg").showModal();
 }
 document.getElementById("taskForm").addEventListener("submit",async e=>{
   const f=e.target;const st=f.status.value;
   const ef=parseInt(f.elements.effortDays.value,10);
-  const data={effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
+  const wx=st==="waiting"?{waitingOn:f.elements.waitingOn.value.trim()||null,followUpOn:f.elements.followUpOn.value||(editing?.status==="waiting"?editing.followUpOn:null)||nextWork(T(),1),...(editing?.status!=="waiting"?{waitingSince:now(),followUps:0}:{})}:{followUpOn:null};
+  const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null};
   if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
@@ -743,6 +779,15 @@ function sbHint(){const f=document.getElementById("taskForm").elements;const ef=
   if(f.startDate.value){el.textContent="Set by you";return}
   el.textContent=f.due.value&&ef>0?`Auto: ${nice(addDays(f.due.value,-ef))} (deadline minus work)`:"Leave blank to work it out from deadline and work needed"}
 document.getElementById("taskForm").addEventListener("input",e=>{if(["effortDays","startDate","due"].includes(e.target.name))sbHint()});
+/* hand-off */
+let handT=null;
+function openHandoff(t){if(!t)return;handT=t;const f=document.getElementById("handoffForm").elements;
+  document.getElementById("handoffTitle").textContent="Hand off: "+t.title;
+  document.getElementById("whoList").innerHTML=[...new Set(S.tasks.map(x=>x.waitingOn).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join("");
+  f.who.value=t.waitingOn||"";f.what.value="";f.fu.value=nextWork(T(),1);document.getElementById("handoffDlg").showModal();setTimeout(()=>f.who.focus(),50)}
+document.getElementById("handoffForm").addEventListener("submit",async e=>{if(!handT)return;const f=e.target.elements;const who=f.who.value.trim();if(!who)return;
+  await upd(handT.id,{status:"waiting",waitingOn:who,waitingSince:now(),followUps:0,followUpOn:f.fu.value||nextWork(T(),1),resumeNote:f.what.value.trim()||handT.resumeNote||null,todayDate:null});
+  toast(`Waiting on ${who}. First nudge ${nice(f.fu.value||nextWork(T(),1))}`)});
 /* note dialog */
 let editingN=null;
 function openNote(n,pid){
@@ -788,7 +833,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
