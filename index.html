@@ -193,6 +193,7 @@ section{margin-bottom:32px}
 .task:hover .tools,.task:focus-within .tools{opacity:1;transform:none}
 .tool{border:1px solid var(--line);background:var(--raised);border-radius:999px;font-size:12px;font-weight:500;padding:4px 10px;color:var(--muted);transition:background .18s,border-color .18s,color .18s}
 .tool:hover{border-color:var(--line-strong);color:var(--ink)}
+.tool.yes{color:var(--ok);border-color:var(--ok)}
 .tool[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 
 /* project cards */
@@ -277,8 +278,8 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
 .ritem:hover b{text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
 .idea{background:var(--bg);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
 .idea .ritem{border:0;padding:0}
-.idea .acts{display:flex;gap:8px;flex-wrap:wrap}
-.idea .acts button{min-height:36px;padding:0 14px;border-radius:10px;font-size:13px;font-weight:500;border:1px solid var(--line-strong);background:transparent;color:var(--muted);transition:background .18s}
+.idea .acts{display:flex;gap:6px;flex-wrap:wrap}
+.idea .acts button{min-height:34px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:500;border:1px solid var(--line-strong);background:transparent;color:var(--muted);transition:background .18s}
 .idea .acts button:hover{background:var(--sunken)}
 .idea .acts button.yes{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .idea .acts button.yes:hover{opacity:.9}
@@ -523,8 +524,8 @@ function row(t){
   if(sugg(t)&&t.sourceChat)bits.push(`<span>From: ${esc(t.sourceChat)}</span>`);
   if(t.resumeNote&&open(t))bits.push(`<span class="resume">↳ ${esc(t.resumeNote)}</span>`);
   if(t.notes)bits.push(`<span>Has notes</span>`);
-  const tools=sugg(t)?`<div class="tools" style="opacity:1"><button class="tool" data-accept="${esc(t.id)}" style="color:var(--ok)">Accept</button><button class="tool" data-dismiss="${esc(t.id)}">Dismiss</button></div>`:waiting(t)?`<div class="tools" style="opacity:1"><button class="tool" data-chased="${esc(t.id)}" title="I followed up; schedule the next nudge">Followed up</button><button class="tool" data-backtome="${esc(t.id)}" title="They replied and it needs more work from me">Back to me</button><button class="tool" data-quickdone="${esc(t.id)}" style="color:var(--ok)" title="They replied and it's closed">Closed</button></div>`:open(t)?`<div class="tools"><button class="tool" data-handoff="${esc(t.id)}" title="Sent to someone, now waiting on them">Hand off</button>${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
-  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""} p-${esc(t.priority||"med")}">${sugg(t)?`<span class="chk" style="border-style:dashed" aria-hidden="true"></span>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div></div>${tools}</div>`;
+  const tools=sugg(t)?`<div class="tools" style="opacity:1;transform:none">${suggActs(t,"tool")}</div>`:waiting(t)?`<div class="tools" style="opacity:1"><button class="tool" data-chased="${esc(t.id)}" title="I followed up; schedule the next nudge">Followed up</button><button class="tool" data-backtome="${esc(t.id)}" title="They replied and it needs more work from me">Back to me</button><button class="tool" data-quickdone="${esc(t.id)}" style="color:var(--ok)" title="They replied and it's closed">Closed</button></div>`:open(t)?`<div class="tools"><button class="tool" data-handoff="${esc(t.id)}" title="Sent to someone, now waiting on them">Hand off</button>${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
+  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""} p-${esc(t.priority||"med")}">${sugg(t)?`<button class="chk" style="border-style:dashed" data-done="${esc(t.id)}" aria-label="Mark done" title="Already done? Tap to mark it done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div></div>${tools}</div>`;
 }
 function sec(title,list,{empty="",action="",cls=""}={}){
   if(!list.length&&!empty)return"";
@@ -536,6 +537,8 @@ function quick(ph){
 }
 function progress(done,total,label){const pct=total?Math.round(done/total*100):0;return `<div class="right"><div class="meter">${done}<span> of ${total} ${label}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`}
 
+function suggActs(t,cls){const id=esc(t.id),b=(a,l,ti,x="")=>`<button class="${cls}${x}" ${a}="${id}" title="${ti}">${l}</button>`;
+  return b("data-accept","Accept","Add to your list"," yes")+b("data-stoday","Today","Add to today's list")+b("data-sweek","Week","Add to this week")+b("data-sstart","Start","Add and start now")+b("data-quickdone","Done","Already done")+b("data-dismiss","Dismiss","Not needed")}
 function rail(){
   const t=T();let h=`<div class="rail" role="complementary" aria-label="At a glance">`;
   const wl=S.tasks.filter(waiting).sort((a,b)=>(a.followUpOn||t).localeCompare(b.followUpOn||t));
@@ -550,7 +553,7 @@ function rail(){
   if(sl.length){
     h+=`<section class="card"><div class="card-h"><h2>Ideas from Claude</h2><span class="n">${sl.length}</span></div>`;
     for(const x of sl.slice(0,3)){const p=proj(x.projectId);
-      h+=`<div class="idea"><button class="ritem" data-edit="${esc(x.id)}"><b>${esc(x.title)}</b><span>${esc(fullName(p))}${x.due?` · suggested due ${esc(nice(x.due))}`:""}</span></button><div class="acts"><button class="yes" data-accept="${esc(x.id)}">Accept</button><button data-dismiss="${esc(x.id)}">Dismiss</button></div></div>`}
+      h+=`<div class="idea"><button class="ritem" data-edit="${esc(x.id)}"><b>${esc(x.title)}</b><span>${esc(fullName(p))}${x.due?` · suggested due ${esc(nice(x.due))}`:""}</span></button><div class="acts">${suggActs(x,"")}</div></div>`}
     if(sl.length>3)h+=`<button class="more" data-go="suggested">See all ${sl.length}</button>`;
     h+=`</section>`;
   }
@@ -842,6 +845,7 @@ document.addEventListener("click",async e=>{
   if(b.dataset.day){S.day=S.day===b.dataset.day?null:b.dataset.day;render();return}
   if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;
     if(t.status==="done"){await upd(t.id,{status:"todo",doneAt:null});return}
+    if(sugg(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
     if(doing(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
     await startTask(t);return}
   if(b.dataset.quickdone){await upd(b.dataset.quickdone,{status:"done",doneAt:now()});toast("Marked done");return}
@@ -855,6 +859,9 @@ document.addEventListener("click",async e=>{
     if(b.dataset.tog==="today")await upd(t.id,{todayDate:t.todayDate===T()?null:T()});
     else await upd(t.id,{weekOf:t.weekOf===week()[0]?null:week()[0]});return}
   if("carry" in b.dataset){for(const t of S.tasks.filter(x=>leftover(x)&&!doing(x)&&tfilter(x)))await upd(t.id,{todayDate:T()});toast("Moved to today");return}
+  if(b.dataset.stoday){await upd(b.dataset.stoday,{status:"todo",todayDate:T()});toast("Added to today");return}
+  if(b.dataset.sweek){await upd(b.dataset.sweek,{status:"todo",weekOf:week()[0]});toast("Added to this week");return}
+  if(b.dataset.sstart){const t=S.tasks.find(x=>x.id===b.dataset.sstart);if(t)await startTask(t);return}
   if(b.dataset.accept){await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
   if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
