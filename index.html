@@ -249,7 +249,16 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
 .side-out:hover{color:var(--ink)}
 .notice{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:20px;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .35s var(--ease);z-index:20;box-shadow:var(--lift)}
-.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast{display:flex;align-items:center;gap:14px}
+.toast button{border:0;background:none;color:inherit;font-weight:600;padding:4px 2px;text-decoration:underline;text-underline-offset:3px;opacity:.9}
+.toast button:hover{opacity:1}
+.hist{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));display:flex;gap:2px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--lift);z-index:15;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s var(--ease),transform .3s var(--ease)}
+.hist.on{opacity:1;transform:none;pointer-events:auto}
+.hist button{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:0;border-radius:10px;background:none;color:var(--ink);font-size:13px;font-weight:500;transition:background .18s}
+.hist button:hover:not(:disabled){background:var(--sunken)}
+.hist button:disabled{color:var(--faint);opacity:.5;cursor:default}
+.hist svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 
 /* today layout */
 .wrap:has(.today-grid){max-width:1180px}
@@ -314,6 +323,9 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
   .bar{margin-left:0}
   .row{grid-template-columns:1fr}
   .rail{position:static}
+  .hist{right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .hist button span{display:none}
+  .toast{bottom:calc(140px + env(safe-area-inset-bottom,0px))}
   .today-grid{gap:8px}
   dialog{border-radius:24px 24px 0 0;margin-bottom:0;width:100vw;max-width:100vw}
   dialog[open]{animation:sheet .35s var(--ease)}
@@ -410,6 +422,10 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
   </div>
 </form></dialog>
 <div class="toast" id="toast" role="status"></div>
+<div class="hist" id="hist" role="toolbar" aria-label="History">
+  <button type="button" data-hundo aria-label="Undo" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span>Undo</span></button>
+  <button type="button" data-hredo aria-label="Redo" disabled><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg><span>Redo</span></button>
+</div>
 
 <script>
 const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D0662A","#5E6E68","#B0407A"];
@@ -817,7 +833,11 @@ function allList(){
 function render(){if(!S.ready.p||!S.ready.t)return;const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
 
 /* ---------- writes ---------- */
-let toastTimer;function toast(m){const e=document.getElementById("toast");e.textContent=m;e.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove("show"),2200)}
+let toastTimer;function toast(m,undoable=true){const e=document.getElementById("toast");
+  const g=undoable&&HIST.grp&&HIST.grp.ops.length&&HIST.undo[HIST.undo.length-1]===HIST.grp?HIST.grp:null;
+  if(g&&!g.label)g.label=m;
+  e.innerHTML=`<span>${esc(m)}</span>${g?`<button type="button" data-hundo>Undo</button>`:""}`;
+  e.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove("show"),g?5000:2200);paintHist()}
 function carryBump(t,patch){const td=T();let c=false;
   if(patch.todayDate&&t.todayDate&&t.todayDate<td&&patch.todayDate>t.todayDate)c=true;
   if(patch.due&&t.due&&t.due<td&&patch.due>t.due)c=true;
@@ -828,6 +848,8 @@ async function addTask(data){try{await S.db.collection("tasks").add({status:"tod
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
   const b=e.target.closest("button");if(!b)return;
+  if("hundo" in b.dataset){document.getElementById("toast").classList.remove("show");HIST.run("undo");return}
+  if("hredo" in b.dataset){HIST.run("redo");return}
   if(b.dataset.go){S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.proj){S.view="project";S.pid=b.dataset.proj;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if("themeToggle" in b.dataset){const d=document.documentElement,dark=d.dataset.theme!=="dark";if(dark)d.dataset.theme="dark";else delete d.dataset.theme;try{localStorage.setItem("hub-theme",dark?"dark":"light")}catch{}document.querySelector('meta[name="theme-color"]').content=dark?"#141311":"#F6F0E4";renderSide();return}
@@ -983,13 +1005,67 @@ const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
 const ok=({error})=>{if(error)throw error};
+/* every write goes through here, so every change can be undone */
+const RAW={
+  update:async(t,id,d)=>ok(await sb.from(t).update(toRow(d)).eq("id",id)),
+  upsert:async(t,row)=>ok(await sb.from(t).upsert(toRow(row))),
+  del:async(t,id)=>ok(await sb.from(t).delete().eq("id",id))};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const rowOf=(t,id)=>(S[t]||[]).find(x=>x.id===id);
+const prevVals=(cur,patch)=>{const b={};for(const k of Object.keys(patch))if(k!=="updatedAt")b[k]=cur?(cur[k]??null):null;return b};
 S.db={
   doc(path){const[t,id]=path.split("/");return{
-    update:async d=>{ok(await sb.from(t).update(toRow(d)).eq("id",id));soon()},
-    set:async d=>{ok(await sb.from(t).upsert({id,...toRow(d)}));soon()},
-    delete:async()=>{ok(await sb.from(t).delete().eq("id",id));soon()}}},
-  collection(t){return{add:async d=>{ok(await sb.from(t).insert(toRow(d)));soon()}}}
+    update:async d=>{const cur=rowOf(t,id);await RAW.update(t,id,d);HIST.rec({t,id,kind:"update",before:prevVals(cur,d),after:d});soon()},
+    set:async d=>{const cur=rowOf(t,id);ok(await sb.from(t).upsert({id,...toRow(d)}));
+      HIST.rec(cur?{t,id,kind:"update",before:prevVals(cur,d),after:d}:{t,id,kind:"insert",row:{id,...d}});soon()},
+    delete:async()=>{const cur=rowOf(t,id);
+      if(cur&&t==="projects"){ // children lose their link when a project goes; remember them so undo can relink
+        for(const x of S.tasks.filter(x=>x.projectId===id))HIST.rec({t:"tasks",id:x.id,kind:"dep",row:clone(x),after:{projectId:null}});
+        for(const x of S.notes.filter(x=>x.projectId===id))HIST.rec({t:"notes",id:x.id,kind:"dep",row:clone(x),after:{projectId:null}});
+        for(const x of S.projects.filter(x=>x.parentId===id))HIST.rec({t:"projects",id:x.id,kind:"dep",row:clone(x),after:{parentId:null}});}
+      await RAW.del(t,id);if(cur)HIST.rec({t,id,kind:"delete",row:clone(cur)});soon()}}},
+  collection(t){return{add:async d=>{const{data,error}=await sb.from(t).insert(toRow(d)).select().single();if(error)throw error;
+    HIST.rec({t,id:data.id,kind:"insert",row:fromRow(data)});soon()}}}
 };
+const HIST={undo:[],redo:[],grp:null,busy:false,
+  begin(){this.grp=null},
+  rec(op){if(this.busy)return;
+    if(!this.grp){this.grp={ops:[],label:""};this.undo.push(this.grp);if(this.undo.length>50)this.undo.shift();this.redo=[]}
+    this.grp.ops.push(op);paintHist()},
+  async run(dir){
+    const from=dir==="undo"?this.undo:this.redo,to=dir==="undo"?this.redo:this.undo;
+    if(this.busy||!from.length)return;const g=from.pop();this.busy=true;this.grp=null;paintHist();
+    try{
+      const ops=dir==="undo"?g.ops.slice().reverse():g.ops;
+      for(const o of ops){
+        if(dir==="undo"){
+          if(o.kind==="update")await RAW.update(o.t,o.id,o.before);
+          else if(o.kind==="insert")await RAW.del(o.t,o.id);
+          else await RAW.upsert(o.t,o.row);
+        }else{
+          if(o.kind==="update"||o.kind==="dep")await RAW.update(o.t,o.id,o.after);
+          else if(o.kind==="insert")await RAW.upsert(o.t,o.row);
+          else await RAW.del(o.t,o.id);
+        }
+      }
+      to.push(g);toast((dir==="undo"?"Undone":"Redone")+(g.label?": "+g.label.toLowerCase():""),false);
+    }catch(e){from.push(g);toast(`Couldn't ${dir} that. Try again.`,false)}
+    this.busy=false;paintHist();soon();
+  }};
+function paintHist(){const h=document.getElementById("hist");if(!h)return;
+  const u=h.querySelector("[data-hundo]"),r=h.querySelector("[data-hredo]");
+  u.disabled=!HIST.undo.length||HIST.busy;r.disabled=!HIST.redo.length||HIST.busy;
+  const top=HIST.undo[HIST.undo.length-1],nxt=HIST.redo[HIST.redo.length-1];
+  u.title="Undo"+(top?.label?": "+top.label:"")+" (Ctrl+Z)";r.title="Redo"+(nxt?.label?": "+nxt.label:"")+" (Ctrl+Shift+Z)";
+  h.classList.toggle("on",!!(HIST.undo.length||HIST.redo.length))}
+// each click or form submit starts a new undo step
+document.addEventListener("click",e=>{if(!e.target.closest("[data-hundo],[data-hredo]"))HIST.begin()},true);
+document.addEventListener("submit",()=>HIST.begin(),true);
+document.addEventListener("keydown",e=>{
+  if(!(e.metaKey||e.ctrlKey)||e.altKey)return;const k=e.key.toLowerCase();if(k!=="z"&&k!=="y")return;
+  const a=document.activeElement;if(a&&(a.matches("input,textarea,select")||a.isContentEditable))return;
+  if(document.querySelector("dialog[open]"))return;
+  e.preventDefault();HIST.run(k==="y"||e.shiftKey?"redo":"undo")});
 async function refresh(){
   const[p,t,n]=await Promise.all([sb.from("projects").select("*"),sb.from("tasks").select("*"),sb.from("notes").select("*")]);
   if(!n.error)S.notes=n.data.map(fromRow);
