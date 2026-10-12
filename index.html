@@ -1169,7 +1169,7 @@ document.addEventListener("keydown",e=>{
   e.preventDefault();HIST.run(k==="y"||e.shiftKey?"redo":"undo")});
 async function refresh(){
   const[p,t,n]=await Promise.all([sb.from("projects").select("*"),sb.from("tasks").select("*"),sb.from("notes").select("*")]);
-  if(!n.error)S.notes=n.data.map(fromRow);
+  if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.superseded_by);
   if(p.error||t.error){document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
   S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow);S.ready.p=S.ready.t=true;render();
 }
