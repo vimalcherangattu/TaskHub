@@ -225,6 +225,21 @@ section{margin-bottom:32px}
 .act b{font-weight:600;color:var(--ink)}
 .act time{font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap}
 
+/* dependencies */
+.meta .dep{color:var(--warn)}
+.meta .dep em{font-style:normal;color:var(--faint)}
+.deplink{border:0;background:none;padding:0;color:inherit;font-weight:500;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.deplink:hover{text-decoration-color:currentColor}
+.meta .unblocks{color:var(--accent);font-weight:500}
+.task.blocked .chk{border-style:dotted}
+.task.blocked .title{color:var(--muted)}
+.deps-ed{display:flex;flex-direction:column;gap:6px}
+.depchip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 12px;color:var(--ink)}
+.depchip.isdone{color:var(--faint);text-decoration:line-through}
+.depchip button{border:0;background:none;width:24px;height:24px;border-radius:999px;color:var(--faint);font-size:15px;padding:0}
+.depchip button:hover{background:var(--sunken);color:var(--danger)}
+#depList:empty{display:none}
+
 /* project cards */
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .pcard{position:relative;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-l);padding:20px 20px 18px 44px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .18s}
@@ -300,7 +315,13 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
 .focus .task.doing+.task.doing{margin-top:10px}
 .focus .task.doing::after{content:"";position:absolute;left:22px;top:-3px;width:40px;height:4px;border-radius:999px;background:var(--f-red)}
 .focus .task.doing .title{font-size:17px}
-.focus .task{flex-wrap:wrap}
+.task{flex-wrap:wrap}
+.task .body{flex:1 1 0}
+.tools.always{opacity:1;transform:none;flex-basis:100%;justify-content:flex-start;order:3;margin-left:38px}
+@media (min-width:821px){
+  .task .tools:not(.always){position:absolute;right:10px;top:10px;padding:2px 2px 2px 14px;background:linear-gradient(90deg,transparent,var(--surface) 14px);border-radius:999px}
+  .focus .task .tools:not(.always){position:static;background:none;padding:0}
+}
 .focus .tools{opacity:1;transform:none;flex-basis:100%;justify-content:flex-start;order:3;margin-left:38px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:20px;display:flex;flex-direction:column;gap:12px}
 .card.dashed{background:none;border-style:dashed;border-color:var(--line-strong)}
@@ -398,6 +419,8 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
     <label><input type="checkbox" name="onToday"> On today's list</label>
     <label><input type="checkbox" name="onWeek"> Finish this week</label>
   </div>
+  <div class="deps-ed"><div class="lbl">Waits on (finish these first)</div><div id="depList" class="chips"></div>
+    <select id="depAdd" aria-label="Add a task this waits on"></select></div>
   <div class="steps-ed"><div class="lbl">Steps</div><div id="stepList"></div>
     <input id="stepNew" autocomplete="off" placeholder="Add a step and press Enter" aria-label="New step"></div>
   <label>Where you left it<textarea name="resumeNote" style="min-height:56px" placeholder="Optional: next step when you come back"></textarea></label>
@@ -500,6 +523,13 @@ const startNow=t=>open(t)&&!doing(t)&&!waiting(t)&&!!startBy(t)&&startBy(t)<=T()
 const behind=t=>startNow(t)&&startBy(t)<T();
 const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const ago=s=>{const d=Math.floor((Date.now()-new Date(s))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
+/* dependencies: blockedBy = tasks that must finish first */
+const blockers=t=>(Array.isArray(t.blockedBy)?t.blockedBy:[]).map(id=>S.tasks.find(x=>x.id===id)).filter(x=>x&&x.status!=="done");
+const blocked=t=>open(t)&&blockers(t).length>0;
+const dependents=t=>S.tasks.filter(x=>open(x)&&Array.isArray(x.blockedBy)&&x.blockedBy.includes(t.id));
+const planOf=t=>t.todayDate&&t.todayDate>=T()?t.todayDate:t.due||t.startDate||null;
+const outOfOrder=t=>{if(!blocked(t)||!t.due)return null;return blockers(t).find(b=>overdue(b)||(planOf(b)&&planOf(b)>=t.due))||null};
+const dependsOn=(x,id,seen=new Set())=>{if(!x||seen.has(x.id))return false;seen.add(x.id);return(x.blockedBy||[]).some(b=>b===id||dependsOn(S.tasks.find(y=>y.id===b),id,seen))};
 const stalled=t=>doing(t)&&(Date.now()-new Date(t.updatedAt||t.startedAt||Date.now()))>3*864e5;
 const decide=t=>open(t)&&(t.carryCount||0)>=3;
 const stale=t=>open(t)&&t.status!=="waiting"&&!doing(t)&&t.updatedAt&&(Date.now()-new Date(t.updatedAt))>7*864e5;
@@ -525,7 +555,7 @@ const ICON={
  all:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
  attention:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
-function attentionCount(){return S.tasks.filter(t=>(overdue(t)&&!waiting(t))||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
+function attentionCount(){return S.tasks.filter(t=>(overdue(t)&&!waiting(t))||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
 
 function renderSide(){
   const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["followups","Waiting on others",S.tasks.filter(fuDue).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
@@ -577,11 +607,13 @@ function row(t){
   const st=Array.isArray(t.steps)?t.steps:[],sd=st.filter(x=>x.done).length,nx=st.find(x=>!x.done);
   if(st.length)bits.push(`<button class="stepchip" data-steps="${esc(t.id)}" aria-expanded="${stepsOpen(t)}"><i style="--p:${Math.round(sd/st.length*100)}%"></i>${sd} of ${st.length} steps</button>`);
   if(st.length&&open(t))bits.push(nx?`<span>Next: ${esc(nx.text)}</span>`:`<span class="alldone">All steps done</span>`);
+  if(open(t)){const bs=blockers(t);if(bs.length)bits.push(`<span class="dep">Waits on ${bs.map(b=>`<button class="deplink" data-edit="${esc(b.id)}">${esc(trunc(b.title,40))}</button>${planOf(b)?` <em>${overdue(b)?"overdue":esc(nice(planOf(b)))}</em>`:""}`).join(", ")}</span>`);
+    const ds=dependents(t);if(ds.length)bits.push(`<span class="unblocks" title="${esc(ds.map(d=>d.title).join(", "))}">Unblocks ${ds.length===1?esc(trunc(ds[0].title,40)):ds.length+" tasks"}</span>`)}
   const la=lastClaude(t);if(la)bits.push(`<span class="upd" title="${esc(new Date(la.at).toLocaleString())}">Claude, ${esc(ago(la.at))}: ${esc(la.text)}</span>`);
   if(t.resumeNote&&open(t))bits.push(`<span class="resume">↳ ${esc(t.resumeNote)}</span>`);
   if(t.notes)bits.push(`<span>Has notes</span>`);
-  const tools=sugg(t)?`<div class="tools" style="opacity:1;transform:none">${suggActs(t,"tool")}</div>`:waiting(t)?`<div class="tools" style="opacity:1"><button class="tool" data-chased="${esc(t.id)}" title="I followed up; schedule the next nudge">Followed up</button><button class="tool" data-backtome="${esc(t.id)}" title="They replied and it needs more work from me">Back to me</button><button class="tool" data-quickdone="${esc(t.id)}" style="color:var(--ok)" title="They replied and it's closed">Closed</button></div>`:open(t)?`<div class="tools"><button class="tool" data-handoff="${esc(t.id)}" title="Sent to someone, now waiting on them">Hand off</button>${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
-  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""} p-${esc(t.priority||"med")}">${sugg(t)?`<button class="chk" style="border-style:dashed" data-done="${esc(t.id)}" aria-label="Mark done" title="Already done? Tap to mark it done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div>${st.length&&stepsOpen(t)?`<div class="steps">${st.map((x,i)=>`<button class="step ${x.done?"on":""}" data-step="${esc(t.id)}" data-i="${i}" aria-pressed="${!!x.done}"><span class="sbox"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>${esc(x.text)}</button>`).join("")}</div>`:""}</div>${tools}</div>`;
+  const tools=sugg(t)?`<div class="tools always">${suggActs(t,"tool")}</div>`:waiting(t)?`<div class="tools always"><button class="tool" data-chased="${esc(t.id)}" title="I followed up; schedule the next nudge">Followed up</button><button class="tool" data-backtome="${esc(t.id)}" title="They replied and it needs more work from me">Back to me</button><button class="tool" data-quickdone="${esc(t.id)}" style="color:var(--ok)" title="They replied and it's closed">Closed</button></div>`:open(t)?`<div class="tools">${blocked(t)?`<button class="tool yes" data-pushafter="${esc(t.id)}" title="Plan this after what it waits on">Move after</button>`:""}<button class="tool" data-handoff="${esc(t.id)}" title="Sent to someone, now waiting on them">Hand off</button>${doing(t)?`<button class="tool" data-park="${esc(t.id)}" title="Pause and note where you left it">Park</button><button class="tool" data-rnote="${esc(t.id)}" title="Where you left it">Note</button>`:`<button class="tool" data-quickdone="${esc(t.id)}" title="Mark done without starting">Done</button>`}${decide(t)?`<button class="tool" data-drop="${esc(t.id)}" style="color:var(--danger)" title="Drop this task">Drop</button>`:""}<button class="tool" data-tog="today" data-id="${esc(t.id)}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${esc(t.id)}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button></div>`:"";
+  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""}${blocked(t)?" blocked":""} p-${esc(t.priority||"med")}">${sugg(t)?`<button class="chk" style="border-style:dashed" data-done="${esc(t.id)}" aria-label="Mark done" title="Already done? Tap to mark it done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`:`<button class="chk" data-done="${esc(t.id)}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-edit="${esc(t.id)}">${esc(t.title)}</button><div class="meta">${bits.join("")}</div>${st.length&&stepsOpen(t)?`<div class="steps">${st.map((x,i)=>`<button class="step ${x.done?"on":""}" data-step="${esc(t.id)}" data-i="${i}" aria-pressed="${!!x.done}"><span class="sbox"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>${esc(x.text)}</button>`).join("")}</div>`:""}</div>${tools}</div>`;
 }
 function sec(title,list,{empty="",action="",cls=""}={}){
   if(!list.length&&!empty)return"";
@@ -622,10 +654,11 @@ function rail(){
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
-    const fuA=S.tasks.filter(fuDue),motionA=S.tasks.filter(doing),listA=S.tasks.filter(x=>onToday(x)&&!doing(x)&&!waiting(x)),leftA=S.tasks.filter(x=>leftover(x)&&!doing(x)&&!waiting(x)),doneA=S.tasks.filter(x=>doneOn(x,t));
-    const startA=S.tasks.filter(x=>startNow(x)&&!leftover(x));
+    const fuA=S.tasks.filter(fuDue),motionA=S.tasks.filter(doing),listA=S.tasks.filter(x=>onToday(x)&&!doing(x)&&!waiting(x)&&!blocked(x)),leftA=S.tasks.filter(x=>leftover(x)&&!doing(x)&&!waiting(x)&&!blocked(x)),doneA=S.tasks.filter(x=>doneOn(x,t));
+    const startA=S.tasks.filter(x=>startNow(x)&&!leftover(x)&&!blocked(x));
+    const heldA=S.tasks.filter(x=>blocked(x)&&!doing(x)&&!waiting(x)&&(onToday(x)||startNow(x)||leftover(x)));
     const pool=[...fuA,...motionA,...startA,...listA,...leftA];
-    const fus=fuA.filter(tfilter),motion=motionA.filter(tfilter),starts=startA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
+    const held=heldA.filter(tfilter),fus=fuA.filter(tfilter),motion=motionA.filter(tfilter),starts=startA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
     h+=`<div class="head"><div><h1>Today</h1><div class="sub">${esc(parse(t).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</div></div>${progress(doneT.length,doneT.length+list.length+motion.length,"done")}</div>`;
     h+=`<div class="today-grid"><div class="today-main">`;
     h+=strip()+quick("Add something for today");
@@ -635,6 +668,7 @@ function renderView(){
     h+=secT("Follow up today",fus.sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||"")));
     h+=secT(`Start today <span class="n" style="font-weight:500">${starts.some(behind)?"· some are behind":""}</span>`,starts.sort((a,b)=>startBy(a).localeCompare(startBy(b))));
     h+=secT("To do today",list,{empty:S.tf?"Nothing for today in this filter.":"Your list for today is clear. Pull something in from This week or a project."});
+    h+=secT(`Can't start yet <span class="n" style="font-weight:500">· waiting on another task</span>`,held);
     h+=secT("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move ${S.tf?"these":"all"} to today</button>`:""});
     h+=secT("Done today",doneT);
     h+=`</div>${rail()}</div>`;
@@ -652,6 +686,7 @@ function renderView(){
   else if(S.view==="attention"){
     h+=`<div class="head"><div><h1>Needs attention</h1><div class="sub">Overdue, stalled, pushed too often, or waiting on someone else</div></div></div>`;
     h+=sec("Overdue",sortT(S.tasks.filter(overdue)),{cls:"danger",empty:"Nothing overdue."});
+    h+=sec("Out of order: due before what it waits on",sortT(S.tasks.filter(x=>outOfOrder(x)&&!overdue(x))),{cls:"danger"});
     h+=sec("Behind: should have started already",S.tasks.filter(behind).sort((a,b)=>startBy(a).localeCompare(startBy(b))),{cls:"danger",empty:"Nothing is behind its start date."});
     h+=sec("Started, then stalled",sortT(S.tasks.filter(x=>stalled(x)&&!overdue(x))),{empty:"Everything you started has moved in the last 3 days."});
     h+=sec("Decide: carried forward 3+ times",sortT(S.tasks.filter(x=>decide(x)&&!overdue(x)&&!stalled(x))),{empty:"Nothing keeps getting pushed."});
@@ -890,6 +925,10 @@ document.addEventListener("click",async e=>{
   const b=e.target.closest("button");if(!b)return;
   if("hundo" in b.dataset){document.getElementById("toast").classList.remove("show");HIST.run("undo");return}
   if("hredo" in b.dataset){HIST.run("redo");return}
+  if(b.dataset.pushafter){const x=S.tasks.find(y=>y.id===b.dataset.pushafter);if(!x)return;
+    const ds=blockers(x).map(planOf).filter(Boolean).sort();const last=ds[ds.length-1];
+    const patch={todayDate:null};if(last&&(!x.due||x.due<=last))patch.due=addDays(last<T()?T():last,1);
+    await upd(x.id,patch);toast(patch.due?`Moved to ${nice(patch.due)}, after what it waits on`:"Off today until what it waits on is done");return}
   if(b.dataset.steps){const id=b.dataset.steps;S.sopen.has(id)?S.sopen.delete(id):S.sopen.add(id);render();return}
   if(b.dataset.step){const t=S.tasks.find(x=>x.id===b.dataset.step);if(!t)return;const i=+b.dataset.i;
     const st=(t.steps||[]).map((x,j)=>j===i?{...x,done:!x.done}:x);await upd(t.id,{steps:st});
@@ -957,12 +996,19 @@ function openTask(t){
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
   f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
-  dSteps=clone(Array.isArray(t?.steps)?t.steps:[]);drawSteps();document.getElementById("stepNew").value="";
+  dSteps=clone(Array.isArray(t?.steps)?t.steps:[]);drawSteps();dDeps=(Array.isArray(t?.blockedBy)?t.blockedBy:[]).filter(id=>S.tasks.some(x=>x.id===id));drawDeps();document.getElementById("stepNew").value="";
   const act=(Array.isArray(t?.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-5).reverse();
   document.getElementById("actList").innerHTML=act.length?`<div class="lbl">Recent changes</div>`+act.map(x=>`<div class="act"><b>${x.by==="claude"?"Claude":"You"}</b><span>${esc(x.text)}</span><time>${x.at?esc(ago(x.at)):""}</time></div>`).join(""):"";
   document.getElementById("delTask").hidden=!t;document.getElementById("taskDlg").showModal();
 }
-let dSteps=[];
+let dSteps=[],dDeps=[];
+function drawDeps(){const me=editing?.id;
+  document.getElementById("depList").innerHTML=dDeps.map((id,i)=>{const x=S.tasks.find(y=>y.id===id);if(!x)return"";
+    return `<span class="chip depchip ${x.status==="done"?"isdone":""}">${esc(trunc(x.title,46))}${x.status==="done"?" (done)":""}<button type="button" data-ddel="${i}" aria-label="Remove">×</button></span>`}).join("");
+  const opts=S.tasks.filter(x=>open(x)&&x.id!==me&&!dDeps.includes(x.id)&&!(me&&dependsOn(x,me))).sort((a,b)=>fullName(proj(a.projectId)).localeCompare(fullName(proj(b.projectId)))||a.title.localeCompare(b.title));
+  document.getElementById("depAdd").innerHTML=`<option value="">+ Add a task this waits on…</option>`+opts.map(x=>`<option value="${esc(x.id)}">${esc(fullName(proj(x.projectId)))} · ${esc(trunc(x.title,60))}</option>`).join("")}
+document.getElementById("depAdd").addEventListener("change",e=>{if(e.target.value){dDeps.push(e.target.value);drawDeps()}});
+document.getElementById("depList").addEventListener("click",e=>{const b=e.target.closest("[data-ddel]");if(b){dDeps.splice(+b.dataset.ddel,1);drawDeps()}});
 function drawSteps(){document.getElementById("stepList").innerHTML=dSteps.map((x,i)=>`<div class="step-ed ${x.done?"on":""}"><button type="button" class="sbox" data-dstep="${i}" aria-pressed="${!!x.done}" aria-label="${x.done?"Mark step not done":"Mark step done"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button><input value="${esc(x.text)}" data-dstext="${i}" aria-label="Step ${i+1}"><button type="button" class="sdel" data-dsdel="${i}" aria-label="Remove step">×</button></div>`).join("")}
 document.getElementById("stepList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   if(b.dataset.dstep!==undefined){const x=dSteps[+b.dataset.dstep];x.done=!x.done;drawSteps()}
@@ -976,7 +1022,7 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
   const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,
-    steps:[...dSteps,...(f.elements.stepNew.value.trim()?[{text:f.elements.stepNew.value.trim(),done:false}]:[])].map(x=>({text:String(x.text||"").trim(),done:!!x.done})).filter(x=>x.text)};
+    blockedBy:dDeps.slice(),steps:[...dSteps,...(f.elements.stepNew.value.trim()?[{text:f.elements.stepNew.value.trim(),done:false}]:[])].map(x=>({text:String(x.text||"").trim(),done:!!x.done})).filter(x=>x.text)};
   if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
   if(!data.title)return;
   if(editing){if(st==="done"&&editing.status!=="done")data.doneAt=now();if(st!=="done")data.doneAt=null;await upd(editing.id,data);toast("Task saved")}
@@ -1055,7 +1101,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
