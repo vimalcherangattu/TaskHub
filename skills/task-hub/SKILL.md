@@ -25,8 +25,9 @@ Always look up existing rows before writing: match projects by name, and check f
 
 ## Adding tasks
 
-- When Vimal mentions something to do, follow up on, decide or finish, **propose** it (title, project, deadline, priority) and wait for an OK. If no deadline is given, suggest one.
-- Use an existing project id. If nothing fits, ask whether to create a project.
+- No asking first. The Suggested list in the hub is the review step.
+- When Vimal says he needs to do, follow up on, decide or finish something, **add it straight away** as `status = 'todo'` with project, deadline and priority, and confirm in one line (e.g. "Added 'Call bank' to Home, due Fri 16 Oct, med"). If he gave no deadline, pick a sensible one and say so.
+- Use an existing project id. If nothing fits, put it in Unsorted (`project_id = null`) and ask whether to create a project. That is the only thing to ask about.
 - Work over a day: include `effort_days` and say the start date, e.g. "due 15 Oct, ~10 days, start by 5 Oct".
 - Several related tasks: link them in order with `blocked_by` and say so ("B waits on A").
 - Insert with `source = 'claude'` and the chat topic in `source_chat`.
@@ -63,8 +64,8 @@ As the chat goes on, keep the matching task up to date and confirm each change i
 
 ## Commands
 
-- **"Check my email"**: read Gmail from the last 3 days. Propose tasks for anything needing action from him (replies owed, deadlines, payments, documents to send), grouped by project. Skip newsletters and notifications. Wait for OK.
-- **"Sweep my week"**: review recent chats for tasks and notes never logged; propose them by project; wait for OK.
+- **"Check my email"**: read Gmail from the last 3 days. Add a **suggested** task for anything needing action from him (replies owed, deadlines, payments, documents to send), with `source_chat = 'Email: <sender/subject>'`. Skip newsletters and notifications. Then summarise what was added, grouped by project.
+- **"Sweep my week"**: review recent chats for tasks and notes never logged. Add missed tasks as **suggested**, save clear notes directly, then summarise by project.
 - **"What's on my plate"**: answer from the hub in this order: today (`today_date = today` or due today), overdue, then the rest of this week. Mention anything blocked (`blocked_by` not done) separately as "can't start yet".
 
 ## Useful queries
