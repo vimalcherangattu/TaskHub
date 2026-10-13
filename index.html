@@ -240,6 +240,36 @@ section{margin-bottom:32px}
 .depchip button:hover{background:var(--sunken);color:var(--danger)}
 #depList:empty{display:none}
 
+/* context layer */
+.brief{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:18px 20px 12px;margin-bottom:24px}
+.brief-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brief-h .k,.call-notes .k{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.when{font-size:12px;color:var(--faint)}
+.brief-status{font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.35;margin:8px 0 6px}
+.md{font-size:14px;color:var(--muted)}
+.md p{margin:6px 0}.md ul{margin:4px 0 8px;padding-left:18px}.md li{margin:2px 0}.md b{color:var(--ink);font-weight:600}.md h4{margin:10px 0 2px;font-size:14px;color:var(--ink)}
+.md.clamp{max-height:9.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+.brief .act{border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:6px 0}
+.call{border-radius:var(--radius-m);padding:12px 16px;transition:background .18s}
+.call:hover,.call[open]{background:var(--surface)}
+.call summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.call summary::-webkit-details-marker{display:none}
+.call-t{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.call-1{font-size:14px;color:var(--muted)}
+.call .md{margin-top:8px}
+.call-notes{font-size:13px;color:var(--muted);margin:8px 0;line-height:1.8}
+.call-notes .kd{display:inline-block;margin-right:6px;vertical-align:1px}
+.call-notes .k{display:block}
+.call-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-size:13px}
+.call-foot a{color:var(--accent);font-weight:500;margin-right:6px}
+.refile{display:inline-flex;gap:6px;align-items:center;color:var(--faint)}
+.refile select{border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:3px 8px;font-size:12px;max-width:220px}
+.changes{list-style:none;margin:0;padding:0 4px}
+.changes li{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--line)}
+.changes .when{font-family:var(--mono);font-size:11px;min-width:92px}
+.changes .cp{color:var(--ink);font-weight:500}
+.changes .who{margin-left:auto;font-size:12px;color:var(--faint)}
+
 /* project cards */
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .pcard{position:relative;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-l);padding:20px 20px 18px 44px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .18s}
@@ -489,7 +519,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const FLAGS=["var(--f-blue)","var(--f-white)","var(--f-red)","var(--f-green)","var(--f-yellow)","var(--f-blue)","var(--f-white)"];
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
-const S={sopen:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -555,7 +585,7 @@ const ICON={
  all:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
  attention:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
-function attentionCount(){return S.tasks.filter(t=>(overdue(t)&&!waiting(t))||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
+function attentionCount(){return (S.sources||[]).filter(x=>!x.projectId&&!(x.tags||[]).includes("personal")).length+S.tasks.filter(t=>(overdue(t)&&!waiting(t))||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
 
 function renderSide(){
   const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["followups","Waiting on others",S.tasks.filter(fuDue).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
@@ -651,6 +681,56 @@ function rail(){
   h+=`</section></div>`;
   return h;
 }
+/* ---------- context layer: briefs, calls, changes ---------- */
+document.addEventListener("toggle",e=>{const d=e.target;if(d.matches?.("details[data-seg]"))d.open?S.copen.add(d.dataset.seg):S.copen.delete(d.dataset.seg)},true);
+async function refileSeg(segId){const g=S.segs.find(x=>x.id===segId);const sel=document.querySelector(`[data-refsel="${CSS.escape(segId)}"]`);
+  if(!g||!sel||sel.value===g.projectId){toast("Pick a different project first",false);return}
+  const to=sel.value,from=g.projectId,s=srcOf(g.sourceId);
+  const clash=S.segs.find(x=>x.sourceId===g.sourceId&&x.projectId===to);
+  let r;if(clash){r=await sb.from("source_segments").update({summary:clash.summary+"\n\n"+g.summary}).eq("id",clash.id);if(!r.error)r=await sb.from("source_segments").delete().eq("id",g.id)}
+  else r=await sb.from("source_segments").update({project_id:to}).eq("id",g.id);
+  if(r.error){toast("Couldn't move that call.",false);return}
+  if(s){const rel=new Set([...(s.relatedProjects||[]),to]);rel.delete(from);let pid=s.projectId===from?to:s.projectId;rel.delete(pid);
+    await sb.from("sources").update({project_id:pid,related_projects:[...rel]}).eq("id",s.id)}
+  const ns=S.notes.filter(n=>n.sourceId===g.sourceId&&n.projectId===from);
+  if(ns.length&&confirm(`Also move the ${ns.length} note${ns.length===1?"":"s"} saved from this call to ${proj(to)?.name}?`))for(const n of ns)await S.db.doc("notes/"+n.id).update({projectId:to});
+  toast(`Moved to ${proj(to)?.name}`,false);soon()}
+async function teachRule(segId){const g=S.segs.find(x=>x.id===segId);const sel=document.querySelector(`[data-refsel="${CSS.escape(segId)}"]`);const to=sel?.value||g?.projectId;if(!to)return;
+  const pat=(prompt(`Always route calls that mention… (a name or keyword) to ${proj(to)?.name}:`)||"").trim();if(!pat)return;
+  const{error}=await sb.from("routing_rules").insert({pattern:pat,project_id:to,note:"Added from the app"});
+  toast(error?(error.code==="23505"?"That rule already exists.":"Couldn't save that rule."):`Calls mentioning “${pat}” will go to ${proj(to)?.name}`,false)}
+const istFmt=(iso,o)=>new Date(iso).toLocaleString(undefined,{timeZone:"Asia/Kolkata",...o});
+const whenIST=iso=>istFmt(iso,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const agoTxt=iso=>{const m=Math.round((Date.now()-new Date(iso))/6e4);return m<1?"just now":m<60?m+" min ago":m<1440?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"};
+function md(src){const lines=esc(src||"").split("\n");let h="",ul=false;
+  const inl=t=>t.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+  for(const raw of lines){const l=raw.trimEnd();
+    if(/^\s*[-•] /.test(l)){if(!ul){h+="<ul>";ul=true}h+="<li>"+inl(l.replace(/^\s*[-•] /,""))+"</li>";continue}
+    if(ul){h+="</ul>";ul=false}
+    if(/^#{1,4} /.test(l))h+="<h4>"+inl(l.replace(/^#{1,4} /,""))+"</h4>";else if(l.trim())h+="<p>"+inl(l)+"</p>"}
+  return h+(ul?"</ul>":"")}
+const srcOf=id=>S.sources.find(x=>x.id===id);
+const callTitle=s=>String(s?.title||"Call").replace(/,\s*\d{1,2} \w{3} \d{4}$/,"");
+function briefBlock(pid){const b=S.briefs[pid];if(!b)return"";const open=S.bopenB.has(pid);const src=srcOf(b.updatedFrom);
+  const status=(b.body.match(/\*\*Status:\*\*\s*([^\n]*)/)||[])[1]||"";const rest=b.body.replace(/^\*\*Status:\*\*[^\n]*\n?/,"");
+  return `<section class="brief"><div class="brief-h"><span class="k">Where it stands</span><span class="when">Updated ${esc(agoTxt(b.updatedAt))}${src?` from “${esc(callTitle(src))}”`:""}</span></div>${status?`<p class="brief-status">${esc(status).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}</p>`:""}<div class="md ${open?"":"clamp"}">${md(rest)}</div><button class="act" data-briefx="${esc(pid)}">${open?"Show less":"Show the full brief"}</button></section>`}
+function callsBlock(ids,label="Calls"){
+  const seen=new Set();let rows=S.segs.filter(g=>ids.includes(g.projectId)).map(g=>({g,s:srcOf(g.sourceId)})).filter(r=>r.s)
+    .sort((a,b)=>String(b.s.occurredAt).localeCompare(String(a.s.occurredAt)));
+  rows=rows.filter(r=>{const k=r.g.sourceId+(ids.length>1?"":r.g.projectId);if(seen.has(k))return false;seen.add(k);return true}).slice(0,8);
+  if(!rows.length)return"";
+  return `<section><div class="sh"><h2>${label}</h2><span class="n">${rows.length}</span></div>`+rows.map(({g,s})=>{
+    const first=(g.summary||"").split("\n")[0],rest=(g.summary||"").split("\n").slice(1).join("\n");
+    const ns=S.notes.filter(n=>n.sourceId===s.id&&n.projectId===g.projectId);
+    const opts=S.projects.slice().sort((a,b)=>fullName(a).localeCompare(fullName(b))).map(p=>`<option value="${esc(p.id)}" ${p.id===g.projectId?"selected":""}>${esc(fullName(p))}</option>`).join("");
+    return `<details class="call" data-seg="${esc(g.id)}" ${S.copen.has(g.id)?"open":""}><summary><span class="call-t"><b>${esc(callTitle(s))}</b><span class="when">${esc(istFmt(s.occurredAt,{day:"numeric",month:"short"}))}${ids.length>1?` · ${esc(proj(g.projectId)?.name||"")}`:""}</span></span><span class="call-1">${esc(first)}</span></summary>
+      <div class="md">${md(rest)}</div>
+      ${ns.length?`<div class="call-notes"><span class="k">Saved from this call</span>${ns.map(n=>`<span class="kd" style="background:${KIND[n.kind]?.c||"var(--ink)"}"></span>${esc(n.title)}`).join("<br>")}</div>`:""}
+      <div class="call-foot">${/^https?:/.test(s.url||"")?`<a href="${esc(s.url)}" target="_blank" rel="noopener">Open recording</a>`:""}
+        <label class="refile">File under <select data-refsel="${esc(g.id)}" aria-label="Move this call to another project">${opts}</select></label>
+        <button class="tool" data-refile="${esc(g.id)}">Move</button><button class="tool" data-rule="${esc(g.id)}" title="Teach routing: calls mentioning a name or keyword go here">Always route here…</button></div></details>`}).join("")+`</section>`}
+function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
+  return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
@@ -692,6 +772,9 @@ function renderView(){
     h+=sec("Decide: carried forward 3+ times",sortT(S.tasks.filter(x=>decide(x)&&!overdue(x)&&!stalled(x))),{empty:"Nothing keeps getting pushed."});
     h+=sec("Untouched for a week or more",sortT(S.tasks.filter(x=>stale(x)&&!overdue(x))),{empty:"Everything has moved in the last 7 days."});
     h+=sec("Chased 3+ times: escalate, call, or change route",S.tasks.filter(chase),{cls:"danger",empty:"Nobody needs escalating."});
+    const unf=S.sources.filter(x=>!x.projectId&&!(x.tags||[]).includes("personal"));
+    if(unf.length){const opts=`<option value="">Choose a project…</option>`+S.projects.slice().sort((a,b)=>fullName(a).localeCompare(fullName(b))).map(p=>`<option value="${esc(p.id)}">${esc(fullName(p))}</option>`).join("");
+      h+=`<section><div class="sh danger"><h2>Calls to file</h2><span class="n">${unf.length}</span></div>${unf.map(x=>`<div class="call unfiled"><span class="call-t"><b>${esc(callTitle(x))}</b><span class="when">${esc(istFmt(x.occurredAt,{day:"numeric",month:"short"}))}</span></span><span class="call-1">${esc((x.summary||"").split("\n")[0])}</span><div class="call-foot">${/^https?:/.test(x.url||"")?`<a href="${esc(x.url)}" target="_blank" rel="noopener">Open recording</a>`:""}<label class="refile">File under <select data-filesel="${esc(x.id)}" aria-label="Project for this call">${opts}</select></label><button class="tool" data-filecall="${esc(x.id)}">File</button></div></div>`).join("")}</section>`}
   }
   else if(S.view==="suggested"){
     const ss=S.tasks.filter(sugg);
@@ -723,17 +806,20 @@ function renderView(){
   else if(S.view==="project"&&isWs(proj(S.pid))){
     const p=proj(S.pid);const kids=kidsOf(p.id);const ids=fam(p.id);const all=S.tasks.filter(t=>ids.includes(t.projectId));
     h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">Workspace · ${esc(p.area||"")} · ${kids.length} projects</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-newsub="${esc(p.id)}">Add project</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
+    h+=briefBlock(p.id);
     h+=quick(`Add a task to ${esc(p.name)}`);
     h+=sec("Overdue",sortT(all.filter(overdue)),{cls:"danger"});
     for(const k of kids)h+=sec(`<span class="dot" style="display:inline-block;background:${esc(k.color)};margin-right:8px"></span>${esc(k.name)}`,sortT(S.tasks.filter(t=>t.projectId===k.id&&open(t)&&!overdue(t))),{empty:"No open tasks.",action:`<button class="act" data-proj="${esc(k.id)}">Open</button>`});
     h+=sec("General",sortT(S.tasks.filter(t=>t.projectId===p.id&&open(t)&&!overdue(t))));
     h+=sec("Suggested by Claude",sortT(all.filter(sugg)));
     h+=sec("Done recently",all.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,10));
+    h+=callsBlock(ids,"Calls across "+esc(p.name))+changesBlock(ids);
   }
   else if(S.view==="project"){
     const inbox=S.pid==="__inbox";const p=proj(S.pid);const par=parentOf(p);
     const ts=S.tasks.filter(t=>inbox?!proj(t.projectId):t.projectId===S.pid);
     h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${inbox?"Tasks without a project":par?`<button class="crumb" data-proj="${esc(par.id)}">${esc(par.name)}</button> · ${esc(p?.area||"")}`:esc(p?.area||"")}</div></div><div class="right">${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
+    if(p)h+=briefBlock(p.id);
     h+=quick(`Add a task${p?` to ${esc(p.name)}`:""}`);
     h+=sec("Suggested by Claude",sortT(ts.filter(sugg)));
     h+=sec("Overdue",sortT(ts.filter(overdue)),{cls:"danger"});
@@ -741,6 +827,7 @@ function renderView(){
     h+=sec("To do",sortT(ts.filter(x=>x.status==="todo"&&!overdue(x))),{empty:"No open tasks here."});
     h+=sec("Waiting on someone",sortT(ts.filter(x=>x.status==="waiting"&&!overdue(x))));
     h+=sec("Done",ts.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,15));
+    if(p)h+=callsBlock([p.id])+changesBlock([p.id]);
   }
   else{
     const fc={open:S.tasks.filter(open).length,suggested:S.tasks.filter(sugg).length,done:S.tasks.filter(x=>x.status==="done").length,all:S.tasks.length};
@@ -929,6 +1016,11 @@ document.addEventListener("click",async e=>{
     const ds=blockers(x).map(planOf).filter(Boolean).sort();const last=ds[ds.length-1];
     const patch={todayDate:null};if(last&&(!x.due||x.due<=last))patch.due=addDays(last<T()?T():last,1);
     await upd(x.id,patch);toast(patch.due?`Moved to ${nice(patch.due)}, after what it waits on`:"Off today until what it waits on is done");return}
+  if(b.dataset.briefx){const id=b.dataset.briefx;S.bopenB.has(id)?S.bopenB.delete(id):S.bopenB.add(id);render();return}
+  if(b.dataset.refile){await refileSeg(b.dataset.refile);return}
+  if(b.dataset.rule){await teachRule(b.dataset.rule);return}
+  if(b.dataset.filecall){const sel=document.querySelector(`[data-filesel="${CSS.escape(b.dataset.filecall)}"]`);if(!sel?.value){toast("Pick a project first",false);return}
+    const{error}=await sb.from("sources").update({project_id:sel.value}).eq("id",b.dataset.filecall);toast(error?"Couldn't file that call.":`Filed under ${proj(sel.value)?.name}. Its brief updates on the next agent run.`,false);soon();return}
   if(b.dataset.steps){const id=b.dataset.steps;S.sopen.has(id)?S.sopen.delete(id):S.sopen.add(id);render();return}
   if(b.dataset.step){const t=S.tasks.find(x=>x.id===b.dataset.step);if(!t)return;const i=+b.dataset.i;
     const st=(t.steps||[]).map((x,j)=>j===i?{...x,done:!x.done}:x);await upd(t.id,{steps:st});
@@ -967,7 +1059,9 @@ document.addEventListener("click",async e=>{
   if(b.dataset.stoday){await upd(b.dataset.stoday,{status:"todo",todayDate:T()});toast("Added to today");return}
   if(b.dataset.sweek){await upd(b.dataset.sweek,{status:"todo",weekOf:week()[0]});toast("Added to this week");return}
   if(b.dataset.sstart){const t=S.tasks.find(x=>x.id===b.dataset.sstart);if(t)await startTask(t);return}
-  if(b.dataset.accept){await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
+  if(b.dataset.accept){const t=S.tasks.find(x=>x.id===b.dataset.accept);
+    if(t?.waitingOn){await upd(t.id,{status:"waiting",waitingSince:now(),followUps:0,followUpOn:nextWork(T(),1)});toast(`Waiting on ${t.waitingOn}; follow up ${nice(nextWork(T(),1))}`);return}
+    await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
   if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
   if(b.dataset.edit){openTask(S.tasks.find(x=>x.id===b.dataset.edit));return}
@@ -1101,7 +1195,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -1168,10 +1262,18 @@ document.addEventListener("keydown",e=>{
   if(document.querySelector("dialog[open]"))return;
   e.preventDefault();HIST.run(k==="y"||e.shiftKey?"redo":"undo")});
 async function refresh(){
-  const[p,t,n]=await Promise.all([sb.from("projects").select("*"),sb.from("tasks").select("*"),sb.from("notes").select("*")]);
-  if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.superseded_by);
+  const since=new Date(Date.now()-14*864e5).toISOString();
+  const[p,t,n,b,g,so,c]=await Promise.all([sb.from("projects").select("*"),sb.from("tasks").select("*"),sb.from("notes").select("*"),
+    sb.from("project_briefs").select("project_id,body,updated_at,updated_from"),sb.from("source_segments").select("id,source_id,project_id,summary,created_at"),
+    sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id").order("occurred_at",{ascending:false}).limit(300),
+    sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500)]);
+  if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.supersededBy);
+  if(!b.error)S.briefs=Object.fromEntries(b.data.map(x=>[x.project_id,fromRow(x)]));
+  if(!g.error)S.segs=g.data.map(fromRow);
+  if(!so.error)S.sources=so.data.map(fromRow);
+  if(!c.error)S.changes=c.data.map(fromRow);
   if(p.error||t.error){document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
-  S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow);S.ready.p=S.ready.t=true;render();
+  S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow).filter(x=>!x.supersededBy);S.ready.p=S.ready.t=true;render();
 }
 let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,120)}
 function showLogin(msg){
@@ -1186,7 +1288,9 @@ let started=false;
 async function start(){
   if(started)return;started=true;
   await refresh();
-  sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},soon).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon).subscribe();
+  sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},soon).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon)
+    .on("postgres_changes",{event:"*",schema:"public",table:"project_briefs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"source_segments"},soon)
+    .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},soon).subscribe();
   let last=T();setInterval(()=>{if(T()!==last){last=T();render()}},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }

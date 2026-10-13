@@ -211,3 +211,34 @@ update notes set superseded_by = '<new note id>' where id = '<old note id>';
 -- Search everything (null = all projects; a project id searches it and its sub-projects)
 select * from brain_search('<words>', null, 15);
 ```
+
+## Context
+
+```sql
+-- Everything about one project (brief, parent/siblings, changes, call segments, decisions, open tasks)
+select project_context('zenara-positioning');
+select project_context('zenara', now() - interval '30 days');   -- parent + sub-projects, 30-day window
+
+-- What changed everywhere (or under one project) since a time
+select whats_new(now() - interval '24 hours');
+select whats_new(now() - interval '7 days', 'zenara');
+```
+
+## Briefs
+
+```sql
+-- Rewrite a brief (keeps the last 10 versions in history)
+select set_config('app.actor','chat',true);
+insert into project_briefs (project_id, body, updated_from) values ('<project>', '<full markdown brief>', '<source id or null>')
+on conflict (project_id) do update set
+  history = (select coalesce(jsonb_agg(e order by i), '[]'::jsonb) from jsonb_array_elements(project_briefs.history || jsonb_build_array(jsonb_build_object('at', project_briefs.updated_at, 'body', project_briefs.body, 'from', project_briefs.updated_from))) with ordinality a(e, i) where i > jsonb_array_length(project_briefs.history) + 1 - 10),
+  body = excluded.body, updated_from = excluded.updated_from;
+```
+
+## Replace a task
+
+```sql
+select set_config('app.actor','chat',true);
+-- insert the new task first (returning id), then:
+update tasks set superseded_by = '<new id>', status = 'done', done_at = now() where id = '<old id>';
+```
