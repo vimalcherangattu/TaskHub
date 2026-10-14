@@ -270,6 +270,18 @@ section{margin-bottom:32px}
 .changes .cp{color:var(--ink);font-weight:500}
 .changes .who{margin-left:auto;font-size:12px;color:var(--faint)}
 
+/* pending inputs */
+.input{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-m);padding:14px 16px;margin-bottom:8px}
+.input.got{background:none;border-style:dashed}
+.input-q{display:flex;flex-direction:column;gap:2px}
+.input-q code{font-family:var(--mono);font-size:11px;background:var(--sunken);padding:1px 6px;border-radius:6px}
+.uses{margin:8px 0 4px;padding-left:18px;font-size:14px;color:var(--ink)}
+.uses span{color:var(--faint)}
+.uses a{color:var(--accent)}
+.input-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.input-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.input-add input{flex:1 1 180px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;min-width:0}
+
 /* project cards */
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .pcard{position:relative;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-l);padding:20px 20px 18px 44px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .18s}
@@ -519,7 +531,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const FLAGS=["var(--f-blue)","var(--f-white)","var(--f-red)","var(--f-green)","var(--f-yellow)","var(--f-blue)","var(--f-white)"];
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
-const S={copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -588,7 +600,7 @@ const ICON={
 function attentionCount(){return (S.sources||[]).filter(x=>!x.projectId&&!(x.tags||[]).includes("personal")).length+S.tasks.filter(t=>(overdue(t)&&!waiting(t))||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
 
 function renderSide(){
-  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["followups","Waiting on others",S.tasks.filter(fuDue).length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
+  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
   let h=`<div class="brand">Task Hub<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="nav">`;
   for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups")&&c?"new":""}">${c||""}</span></button>`;
   h+=`</div>`;
@@ -729,6 +741,19 @@ function callsBlock(ids,label="Calls"){
       <div class="call-foot">${/^https?:/.test(s.url||"")?`<a href="${esc(s.url)}" target="_blank" rel="noopener">Open recording</a>`:""}
         <label class="refile">File under <select data-refsel="${esc(g.id)}" aria-label="Move this call to another project">${opts}</select></label>
         <button class="tool" data-refile="${esc(g.id)}">Move</button><button class="tool" data-rule="${esc(g.id)}" title="Teach routing: calls mentioning a name or keyword go here">Always route here…</button></div></details>`}).join("")+`</section>`}
+function inputsBlock(ids,{form=false}={}){
+  const inScope=i=>!ids||ids.includes(i.projectId)||S.iuses.some(u=>u.inputId===i.id&&ids.includes(u.projectId));
+  const pend=S.inputs.filter(i=>i.status==="pending"&&inScope(i));
+  const got=S.inputs.filter(i=>i.status==="received"&&inScope(i)&&Date.now()-new Date(i.receivedAt)<7*864e5);
+  if(!pend.length&&!got.length&&!form)return"";
+  let h=`<section><div class="sh"><h2>Inputs your docs are waiting for</h2><span class="n">${pend.length||""}</span></div>`;
+  for(const i of pend){const us=S.iuses.filter(u=>u.inputId===i.id&&u.status==="pending");
+    h+=`<div class="input"><div class="input-q"><b>${esc(i.question)}</b><span class="when">from ${esc(i.owner||"?")} · since ${esc(nice(iso(new Date(i.createdAt))))} · <code>[[NEEDS:${esc(i.key)}]]</code></span></div>
+      ${us.length?`<ul class="uses">${us.map(u=>`<li>${u.url?`<a href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.doc)}</a>`:esc(u.doc)}${u.location?` <span>· ${esc(u.location)}</span>`:""}</li>`).join("")}</ul>`:`<div class="when">Not used in any doc yet.</div>`}
+      <div class="input-acts"><button class="tool yes" data-irecv="${esc(i.id)}">Received…</button><button class="tool" data-iuse="${esc(i.id)}">Used in another doc…</button><button class="tool" data-idrop="${esc(i.id)}">Not needed</button></div></div>`}
+  for(const i of got)h+=`<div class="input got"><div class="input-q"><b>✓ ${esc(i.question)}</b><span class="when">received ${esc(agoTxt(i.receivedAt))}: ${esc(i.answer||"")}</span></div></div>`;
+  if(form)h+=`<form class="input-add" id="inputAdd"><input name="q" placeholder="Waiting for a number, claim or fact? e.g. Flow ROI per practice" aria-label="What you're waiting for" required><input name="who" placeholder="From whom" aria-label="From whom"><input name="doc" placeholder="Used in which doc" aria-label="Used in which document"><button class="btn" type="submit">Track it</button></form>`;
+  return h+`</section>`}
 function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
   return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
 function renderView(){
@@ -796,6 +821,7 @@ function renderView(){
     for(const x of later){const k=x.waitingOn||"Someone";if(!g.has(k))g.set(k,[]);g.get(k).push(x)}
     for(const k of [...g.keys()].sort())h+=sec(`Waiting on ${esc(k)}`,g.get(k).sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||"")));
     if(!w.length)h+=`<div class="empty">Nothing waiting on anyone. Use Hand off on a task when you send it to someone.</div>`;
+    h+=inputsBlock(null,{form:true});
   }
   else if(S.view==="projects"){
     h+=`<div class="head"><div><h1>Projects</h1></div><div class="right"><button class="btn" data-newproj>New project</button></div></div>`;
@@ -813,7 +839,7 @@ function renderView(){
     h+=sec("General",sortT(S.tasks.filter(t=>t.projectId===p.id&&open(t)&&!overdue(t))));
     h+=sec("Suggested by Claude",sortT(all.filter(sugg)));
     h+=sec("Done recently",all.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,10));
-    h+=callsBlock(ids,"Calls across "+esc(p.name))+changesBlock(ids);
+    h+=inputsBlock(ids)+callsBlock(ids,"Calls across "+esc(p.name))+changesBlock(ids);
   }
   else if(S.view==="project"){
     const inbox=S.pid==="__inbox";const p=proj(S.pid);const par=parentOf(p);
@@ -827,7 +853,7 @@ function renderView(){
     h+=sec("To do",sortT(ts.filter(x=>x.status==="todo"&&!overdue(x))),{empty:"No open tasks here."});
     h+=sec("Waiting on someone",sortT(ts.filter(x=>x.status==="waiting"&&!overdue(x))));
     h+=sec("Done",ts.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,15));
-    if(p)h+=callsBlock([p.id])+changesBlock([p.id]);
+    if(p)h+=inputsBlock([p.id])+callsBlock([p.id])+changesBlock([p.id]);
   }
   else{
     const fc={open:S.tasks.filter(open).length,suggested:S.tasks.filter(sugg).length,done:S.tasks.filter(x=>x.status==="done").length,all:S.tasks.length};
@@ -1016,6 +1042,17 @@ document.addEventListener("click",async e=>{
     const ds=blockers(x).map(planOf).filter(Boolean).sort();const last=ds[ds.length-1];
     const patch={todayDate:null};if(last&&(!x.due||x.due<=last))patch.due=addDays(last<T()?T():last,1);
     await upd(x.id,patch);toast(patch.due?`Moved to ${nice(patch.due)}, after what it waits on`:"Off today until what it waits on is done");return}
+  if(b.dataset.irecv){const i=S.inputs.find(x=>x.id===b.dataset.irecv);if(!i)return;
+    const a=(prompt(`What came back for:\n${i.question}\n\n(The number, claim or answer. A task to update every doc that uses it is created automatically.)`)||"").trim();if(!a)return;
+    const{error}=await sb.from("inputs").update({status:"received",answer:a}).eq("id",i.id);
+    const n=S.iuses.filter(u=>u.inputId===i.id&&u.status==="pending").length;
+    toast(error?"Couldn't save that.":n?`Got it. “Update ${n} place${n===1?"":"s"}” is on Today.`:"Got it.",false);soon();return}
+  if(b.dataset.idrop){const i=S.inputs.find(x=>x.id===b.dataset.idrop);if(!i||!confirm(`Stop tracking “${i.question}”?`))return;
+    const{error}=await sb.from("inputs").update({status:"dropped"}).eq("id",i.id);toast(error?"Couldn't update that.":"No longer tracked",false);soon();return}
+  if(b.dataset.iuse){const i=S.inputs.find(x=>x.id===b.dataset.iuse);if(!i)return;
+    const doc=(prompt(`Which doc also uses “${i.question}”?`)||"").trim();if(!doc)return;const loc=(prompt("Where in it? (section, slide…) Optional")||"").trim();
+    const{error}=await sb.from("input_uses").insert({input_id:i.id,doc,location:loc,project_id:i.projectId});
+    toast(error?"Couldn't add that.":`Tracked. Mark the spot in the doc with [[NEEDS:${i.key}]]`,false);soon();return}
   if(b.dataset.briefx){const id=b.dataset.briefx;S.bopenB.has(id)?S.bopenB.delete(id):S.bopenB.add(id);render();return}
   if(b.dataset.refile){await refileSeg(b.dataset.refile);return}
   if(b.dataset.rule){await teachRule(b.dataset.rule);return}
@@ -1071,6 +1108,13 @@ document.addEventListener("click",async e=>{
   if("close" in b.dataset){b.closest("dialog").close();return}
 });
 document.addEventListener("submit",async e=>{
+  if(e.target.id==="inputAdd"){e.preventDefault();const f=e.target.elements;const q=f.q.value.trim();if(!q)return;
+    let key=q.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").split("-").slice(0,4).join("-")||"input";
+    if(S.inputs.some(x=>x.key===key))key+="-"+Date.now().toString(36).slice(-3);
+    const pid=S.view==="project"&&proj(S.pid)?S.pid:null;
+    const{data,error}=await sb.from("inputs").insert({key,question:q,owner:f.who.value.trim()||null,project_id:pid}).select().single();
+    if(!error&&f.doc.value.trim())await sb.from("input_uses").insert({input_id:data.id,doc:f.doc.value.trim(),project_id:pid});
+    toast(error?"Couldn't track that.":`Tracking it. Mark the spot in the doc with [[NEEDS:${key}]]`,false);e.target.reset();soon();return}
   if(e.target.id!=="quick")return;e.preventDefault();
   const f=e.target;const title=f.q.value.trim();if(!title)return;
   const data={title,projectId:f.p.value||null};
@@ -1195,7 +1239,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -1267,6 +1311,9 @@ async function refresh(){
     sb.from("project_briefs").select("project_id,body,updated_at,updated_from"),sb.from("source_segments").select("id,source_id,project_id,summary,created_at"),
     sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id").order("occurred_at",{ascending:false}).limit(300),
     sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500)]);
+  const[ii,iu]=await Promise.all([sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
+  if(!ii.error)S.inputs=ii.data.map(fromRow);
+  if(!iu.error)S.iuses=iu.data.map(fromRow);
   if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.supersededBy);
   if(!b.error)S.briefs=Object.fromEntries(b.data.map(x=>[x.project_id,fromRow(x)]));
   if(!g.error)S.segs=g.data.map(fromRow);
@@ -1290,7 +1337,8 @@ async function start(){
   await refresh();
   sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},soon).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"project_briefs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"source_segments"},soon)
-    .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},soon).subscribe();
+    .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},soon)
+    .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon).subscribe();
   let last=T();setInterval(()=>{if(T()!==last){last=T();render()}},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }

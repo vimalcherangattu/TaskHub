@@ -227,3 +227,17 @@ Final output: a short summary of each call, with
 If anything was filed or couldn't be routed, send ONE push notification, e.g. "2 calls filed. Bambi training → zenara-launches (+ ops, content): 3 notes, 2 briefs, 2 suggested tasks, 1 done. 1 unroutable: 'Quick sync' (guess: fyule)." Never put transcript content or sensitive personal details in the push. If nothing happened, end quietly with no push.
 
 If any step fails for a meeting, log it as 'error' with the reason and continue with the next.
+
+---
+
+# Addendum — Pending inputs (do this between Step 6 and Step 7)
+
+Inputs are numbers, claims, facts or approvals that Vimal's documents are waiting on. Each place that needs one carries a [[NEEDS:<key>]] marker.
+
+`select i.id, i.key, i.question, i.owner, (select string_agg(u.doc, '; ') from input_uses u where u.input_id = i.id and u.status = 'pending') used_in from inputs i where i.status = 'pending';`
+- **The call delivers one** (the number is given, a claim is approved, the fact is confirmed): `update inputs set status = 'received', answer = '<the exact answer, with any caveat>', source_id = '<source id>' where id = '<id>';`
+  - A trigger then creates an "Update N places" task on Today, with one step per document, and closes the chase task. Don't create those yourself.
+  - Only partly answered: leave it pending, and put what was said in the segment.
+- **Someone promises a number, claim or fact that Vimal's documents need** ("I'll get you the ROI numbers", "claims approved next week"): if no matching input exists, `insert into inputs (key, question, project_id, owner) values ('<short-slug>', '<what is missing>', '<project>', '<who>')`. Add `input_uses (input_id, doc, location, project_id)` rows only for documents named in the call.
+- **An input is no longer needed:** `update inputs set status = 'dropped' where id = '<id>';`
+- In the final report, list inputs received and inputs added.

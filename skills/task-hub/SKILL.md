@@ -191,6 +191,25 @@ Answer from notes, sources and tasks together:
 - Also search open and recent tasks by title and notes.
 - Say what's a decision, what's a fact and what's still open.
 
+## Pending inputs and placeholders
+
+Some documents wait on a number, claim, fact or approval from someone else (product team, a creator, a client). The hub keeps a registry so the answer reaches every document that needs it.
+
+- **Never invent the missing value.** Where a document needs it, write the marker `[[NEEDS:<key>]]`, e.g. `Reduces intake time by [[NEEDS:flow-roi]]`. Search the doc for `[[NEEDS:` to find every spot.
+- **Register it.** First check for an existing input (`select id, key, question, status from inputs where status = 'pending';`) and reuse its key when it's the same thing. Otherwise insert into `inputs (key, question, project_id, owner, ask_task_id)`. The `key` is a short slug; `ask_task_id` is the waiting-on task that chases it, when there is one.
+- **Record every place that uses it**: one `input_uses (input_id, doc, location, url, project_id)` row per document and spot. Add one whenever Vimal says "this also needs X" or you write a marker into a new document.
+- **When it arrives** ("Pratik sent the ROI numbers", or seen in email, Linear or a call): `update inputs set status = 'received', answer = '<exact answer, with any caveat>' where id = '<id>';`. A trigger then:
+  - creates an "Update N places with: …" task on Today, with one step per document and the answer plus the marker in its notes
+  - closes the chase task
+  - logs the change
+
+  Don't create those tasks yourself. If only part arrived, leave it pending and note what came in an activity entry on the chase task.
+- **No longer needed:** `update inputs set status = 'dropped' where id = '<id>';`.
+- When the update task is marked done, its uses flip to `updated` automatically.
+- `project_context()` lists the pending inputs for a project under "Waiting for inputs". The app shows them in Waiting and on project pages.
+
+Recipes are in `reference/queries.md` under "Pending inputs".
+
 ## Commands
 
 - **"What's on my plate"**: run the plate query in `reference/queries.md`. It mirrors the app's Today screen. Answer in this order:
@@ -203,7 +222,8 @@ Answer from notes, sources and tasks together:
   Keep it short; group by project when long.
 - **"Check my email"**: read Gmail from the last 3 days (inbox and sent). For each thing needing action from him (replies owed, deadlines, payments, documents to send or sign), add a **suggested** task with `source='chat'` and `source_chat='Email: <sender> – <subject>'`. Skip newsletters, promotions and notifications. If sent mail shows a task is clearly finished, mark it done and log it. Then summarise what you added and completed, grouped by project. Don't duplicate tasks the daily routine already added (they have `source` starting `scheduled:`).
 - **"Sweep my week"**: review recent chats for tasks and notes that never got logged. Add missed tasks as **suggested**, save clear notes directly, and update tasks that changed. Then summarise by project.
-- **"Who am I waiting on?"**: see Waiting on people.
+- **"Who am I waiting on?"**: see Waiting on people. Also list pending inputs with the docs that use them.
+- **"X sent / confirmed / approved <input>"**: mark the matching input received (see Pending inputs), then say which docs the new task lists.
 
 ## Working alongside the daily routine
 

@@ -235,6 +235,33 @@ on conflict (project_id) do update set
   body = excluded.body, updated_from = excluded.updated_from;
 ```
 
+## Pending inputs
+
+```sql
+-- What's pending, and where it's used
+select i.id, i.key, i.question, i.owner, i.project_id,
+       (select string_agg(u.doc || coalesce(' → ' || u.location, ''), '; ') from input_uses u where u.input_id = i.id and u.status = 'pending') used_in
+from inputs i where i.status = 'pending' order by i.project_id, i.key;
+
+-- Register a missing value (key = short slug; reuse an existing key if it's the same thing)
+select set_config('app.actor','chat',true);
+insert into inputs (key, question, project_id, owner, ask_task_id)
+values ('<key>', '<what is missing>', '<project>', '<who will provide it>', '<chase task id or null>')
+returning id;
+
+-- Record a place that uses it (one row per document + spot; the doc carries [[NEEDS:<key>]])
+insert into input_uses (input_id, doc, location, url, project_id)
+values ((select id from inputs where key = '<key>'), '<document>', '<section / slide / line>', '<url or null>', '<project>');
+
+-- It arrived: the trigger creates the "Update N places" task and closes the chase task
+select set_config('app.actor','chat',true);
+update inputs set status = 'received', answer = '<exact answer + caveats>' where key = '<key>' and status = 'pending';
+select id, title, steps from tasks where id = (select apply_task_id from inputs where key = '<key>');
+
+-- No longer needed
+update inputs set status = 'dropped' where key = '<key>';
+```
+
 ## Replace a task
 
 ```sql
