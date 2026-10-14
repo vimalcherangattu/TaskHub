@@ -256,7 +256,7 @@ values ((select id from inputs where key = '<key>'), '<document>', '<section / s
 -- It arrived: the trigger creates the "Update N places" task and closes the chase task
 select set_config('app.actor','chat',true);
 update inputs set status = 'received', answer = '<exact answer + caveats>' where key = '<key>' and status = 'pending';
-select id, title, steps from tasks where id = (select apply_task_id from inputs where key = '<key>');
+select id, title, steps from tasks where id = (select u.apply_task_id from input_uses u join inputs i on i.id = u.input_id where i.key = '<key>' limit 1);
 
 -- No longer needed
 update inputs set status = 'dropped' where key = '<key>';
