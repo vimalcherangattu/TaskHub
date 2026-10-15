@@ -1,6 +1,6 @@
 ---
 name: task-hub
-description: Read and write Vimal's Task Hub (Supabase project "Task-Hub", id mbbucsageoyxhekzbmyq): tasks, projects, notes, calls (sources + per-project segments), living project briefs and the change feed. Use at the START of any chat about one of his projects (Zenara and its sub-projects, Small Fish, Fyule, etc.) to load current context; whenever a call, meeting or transcript comes up ("file this call"); and whenever a task, to-do, deadline, follow-up, person he is waiting on, dependency, project, idea, decision, person or useful link comes up; whenever something is done, sent, started, moved, changed, partly done or dropped; whenever a document needs a number, claim, fact or approval that isn't available yet (placeholders, "waiting on the product team for…") or such an input arrives ("Pratik sent the numbers"); and for "check my email", "sweep my week", "what's on my plate", "who am I waiting on?", "what do I know / did I decide about X".
+description: Read and write Vimal's Task Hub (Supabase project "Task-Hub", id mbbucsageoyxhekzbmyq): tasks, projects, notes, calls (sources + per-project segments), living project briefs and the change feed. Use at the START of any chat about one of his projects (Zenara and its sub-projects, Small Fish, Fyule, etc.) to load current context; whenever a call, meeting or transcript comes up ("file this call"); and whenever a task, to-do, deadline, follow-up, person he is waiting on, dependency, project, idea, decision, person or useful link comes up; whenever something is done, sent, started, moved, changed, partly done or dropped; to prep a recurring call ("prep me for my David 1:1") or add a point to raise in one; when a document awaits a number, claim or approval (placeholders) or it arrives ("Pratik sent the numbers"); and for "check my email", "sweep my week", "what's on my plate", "who am I waiting on?", "what do I know / did I decide about X".
 ---
 
 # Task Hub
@@ -209,6 +209,26 @@ Some documents wait on a number, claim, fact or approval from someone else (prod
 - `project_context()` lists the pending inputs for a project under "Waiting for inputs". The app shows them in Waiting and on project pages.
 
 Recipes are in `reference/queries.md` under "Pending inputs".
+
+## Recurring calls and call prep
+
+Vimal's recurring calls are in `call_series`: `david-1on1` (Mon 9 PM IST), `ravi-office-hours` (Mon 9:30 PM), `sam-catchup` (Tue/Thu 6:30 PM), `gtm-catchup` (weekly commercial sync, Tue). Each has a living agenda in `agenda_items` (kind `update` | `discuss` | `ask` | `decide`; status `open` | `covered` | `dropped`). The app's **Call prep** view (and `https://task-hub-one-delta.vercel.app/#call/<id>`) shows a prep sheet that fills itself:
+- the agenda
+- your update (done since the last call, in progress, next 7 days)
+- what to ask them for (tasks waiting on them, inputs they owe)
+- what's blocked
+- open questions from the briefs that name them
+- decisions since the last call
+- a recap of the last call
+
+- **"Prep me for my call with David" / "what do I need to raise with Sam?"**: run `select call_prep_md('<series id>');` and answer from it. Lead with the agenda, then the update, then the asks. Keep it scannable.
+- **Something to raise later** ("bring this up with David", "ask Ravi in office hours", "update Sam on X"): add it directly, without asking. `insert into agenda_items (series_id, kind, text) values ('<series>', '<kind>', '<short point>');` Use `ask` for things to get from them, `update` for things to report, `decide` for decisions needed, otherwise `discuss`. Check open items first and don't duplicate.
+- **Raised or settled in a call**: `update agenda_items set status = 'covered', covered_at = now() where id = '<id>';`. Recurring items (`recurring = true`) stay open.
+- **A new recurring call**: ask first, as with projects. Then insert into `call_series (id, name, people, kind, purpose, project_ids, days, at_time, calendar_match)`:
+  - `days` are ISO weekdays (1 = Mon) and `at_time` is IST
+  - `calendar_match` is a regex for the calendar title
+  - `people` are the first names to match in `waiting_on` and input owners
+- The hourly meeting agent links filed calls to their series, ticks off covered points, adds "next time" items, and pushes a prep reminder about 45 minutes before each call. The 9 AM routine sets `next_at` from the calendar and adds agenda points from email and Linear (including Ravi's "Office Hours, Ravi" label).
 
 ## Commands
 

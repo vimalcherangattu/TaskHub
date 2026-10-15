@@ -282,6 +282,36 @@ section{margin-bottom:32px}
 .input-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 .input-add input{flex:1 1 180px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;min-width:0}
 
+/* call prep */
+.calls-pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.cpick{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-m);padding:10px 14px;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:150px;transition:border-color .18s,background .18s}
+.cpick b{font-size:14px;font-weight:600}
+.cpick span{font-size:12px;color:var(--faint)}
+.cpick[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.cpick .soon{color:var(--warn);font-weight:500}
+.prep-purpose{font-size:14px;color:var(--muted);margin:-4px 0 18px;max-width:72ch}
+.pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;align-items:stretch;gap:2px}
+.pl li{display:flex;gap:10px;align-items:baseline;padding:7px 4px;border-top:1px solid var(--line);font-size:14px}
+.pl li:first-child{border-top:0}
+.pl .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);min-width:74px;flex:none}
+.pl .t{flex:1;min-width:0}
+.pl .t button{border:0;background:none;padding:0;text-align:left;color:var(--ink);font:inherit}
+.pl .t button:hover{color:var(--accent)}
+.pl .m{font-size:12px;color:var(--faint);max-width:45%;text-align:right}
+@media (max-width:820px){.pl li{flex-wrap:wrap;row-gap:2px;align-items:flex-start}.pl .k{min-width:64px;padding-top:3px}.pl .t{flex:1 1 calc(100% - 80px)}.pl .m{order:3;flex-basis:100%;max-width:none;text-align:left;padding-left:74px}.pl .acts{order:4;padding-left:74px}}
+.pl .acts{display:flex;gap:4px;flex:none}
+.pl .rec{font-size:11px;color:var(--faint);border:1px dashed var(--line-strong);border-radius:999px;padding:0 6px;margin-left:6px}
+.pl .k.decide,.pl .k.ask{color:var(--warn)}
+.prep-box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:14px 16px 10px;margin-bottom:18px}
+.prep-box .sh{padding-bottom:4px}
+.agenda-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.agenda-add input{flex:1 1 220px;border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:9px 12px;min-width:0}
+.agenda-add select{border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:8px 10px}
+.prep-last{font-size:14px}
+.prep-last summary{cursor:pointer;color:var(--muted)}
+.card.next-call{border-color:var(--accent);background:var(--accent-soft)}
+.card.next-call .when{font-size:13px;color:var(--muted)}
+
 /* project cards */
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .pcard{position:relative;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-l);padding:20px 20px 18px 44px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .18s var(--ease),box-shadow .18s var(--ease),border-color .18s}
@@ -401,8 +431,8 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
   .app{grid-template-columns:1fr}
   aside{display:none}
   main{padding:24px 16px 120px}
-  .tabs{display:grid;grid-template-columns:repeat(8,1fr);position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
-  .tabs button{border:0;background:none;padding:8px 0;min-height:52px;border-radius:12px;font-size:10.5px;font-weight:500;color:var(--faint);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:background .18s,color .18s}
+  .tabs{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
+  .tabs button{border:0;background:none;padding:8px 0;min-height:52px;border-radius:12px;font-size:10px;letter-spacing:-.01em;min-width:0;overflow:hidden;font-weight:500;color:var(--faint);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:background .18s,color .18s}
   .tabs button[aria-current="true"]{color:var(--ink);background:var(--sunken);font-weight:600}
   .tabs svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75}
   .strip{gap:3px}
@@ -531,7 +561,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const FLAGS=["var(--f-blue)","var(--f-white)","var(--f-red)","var(--f-green)","var(--f-yellow)","var(--f-blue)","var(--f-white)"];
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
-const S={inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -594,15 +624,16 @@ const ICON={
  suggested:'<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>',
  brain:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="5" r="2"/><circle cx="20" cy="5" r="2"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/><path d="M6 6l4 4M18 6l-4 4M6 18l4-4M18 18l-4-4"/></svg>',
  followups:'<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4"/></svg>',
+ calls:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>',
  all:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
  attention:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
 function attentionCount(){return (S.sources||[]).filter(x=>!x.projectId&&!(x.tags||[]).includes("personal")).length+S.tasks.filter(t=>(overdue(t)&&!waiting(t))||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
 
 function renderSide(){
-  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
+  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
   let h=`<div class="brand">Task Hub<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="nav">`;
-  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups")&&c?"new":""}">${c||""}</span></button>`;
+  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`;
   h+=`</div>`;
   for(const a of AREAS){
     const ps=tops(a);
@@ -617,7 +648,7 @@ function renderSide(){
   if(inbox)h+=`<div class="nav"><button data-proj="__inbox" aria-current="${S.pid==="__inbox"}"><span class="dot" style="background:var(--faint)"></span>Unsorted<span class="count">${inbox}</span></button></div>`;
   h+=`<button class="side-add" data-newproj>+ New project</button><button class="side-theme" data-theme-toggle>${document.documentElement.dataset.theme==="dark"?'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Light mode':'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>Dark mode'}</button><button class="side-out" data-signout>Sign out</button>`;
   document.getElementById("side").innerHTML=h;
-  const tabs=[["today","Today"],["week","Week"],["projects","Projects"],["followups","Chase"],["attention","Attention"],["suggested","Ideas"],["brain","Map"],["all","All"]];
+  const tabs=[["today","Today"],["week","Week"],["projects","Projects"],["calls","Calls"],["followups","Chase"],["attention","Attention"],["suggested","Ideas"],["brain","Map"],["all","All"]];
   document.getElementById("tabs").innerHTML=tabs.map(([v,l])=>`<button data-go="${v}" aria-current="${S.view===v||(v==="projects"&&S.view==="project")}">${ICON[v]}${l}${v==="attention"&&attentionCount()?` (${attentionCount()})`:""}${v==="suggested"&&S.tasks.filter(sugg).length?` (${S.tasks.filter(sugg).length})`:""}</button>`).join("");
 }
 
@@ -670,7 +701,7 @@ function progress(done,total,label){const pct=total?Math.round(done/total*100):0
 function suggActs(t,cls){const id=esc(t.id),b=(a,l,ti,x="")=>`<button class="${cls}${x}" ${a}="${id}" title="${ti}">${l}</button>`;
   return b("data-accept","Accept","Add to your list"," yes")+b("data-stoday","Today","Add to today's list")+b("data-sweek","Week","Add to this week")+b("data-sstart","Start","Add and start now")+b("data-quickdone","Done","Already done")+b("data-dismiss","Dismiss","Not needed")}
 function rail(){
-  const t=T();let h=`<div class="rail" role="complementary" aria-label="At a glance">`;
+  const t=T();let h=`<div class="rail" role="complementary" aria-label="At a glance">`+nextCallCard();
   const wl=S.tasks.filter(waiting).sort((a,b)=>(a.followUpOn||t).localeCompare(b.followUpOn||t));
   h+=`<section class="card"><div class="card-h"><h2>Waiting on others</h2><span class="n">${wl.length||""}</span></div>`;
   if(!wl.length)h+=`<div class="note">Nobody owes you anything right now.</div>`;
@@ -754,6 +785,41 @@ function inputsBlock(ids,{form=false}={}){
   for(const i of got)h+=`<div class="input got"><div class="input-q"><b>✓ ${esc(i.question)}</b><span class="when">received ${esc(agoTxt(i.receivedAt))}: ${esc(i.answer||"")}</span></div></div>`;
   if(form)h+=`<form class="input-add" id="inputAdd"><input name="q" placeholder="Waiting for a number, claim or fact? e.g. Flow ROI per practice" aria-label="What you're waiting for" required><input name="who" placeholder="From whom" aria-label="From whom"><input name="doc" placeholder="Used in which doc" aria-label="Used in which document"><button class="btn" type="submit">Track it</button></form>`;
   return h+`</section>`}
+/* ---------- call prep: recurring calls with a living agenda ---------- */
+const seriesSorted=()=>S.series.filter(x=>x.active!==false).slice().sort((a,b)=>{const na=S.prep[a.id]?.next_at,nb=S.prep[b.id]?.next_at;return na&&nb?na.localeCompare(nb):na?-1:nb?1:(a.order||99)-(b.order||99)});
+const KLBL={update:"Update",discuss:"Discuss",ask:"Ask",decide:"Decide"};
+function nextTxt(isoT){if(!isoT)return{txt:"No date",soon:false};const d=new Date(isoT),ms=d-Date.now();const day=iso(new Date(d.toLocaleString("en-US",{timeZone:"Asia/Kolkata"})));
+  const time=istFmt(isoT,{hour:"numeric",minute:"2-digit"});const t=T();
+  const lbl=ms<0?`Started ${time}`:day===t?`Today ${time}`:day===addDays(t,1)?`Tomorrow ${time}`:istFmt(isoT,{weekday:"short",day:"numeric",month:"short"})+", "+time;
+  return{txt:lbl,soon:ms<3*36e5}}
+const prepPoints=p=>p?(p.agenda.length+p.asks.length+p.inputs.length+p.questions.length):0;
+function prepLi(k,cls,text,meta="",acts=""){return `<li><span class="k ${cls}">${k}</span><span class="t">${text}</span>${meta?`<span class="m">${meta}</span>`:""}${acts?`<span class="acts">${acts}</span>`:""}</li>`}
+const tBtn=(id,title)=>`<button data-edit="${esc(id)}">${esc(title)}</button>`;
+function prepBox(title,n,items,{note="",more=""}={}){if(!items.length&&!note)return"";
+  return `<section class="prep-box"><div class="sh"><h2>${title}</h2><span class="n">${n||""}</span></div>${items.length?`<ul class="pl">${items.join("")}</ul>`:""}${note}${more}</section>`}
+function prepSheet(p){const s=S.series.find(x=>x.id===p.id)||{};let h="";
+  if(p.purpose)h+=`<p class="prep-purpose">${esc(p.purpose)}</p>`;
+  const ag=p.agenda.map(a=>prepLi(KLBL[a.kind]||a.kind,a.kind,(a.task_id&&S.tasks.some(t=>t.id===a.task_id)?tBtn(a.task_id,a.text):esc(a.text))+(a.recurring?`<span class="rec">every call</span>`:""),"",
+    (a.recurring?"":`<button class="tool yes" data-acov="${esc(a.id)}" title="Discussed in the call">Covered</button>`)+`<button class="tool" data-adrop="${esc(a.id)}" title="${a.recurring?"Stop raising this every call":"Not needed any more"}">${a.recurring?"Remove":"Drop"}</button>`));
+  h+=prepBox("To raise",p.agenda.length,ag,{note:`<form class="agenda-add" id="agendaAdd" data-series="${esc(p.id)}"><select name="k" aria-label="Kind">${Object.entries(KLBL).map(([k,l])=>`<option value="${k}" ${k==="discuss"?"selected":""}>${l}</option>`).join("")}</select><input name="t" placeholder="Something to raise with ${esc((s.people||[])[0]||"them")} next time" aria-label="Agenda item" required><button class="btn" type="submit">Add</button></form>`});
+  const all=S.prepAll.has(p.id),cap=l=>all?l:l.slice(0,5);
+  const up=[...cap(p.done).map(x=>prepLi("Done","",tBtn(x.id,x.title),esc(nice(iso(new Date(x.at)))))),
+    ...cap(p.doing).map(x=>prepLi("Doing","",tBtn(x.id,x.title),x.steps?`${x.steps_done}/${x.steps} steps`:x.due?"due "+esc(nice(x.due)):"")),
+    ...cap(p.next).map(x=>prepLi("Next","",tBtn(x.id,x.title),x.due?"due "+esc(nice(x.due)):""))];
+  const hidden=p.done.length+p.doing.length+p.next.length-up.length;
+  h+=prepBox(`Your update <span class="n" style="font-weight:400">· since ${esc(nice(iso(new Date(p.since))))}</span>`,"",up,{more:hidden>0||all?`<button class="act" style="border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:8px 4px 2px" data-prepall="${esc(p.id)}">${all?"Show less":`Show all (${hidden} more)`}</button>`:""});
+  const asks=[...p.asks.map(x=>prepLi("Waiting","ask",tBtn(x.id,x.title),[x.waiting_on,x.since?"since "+nice(iso(new Date(x.since))):"",x.follow_ups?`chased ${x.follow_ups}×`:""].filter(Boolean).map(esc).join(" · "))),
+    ...p.inputs.map(x=>prepLi("Input","ask",esc(x.question),x.docs?`needed in ${x.docs} doc${x.docs==1?"":"s"}`:""))];
+  h+=prepBox("Ask them for",asks.length,asks);
+  h+=prepBox("Blocked or need help",p.blocked.length,p.blocked.map(x=>prepLi("Blocked","",tBtn(x.id,x.title),x.waits_on?"waits on "+esc(trunc(x.waits_on,60)):x.waiting_on?"waiting on "+esc(x.waiting_on):"")));
+  h+=prepBox("Open questions from the briefs",p.questions.length,p.questions.map(x=>prepLi(esc(proj(x.project_id)?.name||"Brief"),"",esc(x.text))));
+  h+=prepBox("Decided since last call",p.decided.length,p.decided.map(x=>prepLi("Decided","",S.notes.some(n=>n.id===x.id)?`<button data-editnote="${esc(x.id)}">${esc(x.title)}</button>`:esc(x.title))));
+  if(p.last)h+=`<section class="prep-box"><details class="prep-last"><summary><b>Last call</b> · ${esc(istFmt(p.last.at,{day:"numeric",month:"short"}))} · ${esc(callTitle(p.last))}</summary><div class="md">${md(p.last.summary||"")}</div>${/^https?:/.test(p.last.url||"")?`<a href="${esc(p.last.url)}" target="_blank" rel="noopener">Open recording</a>`:""}</details></section>`;
+  return h}
+function nextCallCard(){const t=Date.now();
+  const s=seriesSorted().find(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-t<24*36e5&&new Date(n)-t>-90*6e4});if(!s)return"";
+  const p=S.prep[s.id],nt=nextTxt(p.next_at);
+  return `<section class="card next-call"><div class="card-h"><h2>${esc(s.name)}</h2></div><span class="when">${esc(nt.txt)} · ${p.agenda.length} to raise · ${p.asks.length+p.inputs.length} to ask</span><button class="more" data-cs="${esc(s.id)}">Open prep</button></section>`}
 function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
   return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
 function renderView(){
@@ -822,6 +888,13 @@ function renderView(){
     for(const k of [...g.keys()].sort())h+=sec(`Waiting on ${esc(k)}`,g.get(k).sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||"")));
     if(!w.length)h+=`<div class="empty">Nothing waiting on anyone. Use Hand off on a task when you send it to someone.</div>`;
     h+=inputsBlock(null,{form:true});
+  }
+  else if(S.view==="calls"){
+    const ss=seriesSorted();if(!S.cs||!ss.some(x=>x.id===S.cs))S.cs=ss[0]?.id||null;
+    h+=`<div class="head"><div><h1>Call prep</h1><div class="sub">What to raise, report and ask in your recurring calls. It fills itself from your tasks, calls, inputs and briefs.</div></div>${S.cs?`<div class="right"><button class="btn" data-copyprep="${esc(S.cs)}">Copy as text</button></div>`:""}</div>`;
+    if(!ss.length)h+=`<div class="empty">No recurring calls set up yet. Ask Claude to add one, e.g. “set up prep for my weekly call with David”.</div>`;
+    else{h+=`<div class="calls-pick">${ss.map(x=>{const p=S.prep[x.id],nt=nextTxt(p?.next_at);return `<button class="cpick" data-cs="${esc(x.id)}" aria-pressed="${x.id===S.cs}"><b>${esc(x.name)}</b><span class="${nt.soon?"soon":""}">${esc(nt.txt)}</span><span>${prepPoints(p)} point${prepPoints(p)===1?"":"s"}</span></button>`}).join("")}</div>`;
+      h+=S.prep[S.cs]?prepSheet(S.prep[S.cs]):`<div class="empty">Loading the prep sheet…</div>`}
   }
   else if(S.view==="projects"){
     h+=`<div class="head"><div><h1>Projects</h1></div><div class="right"><button class="btn" data-newproj>New project</button></div></div>`;
@@ -1062,7 +1135,14 @@ document.addEventListener("click",async e=>{
   if(b.dataset.step){const t=S.tasks.find(x=>x.id===b.dataset.step);if(!t)return;const i=+b.dataset.i;
     const st=(t.steps||[]).map((x,j)=>j===i?{...x,done:!x.done}:x);await upd(t.id,{steps:st});
     toast(st[i].done?(st.every(x=>x.done)?"All steps done. Tick the task when you're ready.":"Step done"):"Step reopened");return}
-  if(b.dataset.go){S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
+  if(b.dataset.cs){S.view="calls";S.cs=b.dataset.cs;S.pid=null;S.day=null;try{history.replaceState(null,"","#call/"+S.cs)}catch{}render();document.querySelector("main").scrollTo(0,0);return}
+  if(b.dataset.acov){try{await S.db.doc("agenda_items/"+b.dataset.acov).update({status:"covered",coveredAt:now()});toast("Covered")}catch{toast("Couldn't update that.")}return}
+  if(b.dataset.adrop){try{await S.db.doc("agenda_items/"+b.dataset.adrop).update({status:"dropped"});toast("Removed from the agenda")}catch{toast("Couldn't update that.")}return}
+  if(b.dataset.prepall){const id=b.dataset.prepall;S.prepAll.has(id)?S.prepAll.delete(id):S.prepAll.add(id);render();return}
+  if(b.dataset.copyprep){const{data,error}=await sb.rpc("call_prep_md",{s:b.dataset.copyprep});
+    if(error||!data){toast("Couldn't build the text.",false);return}
+    try{await navigator.clipboard.writeText(data);toast("Prep copied. Paste it into your notes or the meeting chat.",false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
+  if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.proj){S.view="project";S.pid=b.dataset.proj;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if("themeToggle" in b.dataset){const d=document.documentElement,dark=d.dataset.theme!=="dark";if(dark)d.dataset.theme="dark";else delete d.dataset.theme;try{localStorage.setItem("hub-theme",dark?"dark":"light")}catch{}document.querySelector('meta[name="theme-color"]').content=dark?"#141311":"#F6F0E4";renderSide();return}
   if("signout" in b.dataset){await sb.auth.signOut();location.reload();return}
@@ -1108,6 +1188,8 @@ document.addEventListener("click",async e=>{
   if("close" in b.dataset){b.closest("dialog").close();return}
 });
 document.addEventListener("submit",async e=>{
+  if(e.target.id==="agendaAdd"){e.preventDefault();const f=e.target.elements;const t=f.t.value.trim();if(!t)return;
+    try{await S.db.collection("agenda_items").add({seriesId:e.target.dataset.series,kind:f.k.value,text:t});toast("Added to the agenda")}catch{toast("Couldn't add that.")}return}
   if(e.target.id==="inputAdd"){e.preventDefault();const f=e.target.elements;const q=f.q.value.trim();if(!q)return;
     let key=q.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").split("-").slice(0,4).join("-")||"input";
     if(S.inputs.some(x=>x.key===key))key+="-"+Date.now().toString(36).slice(-3);
@@ -1239,7 +1321,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -1312,6 +1394,11 @@ async function refresh(){
     sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id").order("occurred_at",{ascending:false}).limit(300),
     sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500)]);
   const[ii,iu]=await Promise.all([sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
+  const[cs,ai]=await Promise.all([sb.from("call_series").select("*").order("order"),sb.from("agenda_items").select("*").order("created_at")]);
+  if(!cs.error){S.series=cs.data.map(fromRow);
+    const ps=await Promise.all(S.series.filter(x=>x.active!==false).map(x=>sb.rpc("call_prep",{s:x.id})));
+    const np={};S.series.filter(x=>x.active!==false).forEach((x,i)=>{if(!ps[i].error&&ps[i].data)np[x.id]=ps[i].data});S.prep=np}
+  if(!ai.error)S.agenda_items=ai.data.map(fromRow);
   if(!ii.error)S.inputs=ii.data.map(fromRow);
   if(!iu.error)S.iuses=iu.data.map(fromRow);
   if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.supersededBy);
@@ -1334,11 +1421,13 @@ function showLogin(msg){
 let started=false;
 async function start(){
   if(started)return;started=true;
+  const hm=location.hash.match(/^#call\/([\w-]+)/);if(hm){S.view="calls";S.cs=hm[1]}
   await refresh();
   sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},soon).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"project_briefs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"source_segments"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},soon)
-    .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon).subscribe();
+    .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon)
+    .on("postgres_changes",{event:"*",schema:"public",table:"call_series"},soon).on("postgres_changes",{event:"*",schema:"public",table:"agenda_items"},soon).subscribe();
   let last=T();setInterval(()=>{if(T()!==last){last=T();render()}},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }

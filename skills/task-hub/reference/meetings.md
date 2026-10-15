@@ -241,3 +241,25 @@ Inputs are numbers, claims, facts or approvals that Vimal's documents are waitin
 - **Someone promises a number, claim or fact that Vimal's documents need** ("I'll get you the ROI numbers", "claims approved next week"): if no matching input exists, `insert into inputs (key, question, project_id, owner) values ('<short-slug>', '<what is missing>', '<project>', '<who>')`. Add `input_uses (input_id, doc, location, project_id)` rows only for documents named in the call.
 - **An input is no longer needed:** `update inputs set status = 'dropped' where id = '<id>';`
 - In the final report, list inputs received and inputs added.
+
+---
+
+# Addendum — Recurring calls and call prep
+
+Vimal has recurring calls with a living agenda (`call_series`, `agenda_items`). Apply this to every meeting you file, and run the pre-call check on every run.
+
+**Match the call to a series.** `select id, name, calendar_match, people from call_series where active;`. If the meeting title matches `calendar_match` (`title ~* calendar_match`), or it is clearly that recurring call (same people, same cadence), set `sources.series_id = '<id>'` on the source you file or match.
+
+**Close the loop on the agenda.** For a matched series, read `select id, kind, text, recurring from agenda_items where series_id = '<id>' and status = 'open';`.
+- An item that was clearly discussed and is not `recurring`: `update agenda_items set status = 'covered', covered_at = now(), covered_source_id = '<source id>' where id = '<id>';`. Partly discussed means leave it open.
+- Anything said to come back to next time ("let's pick this up next week", "bring the numbers to our next 1:1", "Sam to update on Thursday"): `insert into agenda_items (series_id, kind, text, source_id) values ('<series>', '<update|discuss|ask|decide>', '<short point>', '<source id>');`. Use `ask` for things Vimal must get from them, `update` for things he must report, `decide` for decisions he needs, otherwise `discuss`. Don't duplicate an open item.
+
+**Pre-call push (every run, even when no meeting was filed).** Run
+`select id, name, next_call(id) at, prep_pushed_for from call_series where active and next_call(id) between now() and now() + interval '75 minutes';`
+For each row where `prep_pushed_for` is null or differs from `at`:
+- Count points: `select jsonb_array_length(p->'agenda') raise, jsonb_array_length(p->'asks') + jsonb_array_length(p->'inputs') ask, jsonb_array_length(p->'blocked') blocked from (select call_prep('<id>') p) x;`
+- Send one push notification, e.g. "David 1:1 at 9:00 PM: 3 to raise, 4 to ask, 2 blocked. Prep: https://task-hub-one-delta.vercel.app/#call/david-1on1". Use IST times and no sensitive details.
+- Then `update call_series set prep_pushed_for = '<at>' where id = '<id>';`
+This push is separate from the filing push. A run with only a pre-call push is fine.
+
+In the final report, list series matched, agenda items covered, items added, and prep pushes sent.

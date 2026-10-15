@@ -262,6 +262,32 @@ select id, title, steps from tasks where id = (select u.apply_task_id from input
 update inputs set status = 'dropped' where key = '<key>';
 ```
 
+## Call prep
+
+```sql
+-- Which calls, and when next (IST)
+select id, name, people, to_char(next_call(id) at time zone 'Asia/Kolkata', 'Dy DD Mon HH12:MI AM') next from call_series where active order by next_call(id);
+
+-- The prep sheet as text (agenda, my update, asks, blocked, open questions, decisions, last call)
+select call_prep_md('david-1on1');
+-- Same as JSON, for picking out parts
+select call_prep('david-1on1');
+
+-- Add a point to raise (kind: update | discuss | ask | decide)
+select set_config('app.actor','chat',true);
+insert into agenda_items (series_id, kind, text) values ('<series>', 'discuss', '<short point>') returning id;
+
+-- Open agenda for a call
+select id, kind, text, recurring from agenda_items where series_id = '<series>' and status = 'open' order by created_at;
+
+-- Covered in the call / no longer needed
+update agenda_items set status = 'covered', covered_at = now() where id = '<id>';
+update agenda_items set status = 'dropped' where id = '<id>';
+
+-- One-off move of the next call (the 9 AM routine also sets this from the calendar)
+update call_series set next_at = '2026-10-21 21:00+05:30' where id = '<series>';
+```
+
 ## Replace a task
 
 ```sql
