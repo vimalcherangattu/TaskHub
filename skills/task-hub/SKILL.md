@@ -247,4 +247,4 @@ Vimal's recurring calls are in `call_series`: `david-1on1` (Mon 9 PM IST), `ravi
 
 ## Working alongside the daily routine
 
-A routine runs at 9 AM Asia/Kolkata, adds `suggested` tasks (`source` = `scheduled:email` / `scheduled:calendar` / `scheduled:linear` / `scheduled:weekly-review`) and auto-completes tasks with clear evidence. It appends `[Auto-completed …]` to `notes`. Treat its tasks like any other. Don't re-add what it added, and don't reopen what it completed unless he says so.
+An hourly agent (8:43 AM–1:43 AM IST) files calls and checks new email and Linear since its last run; a routine at 9 AM Asia/Kolkata also does the calendar and a daily sweep. Both add `suggested` tasks (`source` = `scheduled:email` / `scheduled:calendar` / `scheduled:linear` / `scheduled:weekly-review`) and auto-completes tasks with clear evidence. It appends `[Auto-completed …]` to `notes`. Treat its tasks like any other. Don't re-add what it added, and don't reopen what it completed unless he says so.
