@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ambalam</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2230%22 fill=%22%231A645A%22/><text x=%2250%22 y=%2270%22 text-anchor=%22middle%22 font-family=%22system-ui,sans-serif%22 font-weight=%22800%22 font-size=%2262%22 fill=%22%23FFFFFF%22>a</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2230%22 fill=%22%233B5B8C%22/><text x=%2250%22 y=%2270%22 text-anchor=%22middle%22 font-family=%22system-ui,sans-serif%22 font-weight=%22800%22 font-size=%2262%22 fill=%22%23FFFFFF%22>a</text></svg>">
 <meta name="theme-color" content="#FFFFFF">
 <script>try{if(localStorage.getItem("hub-theme")==="dark")document.documentElement.dataset.theme="dark"}catch{}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,13 +17,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@1,400&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#FFFFFF; --surface:#FFFFFF; --raised:#FFFFFF; --sunken:#F1F4F2; --side:#EEF7F4; --ink:#1B2A25; --muted:#4A5852; --faint:#5B6A63;
-  --line:#E1E8E4; --line-strong:#C6D3CC; --control:#7D8E86;
-  --accent:#1F7A6E; --accent-soft:#E8F5F1; --strong:#1A645A; --on-strong:#FFFFFF; --danger:#A63D33; --danger-soft:#FBEAE7;
+  --bg:#FFFFFF; --surface:#FFFFFF; --raised:#FFFFFF; --sunken:#F2F4F7; --side:#F6F7F9; --ink:#1C2430; --muted:#4B5565; --faint:#5D6675;
+  --line:#E4E7EC; --line-strong:#CDD3DC; --control:#8A93A1;
+  --accent:#3B5B8C; --accent-soft:#EAF0F8; --strong:#3B5B8C; --on-strong:#FFFFFF; --danger:#A63D33; --danger-soft:#FBEAE7;
   --warn:#875400; --ok:#26683F; --ok-soft:#DDEFE3;
-  --f-blue:#3D7A9E; --f-white:#AFBDB5; --f-red:#C0564A; --f-green:#4A8A63; --f-yellow:#D6A23A;
+  --f-blue:#3D6FA8; --f-white:#B4BCC8; --f-red:#C0564A; --f-green:#4A8A63; --f-yellow:#D6A23A;
   --radius-s:10px; --radius-m:16px; --radius-l:20px; --radius-xl:28px;
-  --lift:0 2px 4px rgba(21,32,28,.06),0 24px 48px -16px rgba(21,32,28,.2);
+  --lift:0 2px 4px rgba(28,36,48,.06),0 24px 48px -16px rgba(28,36,48,.2);
   --soft:0 1px 0 var(--line);
   --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.56,.64,1);
   --display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
@@ -33,10 +33,10 @@
   color-scheme:light;
 }
 :root[data-theme="dark"]{
-  --bg:#111816; --side:#111816; --surface:#172019; --raised:#1D2722; --sunken:#0B100E; --ink:#E6EEEA; --muted:#B0BEB7; --faint:#8F9D96;
-  --line:#25312C; --line-strong:#36443E; --control:#6F7F78;
-  --accent:#86C9BE; --accent-soft:#163029; --strong:#6BB3A7; --on-strong:#0F1A17; --danger:#FF8A80; --danger-soft:#2E1715;
-  --warn:#F2B65A; --ok:#6FD39A; --ok-soft:#12291D; --f-white:#C2CEC8;
+  --bg:#121418; --side:#121418; --surface:#181B20; --raised:#1E2228; --sunken:#0C0E11; --ink:#E8EBF0; --muted:#B3BAC5; --faint:#9199A5;
+  --line:#262B33; --line-strong:#363D47; --control:#727B88;
+  --accent:#8FB0E0; --accent-soft:#1A2436; --strong:#7E9FD1; --on-strong:#0E1420; --danger:#FF8A80; --danger-soft:#2E1715;
+  --warn:#F2B65A; --ok:#6FD39A; --ok-soft:#12291D; --f-white:#C3CAD4;
   --lift:0 2px 4px rgba(0,0,0,.5),0 24px 48px -16px rgba(0,0,0,.8); color-scheme:dark;
 }
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -1452,7 +1452,7 @@ document.addEventListener("click",async e=>{
     try{await navigator.clipboard.writeText(data);toast("Prep copied. Paste it into your notes or the meeting chat.",false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
   if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.proj){S.view="project";S.pid=b.dataset.proj;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
-  if("themeToggle" in b.dataset){const d=document.documentElement,dark=d.dataset.theme!=="dark";if(dark)d.dataset.theme="dark";else delete d.dataset.theme;try{localStorage.setItem("hub-theme",dark?"dark":"light")}catch{}document.querySelector('meta[name="theme-color"]').content=dark?"#111816":"#FFFFFF";renderSide();return}
+  if("themeToggle" in b.dataset){const d=document.documentElement,dark=d.dataset.theme!=="dark";if(dark)d.dataset.theme="dark";else delete d.dataset.theme;try{localStorage.setItem("hub-theme",dark?"dark":"light")}catch{}document.querySelector('meta[name="theme-color"]').content=dark?"#121418":"#FFFFFF";renderSide();return}
   if("signout" in b.dataset){try{localStorage.removeItem(CACHE)}catch{}await sb.auth.signOut();location.reload();return}
   if(b.dataset.bsel){brainSelect(b.dataset.bsel);return}
   if("bexpand" in b.dataset){S.projects.forEach(p=>S.bopen.add("p:"+p.id));drawBrain();return}
