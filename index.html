@@ -1394,11 +1394,6 @@ async function refresh(){
     sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id").order("occurred_at",{ascending:false}).limit(300),
     sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500)]);
   const[ii,iu]=await Promise.all([sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
-  const[cs,ai]=await Promise.all([sb.from("call_series").select("*").order("order"),sb.from("agenda_items").select("*").order("created_at")]);
-  if(!cs.error){S.series=cs.data.map(fromRow);
-    const ps=await Promise.all(S.series.filter(x=>x.active!==false).map(x=>sb.rpc("call_prep",{s:x.id})));
-    const np={};S.series.filter(x=>x.active!==false).forEach((x,i)=>{if(!ps[i].error&&ps[i].data)np[x.id]=ps[i].data});S.prep=np}
-  if(!ai.error)S.agenda_items=ai.data.map(fromRow);
   if(!ii.error)S.inputs=ii.data.map(fromRow);
   if(!iu.error)S.iuses=iu.data.map(fromRow);
   if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.supersededBy);
@@ -1408,6 +1403,15 @@ async function refresh(){
   if(!c.error)S.changes=c.data.map(fromRow);
   if(p.error||t.error){document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
   S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow).filter(x=>!x.supersededBy);S.ready.p=S.ready.t=true;render();
+  // call prep is optional: if it can't load, the rest of the app still works
+  try{
+    const[cs,ai]=await Promise.all([sb.from("call_series").select("*").order("order"),sb.from("agenda_items").select("*").order("created_at")]);
+    if(!cs.error){S.series=cs.data.map(fromRow);const act=S.series.filter(x=>x.active!==false);
+      const ps=await Promise.all(act.map(x=>sb.rpc("call_prep",{s:x.id})));
+      const np={};act.forEach((x,i)=>{if(!ps[i].error&&ps[i].data)np[x.id]=ps[i].data});S.prep=np}
+    if(!ai.error)S.agenda_items=ai.data.map(fromRow);
+    render();
+  }catch(e){console.warn("call prep unavailable",e)}
 }
 let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,120)}
 function showLogin(msg){
