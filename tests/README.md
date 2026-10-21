@@ -23,3 +23,4 @@ Every test prints `errors []` (no page errors) and ends with exit code 0. Read t
 | `inp.mjs` | Pending inputs: received, used in another doc, track a new one |
 | `brain.mjs` | Capture (C key, link detection, idea into a project), Notes view and inbox, Ctrl+K search with transcript hits, lazy mind map, painting from the local cache, a shared link opening Capture |
 | `calls.mjs` | Call prep sheet, agenda add, cover and undo, the Next call card |
+| `hl.mjs` | Highlights: no card when nothing stands out, a picked day and week highlight with reasons, Done pins the win, pin from the quick look, swap, unpin, hide; phone has no sideways scroll |

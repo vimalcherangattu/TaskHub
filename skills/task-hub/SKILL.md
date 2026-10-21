@@ -80,6 +80,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `due` | Deadline. Always set one; if he gave none, pick a sensible date and say so. |
 | `today_date` | On today's list when it equals today. Tasks due today or earlier show on Today anyway. Clear it (null) to take a task off today. |
 | `week_of` | The **Monday** of the week it should finish. Any other day breaks the Week view. |
+| `highlight_day`, `highlight_week` | His pinned highlight: the one task that would make today (a date) or this week (its **Monday**) feel like a win. At most one task per day and one per week, so clear any other task holding the same value first. Set only when he names one; otherwise the app picks by judgement (priority, deadline, what it unblocks) and shows nothing when nothing stands out. |
 | `effort_days` | Working days of effort, only when over a day. The app derives the start date as `due - effort_days`. |
 | `start_date` | Only for a fixed start date he gave. Otherwise leave null. |
 | `notes` | Free text: why the task exists and the context needed. Append rather than overwrite. |

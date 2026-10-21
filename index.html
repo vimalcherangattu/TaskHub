@@ -394,6 +394,26 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
   .focus .task .tools:not(.always){position:static;background:none;padding:0}
 }
 .focus .tools{opacity:1;transform:none;flex-basis:100%;justify-content:flex-start;order:3;margin-left:38px}
+.hl{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:24px}
+.hl-half{background:var(--accent-soft);border:1px solid var(--line);border-radius:var(--radius-l);padding:16px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.hl-half+.hl-half{background:var(--surface)}
+.hl-lbl{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--strong)}
+.hl-lbl span{color:var(--muted);letter-spacing:.04em;text-transform:none}
+.hl-t{background:none;border:0;padding:0;text-align:left;font-family:var(--display);font-weight:700;font-size:20px;line-height:1.25;letter-spacing:-.01em;color:var(--ink);min-height:32px;overflow-wrap:anywhere}
+.hl-half.won .hl-t{text-decoration:line-through;color:var(--muted)}
+.hl-won{margin:0;color:var(--ok);font-weight:600}
+.hl-why{margin:0;color:var(--muted);font-size:13px}
+.hl-q{margin:0;font-weight:600}
+.hl-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.hl-b{min-height:36px;padding:0 14px;border:1px solid var(--line-strong);border-radius:999px;background:var(--surface);font-size:13px;font-weight:500;color:var(--muted)}
+.hl-b:hover{border-color:var(--control);color:var(--ink)}
+.hl-b.go{background:var(--strong);border-color:var(--strong);color:var(--on-strong)}
+.hl-pick{display:flex;flex-direction:column;gap:6px;width:100%}
+.hl-c{display:flex;flex-direction:column;text-align:left;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-s);padding:9px 12px;min-height:44px;font-size:14px;font-weight:500}
+.hl-c:hover{border-color:var(--strong)}
+.hl-c small{color:var(--muted);font-weight:400;font-size:12px}
+.hl-star{color:var(--strong);margin-right:5px}
+@media (max-width:820px){.hl-b{min-height:44px}.hl{margin-bottom:18px}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:20px;display:flex;flex-direction:column;gap:12px}
 .card.dashed{background:none;border-style:dashed;border-color:var(--line-strong)}
 .card-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -789,6 +809,33 @@ const gapAfter=k=>k>=3?3:2;
 const startBy=t=>t.startDate||(t.due&&t.effortDays>0?addDays(t.due,-t.effortDays):null);
 const startNow=t=>open(t)&&!doing(t)&&!waiting(t)&&!!startBy(t)&&startBy(t)<=T()&&!(t.due&&t.due<=T())&&!onToday(t);
 const behind=t=>startNow(t)&&startBy(t)<T();
+/* highlight: the one task that would make today (or this week) feel like a win.
+   Picked by judgement unless pinned (highlight_day / highlight_week); shown only when something stands out. */
+const HL={day:{k:"highlightDay",v:()=>T(),min:4},week:{k:"highlightWeek",v:()=>week()[0],min:5}};
+const hlPinned=kind=>S.tasks.find(t=>t[HL[kind].k]===HL[kind].v()&&!sugg(t))||null;
+function hlScore(t,kind){const why=[];let s=0;const td=T(),end=kind==="day"?td:week()[6];
+  if(t.priority==="high"){s+=3;why.push("high priority")}else if(t.priority!=="low")s+=1;
+  if(overdue(t)){s+=4;why.push("overdue")}else if(t.due&&t.due<=end){s+=3;why.push(t.due===td?"due today":"due "+nice(t.due))}else if(t.due&&t.due<=addDays(end,2)){s+=1;why.push("due "+nice(t.due))}
+  const n=dependents(t).length;if(n){s+=Math.min(n,2)*1.5;why.push(`unblocks ${n}`)}
+  if(behind(t)){s+=2;why.push("behind its start")}
+  if((t.carryCount||0)>=2){s+=1;why.push(`pushed ×${t.carryCount}`)}
+  if(kind==="week"&&t.effortDays>=2){s+=1;why.push(`${t.effortDays} days of work`)}
+  if(doing(t))s+=1;
+  return{s,why}}
+const hlPool=kind=>S.tasks.filter(t=>open(t)&&!waiting(t)&&!blocked(t)&&(kind==="day"?doing(t)||onToday(t)||startNow(t):onWeek(t)));
+function hlRank(kind){return hlPool(kind).map(t=>({t,...hlScore(t,kind)})).sort((a,b)=>b.s-a.s||PR[a.t.priority||"med"]-PR[b.t.priority||"med"]||(a.t.due||"9").localeCompare(b.t.due||"9"))}
+// picks are cached per render (render() clears it); rows and the quick look ask for them many times
+let hlC={};
+function hlPick(kind){if(kind in hlC)return hlC[kind];const p=hlPinned(kind);
+  if(p)return hlC[kind]={t:p,pinned:true,why:open(p)?hlScore(p,kind).why:[]};
+  // the week's pick is the biggest thing beyond today's, so the two cards never repeat
+  const skip=kind==="week"?hlPick("day")?.t.id:null,top=hlRank(kind).find(x=>x.t.id!==skip);return hlC[kind]=top&&top.s>=HL[kind].min?{t:top.t,pinned:false,why:top.why}:null}
+const isHl=(t,kind)=>hlPick(kind)?.t.id===t.id;
+/* finishing the current highlight pins it, so the card keeps showing the win instead of moving on */
+const hlKeep=t=>{const o={};for(const k of["day","week"]){const p=hlPick(k);if(p&&!p.pinned&&p.t.id===t.id)o[HL[k].k]=HL[k].v()}return o};
+const hlMsg=t=>isHl(t,"day")?"Highlight done. Today's a win.":isHl(t,"week")?"This week's highlight is done. That's the week won.":"Marked done";
+let hlHide={};try{hlHide=JSON.parse(localStorage.getItem("hub.hlhide")||"{}")}catch{}
+const hlHidden=kind=>hlHide[kind]===HL[kind].v();
 const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const ago=s=>{const d=Math.floor((Date.now()-new Date(s))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
 /* dependencies: blockedBy = tasks that must finish first */
@@ -902,7 +949,7 @@ function row(t){
   const tools=sugg(t)?`<div class="tools always"><button class="tool yes" data-accept="${id}">Accept</button><button class="tool" data-dismiss="${id}">Dismiss</button>${more}</div>`
     :waiting(t)?`<div class="tools"><button class="tool" data-chased="${id}" title="I followed up; schedule the next nudge">Followed up</button><button class="tool" data-quickdone="${id}" style="color:var(--ok)" title="They replied and it's closed">Closed</button>${more}</div>`
     :open(t)?`<div class="tools"><button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}" title="Put on today's list">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}" title="Finish this week">Week</button>${more}</div>`:"";
-  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""}${blocked(t)?" blocked":""}${S.peek===t.id?" sel":""} p-${esc(t.priority||"med")}" data-tid="${id}">${sugg(t)?`<button class="chk" style="border-style:dashed" data-done="${id}" aria-label="Mark done" title="Already done? Tap to mark it done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`:`<button class="chk" data-done="${id}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-peek="${id}">${fresh?`<span class="cdot" title="Claude updated this ${esc(ago(la.at))}"></span>`:""}${esc(t.title)}</button>${bits.length?`<div class="meta">${bits.join("")}</div>`:""}${resumeFirst===t.id&&t.resumeNote?`<p class="resume1" title="${esc(t.resumeNote)}"><span class="sr">Where you left it: </span>${esc(t.resumeNote)}</p>`:""}</div><span class="pri ${esc(PRI[t.priority]?t.priority:"med")}" title="${{high:"High",med:"Medium",low:"Low"}[t.priority]||"Medium"} priority">${PRI[t.priority]||"MED"}</span>${dueCol(t)}${tools}</div>`;
+  return `<div class="task ${t.status==="done"?"done":doing(t)?"doing":""}${blocked(t)?" blocked":""}${S.peek===t.id?" sel":""} p-${esc(t.priority||"med")}" data-tid="${id}">${sugg(t)?`<button class="chk" style="border-style:dashed" data-done="${id}" aria-label="Mark done" title="Already done? Tap to mark it done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`:`<button class="chk" data-done="${id}" aria-label="${t.status==="done"?"Mark not done":doing(t)?"Mark done":"Start this task"}" title="${t.status==="done"?"Mark not done":doing(t)?"Tap to finish":"Tap to start"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>`}<div class="body"><button class="title" data-peek="${id}">${open(t)&&(isHl(t,"day")||isHl(t,"week"))?`<span class="hl-star" title="${isHl(t,"day")?"Today's":"This week's"} highlight"><span aria-hidden="true">★</span><span class="sr">${isHl(t,"day")?"Today's":"This week's"} highlight: </span></span>`:""}${fresh?`<span class="cdot" title="Claude updated this ${esc(ago(la.at))}"></span>`:""}${esc(t.title)}</button>${bits.length?`<div class="meta">${bits.join("")}</div>`:""}${resumeFirst===t.id&&t.resumeNote?`<p class="resume1" title="${esc(t.resumeNote)}"><span class="sr">Where you left it: </span>${esc(t.resumeNote)}</p>`:""}</div><span class="pri ${esc(PRI[t.priority]?t.priority:"med")}" title="${{high:"High",med:"Medium",low:"Low"}[t.priority]||"Medium"} priority">${PRI[t.priority]||"MED"}</span>${dueCol(t)}${tools}</div>`;
 }
 /* ---------- quick look ---------- */
 function peekHtml(t){
@@ -929,6 +976,7 @@ function peekHtml(t){
   else acts=b(`data-done="${id}"`,"Start","primary")+b(`data-quickdone="${id}"`,"Done","","Mark done without starting");
   if(open(t)&&!sugg(t)){
     acts+=`<button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}">Week</button>`;
+    if(!waiting(t))acts+=`<button class="tool" data-hlset="day" data-id="${id}" aria-pressed="${t.highlightDay===T()}" title="Pin as the one thing that makes today a win">★ Today's highlight</button><button class="tool" data-hlset="week" data-id="${id}" aria-pressed="${t.highlightWeek===week()[0]}" title="Pin as this week's highlight">★ Week's highlight</button>`;
     if(blocked(t))acts+=b(`data-pushafter="${id}"`,"Move after","","Plan this after what it waits on");
     if(!waiting(t))acts+=b(`data-handoff="${id}"`,"Hand off","","Sent to someone, now waiting on them");}
   acts+=b(`data-edit="${id}"`,"Edit","quiet","Open the full editor");
@@ -971,6 +1019,22 @@ function todayHead(n,done){
   const line=n?`${cap(word(n))} thing${n===1?"":"s"} today.`:"Nothing left for today.";
   const tot=n+done,pct=tot?Math.round(done/tot*100):0;
   return `<header class="thead"><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))}</div><h1>${hi} ${line}</h1><div class="tprog"><div class="bar" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}"><i style="width:${pct}%"></i></div><span>${done} of ${tot} done</span></div></header>`}
+async function setHl(kind,id){const{k,v}=HL[kind],val=v(),t=S.tasks.find(x=>x.id===id);if(!t)return;S.hlPick=null;
+  if(t[k]===val){await upd(id,{[k]:null});toast(kind==="day"?"Unpinned. Ambalam will pick today's highlight.":"Unpinned. Ambalam will pick this week's highlight.");return}
+  for(const x of S.tasks.filter(x=>x[k]===val&&x.id!==id))await upd(x.id,{[k]:null});
+  const patch={[k]:val};if(kind==="day"&&!onToday(t)&&!doing(t))patch.todayDate=T();if(kind==="week"&&!onWeek(t))patch.weekOf=val;
+  delete hlHide[kind];try{localStorage.setItem("hub.hlhide",JSON.stringify(hlHide))}catch{}
+  if(await upd(id,patch))toast(kind==="day"?"Today's highlight set. Do this one first.":"This week's highlight set.")}
+function hlCard(){
+  const half=kind=>{const day=kind==="day",p=hlPick(kind);
+    if(!p||(hlHidden(kind)&&!p.pinned))return"";
+    const lbl=day?"Today's highlight":"This week's highlight",t=p.t,id=esc(t.id);
+    if(S.hlPick===kind){const alt=hlRank(kind).filter(x=>x.t.id!==t.id).slice(0,4);
+      return `<div class="hl-half"><div class="hl-lbl">${lbl}</div><p class="hl-q">${day?"What would make today feel like a win?":"What would make this week feel like a win?"}</p><div class="hl-pick">${alt.map(x=>`<button class="hl-c" data-hlset="${kind}" data-id="${esc(x.t.id)}">${esc(trunc(x.t.title,80))}${x.why.length?`<small>${esc(x.why.join(" · "))}</small>`:""}</button>`).join("")||`<p class="hl-why">Nothing else is on ${day?"today":"this week"} yet.</p>`}</div><div class="hl-acts"><button class="hl-b" data-hlpick="">Keep “${esc(trunc(t.title,32))}”</button></div></div>`}
+    if(t.status==="done")return `<div class="hl-half won"><div class="hl-lbl">${lbl}</div><button class="hl-t" data-peek="${id}">${esc(t.title)}</button><p class="hl-won">✓ ${day?"Done. Today's a win, whatever else happens.":"Done. This week's a win."}</p></div>`;
+    return `<div class="hl-half"><div class="hl-lbl">${lbl} <span>${p.pinned?"· your pick":"· picked for you"}</span></div><button class="hl-t" data-peek="${id}">${esc(t.title)}</button>${p.why.length?`<p class="hl-why">${esc(cap(p.why.join(" · ")))}</p>`:""}<div class="hl-acts"><button class="hl-b go" data-quickdone="${id}">Done</button><button class="hl-b" data-hlpick="${kind}">Pick another</button>${p.pinned?`<button class="hl-b" data-hlset="${kind}" data-id="${id}">Unpin</button>`:`<button class="hl-b" data-hlhide="${kind}">Hide</button>`}</div></div>`};
+  const h=half("day")+(S.view==="week"||S.view==="today"?half("week"):"");
+  return h?`<section class="hl" aria-label="Highlights">${h}</section>`:""}
 function progress(done,total,label){const pct=total?Math.round(done/total*100):0;return `<div class="right"><div class="meter">${done}<span> of ${total} ${label}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`}
 
 function suggActs(t,cls){const id=esc(t.id),b=(a,l,ti,x="")=>`<button class="${cls}${x}" ${a}="${id}" title="${ti}">${l}</button>`;
@@ -1112,7 +1176,7 @@ function renderView(){
     const held=heldA.filter(tfilter),fus=fuA.filter(tfilter),motion=motionA.filter(tfilter),starts=startA.filter(tfilter),list=listA.filter(tfilter),left=leftA.filter(tfilter),doneT=doneA.filter(tfilter);
     h+=todayHead(pool.filter(tfilter).length,doneT.length);
     h+=`<div class="today-grid"><div class="today-main">`;
-    h+=strip()+quick("Add something for today");
+    h+=hlCard()+strip()+quick("Add something for today");
     h+=todayFilters(pool);
     if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
     const motionShow=S.focusAll?motion:tsortList(motion).slice(0,3);
@@ -1129,7 +1193,7 @@ function renderView(){
   else if(S.view==="week"){
     const w=week();const openW=S.tasks.filter(onWeek);const doneW=S.tasks.filter(doneThisWeek);
     h+=`<div class="head"><div><h1>Finish this week</h1><div class="sub">${esc(nice(w[0]))} to ${esc(nice(w[6]))}</div></div>${progress(doneW.length,doneW.length+openW.length,"finished")}</div>`;
-    h+=strip()+quick("Add something to finish this week");
+    h+=hlCard()+strip()+quick("Add something to finish this week");
     const days=S.day?[S.day]:w;
     h+=sec("Overdue",sortT(openW.filter(overdue)),{cls:"danger"});
     for(const d of days){const l=sortT(openW.filter(x=>!overdue(x)&&(x.due===d||(!x.due&&x.todayDate===d))));if(l.length||d===t)h+=sec(d===t?"Today":esc(nice(d)),l,{empty:"Nothing scheduled."})}
@@ -1389,7 +1453,7 @@ function allList(){
   l=l.slice().sort(cmp);
   return l.length?`<section><div class="sh"><h2>${l.length} task${l.length===1?"":"s"}</h2></div>${l.map(row).join("")}</section>`:`<div class="empty">${q?"No tasks match that search.":"Nothing here."}</div>`;
 }
-function render(){if(!S.ready.p||!S.ready.t)return;const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();renderPeek();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
+function render(){if(!S.ready.p||!S.ready.t)return;hlC={};const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();renderPeek();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
 
 /* ---------- writes ---------- */
 // after a failed save, keep its message up: don't let the click's "Marked done" replace it
@@ -1468,9 +1532,12 @@ document.addEventListener("click",async e=>{
   if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;
     if(t.status==="done"){await upd(t.id,{status:"todo",doneAt:null});return}
     if(sugg(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
-    if(doing(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
+    if(doing(t)){const m=hlMsg(t);await upd(t.id,{status:"done",doneAt:now(),...hlKeep(t)});toast(m);return}
     await startTask(t);return}
-  if(b.dataset.quickdone){await upd(b.dataset.quickdone,{status:"done",doneAt:now()});toast("Marked done");return}
+  if(b.dataset.quickdone){const t=S.tasks.find(x=>x.id===b.dataset.quickdone);const m=t?hlMsg(t):"Marked done";await upd(b.dataset.quickdone,{status:"done",doneAt:now(),...(t?hlKeep(t):{})});toast(m);return}
+  if(b.dataset.hlset){await setHl(b.dataset.hlset,b.dataset.id);return}
+  if(b.dataset.hlpick!==undefined){S.hlPick=b.dataset.hlpick||null;render();return}
+  if(b.dataset.hlhide){const k=b.dataset.hlhide;hlHide[k]=HL[k].v();try{localStorage.setItem("hub.hlhide",JSON.stringify(hlHide))}catch{}render();toast(k==="day"?"Hidden for today. Pin one from any task's quick look.":"Hidden for this week.",false);return}
   if(b.dataset.handoff){openHandoff(S.tasks.find(x=>x.id===b.dataset.handoff));return}
   if(b.dataset.chased){const x=S.tasks.find(y=>y.id===b.dataset.chased);if(!x)return;const n=(x.followUps||0)+1;const nx=nextWork(T(),gapAfter(n));await upd(x.id,{followUps:n,followUpOn:nx});toast(`Logged. Next nudge ${nice(nx)}${n>=3?" (time to escalate)":""}`);return}
   if(b.dataset.backtome){await upd(b.dataset.backtome,{status:"todo",todayDate:T(),followUpOn:null});toast("Back on your list for today");return}
@@ -1715,7 +1782,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",highlightDay:"highlight_day",highlightWeek:"highlight_week",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
