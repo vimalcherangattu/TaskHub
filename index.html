@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Ambalam">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://mbbucsageoyxhekzbmyq.supabase.co">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1860,11 +1861,20 @@ function mergeTask(ev){
   const cur=rowOf("tasks",r.id);if(cur)Object.assign(cur,r);else S.tasks.push(r);paint()}
 function showLogin(msg){
   document.getElementById("side").innerHTML="";document.getElementById("tabs").innerHTML="";
-  document.getElementById("view").innerHTML=`<form class="login" id="loginForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${msg||"Sign in with your email. We'll send you a link."}</div><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
+  document.getElementById("view").innerHTML=`<form class="login" id="loginForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${msg||"Sign in with your email. We'll send you a link and a code."}</div><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
   document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();
     const email=e.target.email.value.trim();
     const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
-    showLogin(error?"That email can't sign in here. Check the address and try again.":"Check your inbox and tap the link to sign in.")});
+    if(error?.status===429)return showCode(email,"A sign-in email went out a moment ago. Use that one, or wait a minute before asking again.");
+    error?showLogin("That email can't sign in here. Check the address and try again."):showCode(email)});
+}
+// the code in the email signs in where the link can't reach, e.g. an app added to the Dock while links open in another browser
+function showCode(email,msg){
+  document.getElementById("view").innerHTML=`<form class="login" id="codeForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${esc(msg||"Check your inbox. Tap the link, or type the code from the email here.")}</div><input name="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" placeholder="Code" aria-label="Code from the email"><button class="btn primary" type="submit">Sign in</button><button class="btn" type="button" id="codeBack">Use a different email</button></form>`;
+  document.getElementById("codeBack").onclick=()=>showLogin();
+  document.getElementById("codeForm").addEventListener("submit",async e=>{e.preventDefault();
+    const{error}=await sb.auth.verifyOtp({email,token:e.target.code.value.trim(),type:"email"});
+    if(error)showCode(email,"That code didn't work. It may have expired, or a newer email replaced it.")});
 }
 let started=false;
 async function start(){

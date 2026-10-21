@@ -1,0 +1,17 @@
+import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+const b = await chromium.launch(); const p = await b.newPage({viewport:{width:1280,height:900}});
+const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto(new URL('../index.html', import.meta.url).href); await p.waitForTimeout(1500);
+await p.evaluate(()=>{window.calls=[];let sends=0;
+  sb.auth.signInWithOtp=async o=>{calls.push(['otp',o.email]);return{error:++sends>1?{status:429}:null}};
+  sb.auth.verifyOtp=async o=>{calls.push(['verify',o.token]);return{error:o.token==='123456'?null:{status:403}}}});
+const sub=()=>p.textContent('.login .sub');
+await p.fill('#loginForm input','me@example.com');await p.click('#loginForm button');await p.waitForSelector('#codeForm');
+console.log('after send:',await sub());
+await p.fill('#codeForm input','000000');await p.click('#codeForm button[type=submit]');await p.waitForTimeout(100);
+console.log('bad code:',await sub());
+await p.fill('#codeForm input','123456');await p.click('#codeForm button[type=submit]');await p.waitForTimeout(100);
+await p.click('#codeBack');await p.fill('#loginForm input','me@example.com');await p.click('#loginForm button');await p.waitForSelector('#codeForm');
+console.log('second send (429):',await sub());
+console.log('calls',JSON.stringify(await p.evaluate(()=>calls)));
+console.log('errors',errs);await b.close();if(errs.length)process.exit(1);
