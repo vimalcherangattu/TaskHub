@@ -22,6 +22,6 @@ await p.screenshot({path:new URL('./out/s1.png', import.meta.url).pathname});
 await step('tick step 2',()=>p.evaluate(()=>setPeek('a')).then(()=>p.waitForTimeout(150)).then(()=>p.click('#peek .step[data-i="1"]')));
 console.log('toast:',await p.textContent('#toast'));
 await step('ctrl+z',()=>p.keyboard.press('Control+z'));
-await step('edit: add + remove',async()=>{await p.evaluate(()=>setPeek('a'));await p.waitForTimeout(150);await p.click('#peek [data-edit="a"]');await p.waitForTimeout(300);await p.fill('#stepNew','Return keys');await p.press('#stepNew','Enter');await p.click('[data-dsdel="0"]');await p.click('[data-dstep="0"]');await p.waitForTimeout(200);await p.screenshot({path:new URL('./out/s2.png', import.meta.url).pathname});await p.click('#taskForm button[type=submit]')});
+await step('edit: add + remove',async()=>{await p.evaluate(()=>setPeek('a'));await p.waitForTimeout(150);await p.click('#peek [data-edit="a"]');await p.waitForTimeout(300);await p.click('#tsMore summary');await p.fill('#stepNew','Return keys');await p.press('#stepNew','Enter');await p.click('[data-dsdel="0"]');await p.click('[data-dstep="0"]');await p.waitForTimeout(200);await p.screenshot({path:new URL('./out/s2.png', import.meta.url).pathname});await p.click('#taskForm button[type=submit]')});
 console.log(errs);
 await b.close();

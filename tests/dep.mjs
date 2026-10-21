@@ -25,7 +25,7 @@ await p.screenshot({path:new URL('./out/dep1.png', import.meta.url).pathname,ful
 await p.evaluate(()=>setPeek('b'));await p.waitForTimeout(150);await p.click('#peek [data-pushafter]');await p.evaluate(()=>setPeek(null));await p.waitForTimeout(500);
 console.log('B moved', await p.evaluate(()=>DB.tasks.find(x=>x.id==='b').due), await p.textContent('#toast'));
 await p.evaluate(()=>{S.view='attention';render()});await p.waitForTimeout(200);console.log('ATTN   ', await sec());
-await p.evaluate(()=>{S.view='today';render()});await p.evaluate(()=>setPeek('d'));await p.waitForTimeout(150);await p.click('#peek [data-edit="d"]');await p.waitForTimeout(300);
+await p.evaluate(()=>{S.view='today';render()});await p.evaluate(()=>setPeek('d'));await p.waitForTimeout(150);await p.click('#peek [data-edit="d"]');await p.waitForTimeout(300);await p.click('#tsMore summary');
 console.log('options', await p.evaluate(()=>[...document.querySelectorAll('#depAdd option')].map(o=>o.textContent.slice(0,14))));
 await p.selectOption('#depAdd','c');await p.waitForTimeout(100);await p.screenshot({path:new URL('./out/dep2.png', import.meta.url).pathname});
 await p.click('#taskForm button[type=submit]');await p.waitForTimeout(500);
