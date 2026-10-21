@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Task Hub</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2230%22 fill=%22%23141210%22/><text x=%2250%22 y=%2270%22 text-anchor=%22middle%22 font-family=%22system-ui,sans-serif%22 font-weight=%22800%22 font-size=%2262%22 fill=%22%23F6F0E4%22>t</text></svg>">
+<title>Ambalam</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2230%22 fill=%22%23141210%22/><text x=%2250%22 y=%2270%22 text-anchor=%22middle%22 font-family=%22system-ui,sans-serif%22 font-weight=%22800%22 font-size=%2262%22 fill=%22%23F6F0E4%22>a</text></svg>">
 <meta name="theme-color" content="#F6F0E4">
 <script>try{if(localStorage.getItem("hub-theme")==="dark")document.documentElement.dataset.theme="dark"}catch{}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Task Hub">
+<meta name="apple-mobile-web-app-title" content="Ambalam">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,7 +58,7 @@ main{overflow-y:auto;padding:40px clamp(16px,4vw,56px) 120px;scroll-behavior:smo
 
 /* sidebar */
 .brand{display:grid;grid-template-columns:30px 1fr;column-gap:12px;align-items:center;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.02em;padding:0 10px 26px}
-.brand::before{content:"t";grid-row:span 2;width:30px;height:30px;border-radius:9px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:800;font-size:16px;line-height:1}
+.brand::before{content:"a";grid-row:span 2;width:30px;height:30px;border-radius:9px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:800;font-size:16px;line-height:1}
 .brand small{display:block;font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-top:2px}
 .nav{display:flex;flex-direction:column;gap:2px;margin-bottom:22px}
 .nav button{display:flex;align-items:center;gap:12px;border:0;background:none;min-height:40px;padding:0 12px;border-radius:12px;text-align:left;font-weight:500;color:var(--muted);transition:background .18s var(--ease),color .18s var(--ease),box-shadow .18s var(--ease)}
@@ -779,7 +779,7 @@ function attentionLine(){
   return `${cap(word(tot))} need${tot===1?"s":""} attention${list?": "+list:""}.`}
 function renderSide(){
   const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["brain","Mind map",S.notes.length],["all","All tasks",S.tasks.filter(open).length]];
-  let h=`<div class="brand">Task Hub<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="nav">`;
+  let h=`<div class="brand">Ambalam<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="nav">`;
   for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`;
   h+=`</div>`;
   for(const a of AREAS){
@@ -1705,7 +1705,7 @@ function mergeTask(ev){
   const cur=rowOf("tasks",r.id);if(cur)Object.assign(cur,r);else S.tasks.push(r);paint()}
 function showLogin(msg){
   document.getElementById("side").innerHTML="";document.getElementById("tabs").innerHTML="";
-  document.getElementById("view").innerHTML=`<form class="login" id="loginForm"><h1>Task Hub</h1><div class="sub" style="color:var(--muted)">${msg||"Sign in with your email. We'll send you a link."}</div><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
+  document.getElementById("view").innerHTML=`<form class="login" id="loginForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${msg||"Sign in with your email. We'll send you a link."}</div><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
   document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();
     const email=e.target.email.value.trim();
     const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
