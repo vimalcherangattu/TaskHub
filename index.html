@@ -792,16 +792,21 @@ function nextTxt(isoT){if(!isoT)return{txt:"No date",soon:false};const d=new Dat
   const time=istFmt(isoT,{hour:"numeric",minute:"2-digit"});const t=T();
   const lbl=ms<0?`Started ${time}`:day===t?`Today ${time}`:day===addDays(t,1)?`Tomorrow ${time}`:istFmt(isoT,{weekday:"short",day:"numeric",month:"short"})+", "+time;
   return{txt:lbl,soon:ms<3*36e5}}
-const prepPoints=p=>p?(p.agenda.length+p.asks.length+p.inputs.length+p.questions.length):0;
+// the agenda comes from the local rows when we have them, so ticks and adds show instantly
+const AGORD={decide:0,ask:1,discuss:2,update:3};
+const agendaOf=p=>!p?[]:S.agenda_items.length?S.agenda_items.filter(a=>a.seriesId===p.id&&a.status==="open")
+  .map(a=>({id:a.id,kind:a.kind,text:a.text,task_id:a.taskId,recurring:a.recurring,created_at:a.createdAt}))
+  .sort((a,b)=>(b.recurring-a.recurring)||(AGORD[a.kind]-AGORD[b.kind])||String(a.created_at).localeCompare(String(b.created_at))):p.agenda;
+const prepPoints=p=>p?(agendaOf(p).length+p.asks.length+p.inputs.length+p.questions.length):0;
 function prepLi(k,cls,text,meta="",acts=""){return `<li><span class="k ${cls}">${k}</span><span class="t">${text}</span>${meta?`<span class="m">${meta}</span>`:""}${acts?`<span class="acts">${acts}</span>`:""}</li>`}
 const tBtn=(id,title)=>`<button data-edit="${esc(id)}">${esc(title)}</button>`;
 function prepBox(title,n,items,{note="",more=""}={}){if(!items.length&&!note)return"";
   return `<section class="prep-box"><div class="sh"><h2>${title}</h2><span class="n">${n||""}</span></div>${items.length?`<ul class="pl">${items.join("")}</ul>`:""}${note}${more}</section>`}
 function prepSheet(p){const s=S.series.find(x=>x.id===p.id)||{};let h="";
   if(p.purpose)h+=`<p class="prep-purpose">${esc(p.purpose)}</p>`;
-  const ag=p.agenda.map(a=>prepLi(KLBL[a.kind]||a.kind,a.kind,(a.task_id&&S.tasks.some(t=>t.id===a.task_id)?tBtn(a.task_id,a.text):esc(a.text))+(a.recurring?`<span class="rec">every call</span>`:""),"",
+  const agenda=agendaOf(p);const ag=agenda.map(a=>prepLi(KLBL[a.kind]||a.kind,a.kind,(a.task_id&&S.tasks.some(t=>t.id===a.task_id)?tBtn(a.task_id,a.text):esc(a.text))+(a.recurring?`<span class="rec">every call</span>`:""),"",
     (a.recurring?"":`<button class="tool yes" data-acov="${esc(a.id)}" title="Discussed in the call">Covered</button>`)+`<button class="tool" data-adrop="${esc(a.id)}" title="${a.recurring?"Stop raising this every call":"Not needed any more"}">${a.recurring?"Remove":"Drop"}</button>`));
-  h+=prepBox("To raise",p.agenda.length,ag,{note:`<form class="agenda-add" id="agendaAdd" data-series="${esc(p.id)}"><select name="k" aria-label="Kind">${Object.entries(KLBL).map(([k,l])=>`<option value="${k}" ${k==="discuss"?"selected":""}>${l}</option>`).join("")}</select><input name="t" placeholder="Something to raise with ${esc((s.people||[])[0]||"them")} next time" aria-label="Agenda item" required><button class="btn" type="submit">Add</button></form>`});
+  h+=prepBox("To raise",agenda.length,ag,{note:`<form class="agenda-add" id="agendaAdd" data-series="${esc(p.id)}"><select name="k" aria-label="Kind">${Object.entries(KLBL).map(([k,l])=>`<option value="${k}" ${k==="discuss"?"selected":""}>${l}</option>`).join("")}</select><input name="t" placeholder="Something to raise with ${esc((s.people||[])[0]||"them")} next time" aria-label="Agenda item" required><button class="btn" type="submit">Add</button></form>`});
   const all=S.prepAll.has(p.id),cap=l=>all?l:l.slice(0,5);
   const up=[...cap(p.done).map(x=>prepLi("Done","",tBtn(x.id,x.title),esc(nice(iso(new Date(x.at)))))),
     ...cap(p.doing).map(x=>prepLi("Doing","",tBtn(x.id,x.title),x.steps?`${x.steps_done}/${x.steps} steps`:x.due?"due "+esc(nice(x.due)):"")),
@@ -819,7 +824,7 @@ function prepSheet(p){const s=S.series.find(x=>x.id===p.id)||{};let h="";
 function nextCallCard(){const t=Date.now();
   const s=seriesSorted().find(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-t<24*36e5&&new Date(n)-t>-90*6e4});if(!s)return"";
   const p=S.prep[s.id],nt=nextTxt(p.next_at);
-  return `<section class="card next-call"><div class="card-h"><h2>${esc(s.name)}</h2></div><span class="when">${esc(nt.txt)} · ${p.agenda.length} to raise · ${p.asks.length+p.inputs.length} to ask</span><button class="more" data-cs="${esc(s.id)}">Open prep</button></section>`}
+  return `<section class="card next-call"><div class="card-h"><h2>${esc(s.name)}</h2></div><span class="when">${esc(nt.txt)} · ${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask</span><button class="more" data-cs="${esc(s.id)}">Open prep</button></section>`}
 function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
   return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
 function renderView(){
@@ -1094,7 +1099,9 @@ function allList(){
 function render(){if(!S.ready.p||!S.ready.t)return;const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
 
 /* ---------- writes ---------- */
-let toastTimer;function toast(m,undoable=true){const e=document.getElementById("toast");
+// after a failed save, keep its message up: don't let the click's "Marked done" replace it
+let toastTimer,errUntil=0;function toast(m,undoable=true,isErr=false){const e=document.getElementById("toast");
+  if(!isErr&&Date.now()<errUntil)return;if(isErr)errUntil=Date.now()+3500;
   const g=undoable&&HIST.grp&&HIST.grp.ops.length&&HIST.undo[HIST.undo.length-1]===HIST.grp?HIST.grp:null;
   if(g&&!g.label)g.label=m;
   e.innerHTML=`<span>${esc(m)}</span>${g?`<button type="button" data-hundo>Undo</button>`:""}`;
@@ -1103,7 +1110,7 @@ function carryBump(t,patch){const td=T();let c=false;
   if(patch.todayDate&&t.todayDate&&t.todayDate<td&&patch.todayDate>t.todayDate)c=true;
   if(patch.due&&t.due&&t.due<td&&patch.due>t.due)c=true;
   return c?{carryCount:(t.carryCount||0)+1}:{}}
-async function upd(id,patch){const cur=S.tasks.find(x=>x.id===id);const extra=cur?carryBump(cur,patch):{};try{await S.db.doc("tasks/"+id).update({...patch,...extra,updatedAt:now()})}catch(e){toast(e.code==="invalid_argument"?"You can view this list but not change it.":"That change didn't save. Try again.")}}
+async function upd(id,patch){const cur=S.tasks.find(x=>x.id===id);const extra=cur?carryBump(cur,patch):{};try{await S.db.doc("tasks/"+id).update({...patch,...extra,updatedAt:now()});return true}catch(e){toast(e.code==="invalid_argument"?"You can view this list but not change it.":navigator.onLine===false?"You're offline, so that change didn't save. It's been put back.":"That change didn't save, so it's been put back. Try again.",false,true);return false}}
 async function addTask(data){try{await S.db.collection("tasks").add({status:"todo",priority:"med",createdAt:now(),updatedAt:now(),source:"hub",...data})}catch(e){toast(e.code==="quota_exceeded"?"Storage is full. Delete some finished tasks first.":"Couldn't add that task. Try again.")}}
 
 /* ---------- events ---------- */
@@ -1334,19 +1341,32 @@ const RAW={
 const clone=o=>JSON.parse(JSON.stringify(o));
 const rowOf=(t,id)=>(S[t]||[]).find(x=>x.id===id);
 const prevVals=(cur,patch)=>{const b={};for(const k of Object.keys(patch))if(k!=="updatedAt")b[k]=cur?(cur[k]??null):null;return b};
+/* optimistic writes: the screen changes at once, the save runs in the background,
+   and a failed save puts the row back. W tracks writes in flight so a sync can't overwrite them. */
+const W={n:0,seq:0};
+const localPatch=(t,id,d)=>{const r=rowOf(t,id);if(r)Object.assign(r,d)};
+const localDrop=(t,id)=>{const a=S[t]||[];const i=a.findIndex(x=>x.id===id);return i>=0?a.splice(i,1)[0]:null};
+async function saving(fn){W.n++;W.seq++;try{return await fn()}finally{W.n--;W.seq++;later()}}
 S.db={
   doc(path){const[t,id]=path.split("/");return{
-    update:async d=>{const cur=rowOf(t,id);await RAW.update(t,id,d);HIST.rec({t,id,kind:"update",before:prevVals(cur,d),after:d});soon()},
-    set:async d=>{const cur=rowOf(t,id);ok(await sb.from(t).upsert({id,...toRow(d)}));
-      HIST.rec(cur?{t,id,kind:"update",before:prevVals(cur,d),after:d}:{t,id,kind:"insert",row:{id,...d}});soon()},
+    update:async d=>{const cur=rowOf(t,id);const before=prevVals(cur,d);localPatch(t,id,d);paint();
+      await saving(async()=>{try{await RAW.update(t,id,d)}catch(e){localPatch(t,id,before);paint();throw e}});
+      HIST.rec({t,id,kind:"update",before,after:d})},
+    set:async d=>{const cur=rowOf(t,id);const before=cur?prevVals(cur,d):null;
+      if(cur)localPatch(t,id,d);else (S[t]||(S[t]=[])).push({id,...d});paint();
+      await saving(async()=>{try{ok(await sb.from(t).upsert({id,...toRow(d)}))}catch(e){if(cur)localPatch(t,id,before);else localDrop(t,id);paint();throw e}});
+      HIST.rec(cur?{t,id,kind:"update",before,after:d}:{t,id,kind:"insert",row:{id,...d}})},
     delete:async()=>{const cur=rowOf(t,id);
       if(cur&&t==="projects"){ // children lose their link when a project goes; remember them so undo can relink
         for(const x of S.tasks.filter(x=>x.projectId===id))HIST.rec({t:"tasks",id:x.id,kind:"dep",row:clone(x),after:{projectId:null}});
         for(const x of S.notes.filter(x=>x.projectId===id))HIST.rec({t:"notes",id:x.id,kind:"dep",row:clone(x),after:{projectId:null}});
         for(const x of S.projects.filter(x=>x.parentId===id))HIST.rec({t:"projects",id:x.id,kind:"dep",row:clone(x),after:{parentId:null}});}
-      await RAW.del(t,id);if(cur)HIST.rec({t,id,kind:"delete",row:clone(cur)});soon()}}},
-  collection(t){return{add:async d=>{const{data,error}=await sb.from(t).insert(toRow(d)).select().single();if(error)throw error;
-    HIST.rec({t,id:data.id,kind:"insert",row:fromRow(data)});soon()}}}
+      const gone=t==="projects"?null:localDrop(t,id);if(gone)paint();
+      await saving(async()=>{try{await RAW.del(t,id)}catch(e){if(gone){S[t].push(gone);paint()}throw e}});
+      if(cur)HIST.rec({t,id,kind:"delete",row:clone(cur)});if(t==="projects")soon()}}},
+  collection(t){return{add:async d=>{const data=await saving(async()=>{const{data,error}=await sb.from(t).insert(toRow(d)).select().single();if(error)throw error;return data});
+    const row=fromRow(data);if(!rowOf(t,row.id))(S[t]||(S[t]=[])).push(row);paint();
+    HIST.rec({t,id:data.id,kind:"insert",row})}}}
 };
 const HIST={undo:[],redo:[],grp:null,busy:false,
   begin(){this.grp=null},
@@ -1360,18 +1380,18 @@ const HIST={undo:[],redo:[],grp:null,busy:false,
       const ops=dir==="undo"?g.ops.slice().reverse():g.ops;
       for(const o of ops){
         if(dir==="undo"){
-          if(o.kind==="update")await RAW.update(o.t,o.id,o.before);
-          else if(o.kind==="insert")await RAW.del(o.t,o.id);
-          else await RAW.upsert(o.t,o.row);
+          if(o.kind==="update"){localPatch(o.t,o.id,o.before);paint();await saving(()=>RAW.update(o.t,o.id,o.before))}
+          else if(o.kind==="insert"){localDrop(o.t,o.id);paint();await saving(()=>RAW.del(o.t,o.id))}
+          else{if(!rowOf(o.t,o.id))(S[o.t]||(S[o.t]=[])).push(clone(o.row));else localPatch(o.t,o.id,o.row);paint();await saving(()=>RAW.upsert(o.t,o.row))}
         }else{
-          if(o.kind==="update"||o.kind==="dep")await RAW.update(o.t,o.id,o.after);
-          else if(o.kind==="insert")await RAW.upsert(o.t,o.row);
-          else await RAW.del(o.t,o.id);
+          if(o.kind==="update"||o.kind==="dep"){localPatch(o.t,o.id,o.after);paint();await saving(()=>RAW.update(o.t,o.id,o.after))}
+          else if(o.kind==="insert"){if(!rowOf(o.t,o.id))(S[o.t]||(S[o.t]=[])).push(clone(o.row));paint();await saving(()=>RAW.upsert(o.t,o.row))}
+          else{localDrop(o.t,o.id);paint();await saving(()=>RAW.del(o.t,o.id))}
         }
       }
       to.push(g);toast((dir==="undo"?"Undone":"Redone")+(g.label?": "+g.label.toLowerCase():""),false);
     }catch(e){from.push(g);toast(`Couldn't ${dir} that. Try again.`,false)}
-    this.busy=false;paintHist();soon();
+    this.busy=false;paintHist();later();
   }};
 function paintHist(){const h=document.getElementById("hist");if(!h)return;
   const u=h.querySelector("[data-hundo]"),r=h.querySelector("[data-hredo]");
@@ -1387,7 +1407,13 @@ document.addEventListener("keydown",e=>{
   const a=document.activeElement;if(a&&(a.matches("input,textarea,select")||a.isContentEditable))return;
   if(document.querySelector("dialog[open]"))return;
   e.preventDefault();HIST.run(k==="y"||e.shiftKey?"redo":"undo")});
+let syncing=false,again=false;
 async function refresh(){
+  if(syncing){again=true;return}syncing=true;
+  try{await doRefresh()}finally{syncing=false;if(again){again=false;soon()}}
+}
+async function doRefresh(){
+  const seq0=W.seq;
   const since=new Date(Date.now()-14*864e5).toISOString();
   const[p,t,n,b,g,so,c]=await Promise.all([sb.from("projects").select("*"),sb.from("tasks").select("*"),sb.from("notes").select("*"),
     sb.from("project_briefs").select("project_id,body,updated_at,updated_from"),sb.from("source_segments").select("id,source_id,project_id,summary,created_at"),
@@ -1401,8 +1427,11 @@ async function refresh(){
   if(!g.error)S.segs=g.data.map(fromRow);
   if(!so.error)S.sources=so.data.map(fromRow);
   if(!c.error)S.changes=c.data.map(fromRow);
-  if(p.error||t.error){document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
+  if(p.error||t.error){if(!S.ready.t)document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
+  // a save started or finished while we were fetching: this snapshot may be stale, so fetch again shortly
+  if(W.n>0||W.seq!==seq0){later();return}
   S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow).filter(x=>!x.supersededBy);S.ready.p=S.ready.t=true;render();
+  if(!(S.view==="calls"||Date.now()-(S.prepAt||0)>120000||S.prepDirty))return;S.prepAt=Date.now();S.prepDirty=false;
   // call prep is optional: if it can't load, the rest of the app still works
   try{
     const[cs,ai]=await Promise.all([sb.from("call_series").select("*").order("order"),sb.from("agenda_items").select("*").order("created_at")]);
@@ -1413,7 +1442,17 @@ async function refresh(){
     render();
   }catch(e){console.warn("call prep unavailable",e)}
 }
-let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,120)}
+let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,250)}
+let lt;function later(){clearTimeout(lt);lt=setTimeout(refresh,2500)}
+// redraw at most once per frame
+let pf=0;function paint(){if(pf)return;pf=requestAnimationFrame(()=>{pf=0;render()})}
+// live updates for tasks patch the one row instead of reloading everything
+function mergeTask(ev){
+  if(W.n>0){later();return}
+  if(ev.eventType==="DELETE"){if(localDrop("tasks",ev.old?.id))paint();return}
+  const r=fromRow(ev.new||{});if(!r.id)return;
+  if(r.supersededBy){if(localDrop("tasks",r.id))paint();return}
+  const cur=rowOf("tasks",r.id);if(cur)Object.assign(cur,r);else S.tasks.push(r);paint()}
 function showLogin(msg){
   document.getElementById("side").innerHTML="";document.getElementById("tabs").innerHTML="";
   document.getElementById("view").innerHTML=`<form class="login" id="loginForm"><h1>Task Hub</h1><div class="sub" style="color:var(--muted)">${msg||"Sign in with your email. We'll send you a link."}</div><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
@@ -1427,11 +1466,11 @@ async function start(){
   if(started)return;started=true;
   const hm=location.hash.match(/^#call\/([\w-]+)/);if(hm){S.view="calls";S.cs=hm[1]}
   await refresh();
-  sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},soon).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon)
+  sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},mergeTask).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"project_briefs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"source_segments"},soon)
-    .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},soon)
+    .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},later)
     .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon)
-    .on("postgres_changes",{event:"*",schema:"public",table:"call_series"},soon).on("postgres_changes",{event:"*",schema:"public",table:"agenda_items"},soon).subscribe();
+    .on("postgres_changes",{event:"*",schema:"public",table:"call_series"},()=>{S.prepDirty=true;soon()}).on("postgres_changes",{event:"*",schema:"public",table:"agenda_items"},()=>{S.prepDirty=true;soon()}).subscribe();
   let last=T();setInterval(()=>{if(T()!==last){last=T();render()}},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }
