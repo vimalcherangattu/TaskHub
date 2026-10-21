@@ -188,11 +188,12 @@ where t.status <> 'done' and x.status <> 'done' and t.due is not null
   and (x.due < (now() at time zone 'Asia/Kolkata')::date or coalesce(x.today_date, x.due) >= t.due);
 ```
 
-## Deleting a task (always clean links first)
+## Deleting (one call; cleans links; never a raw DELETE)
 
 ```sql
-update tasks set blocked_by = array_remove(blocked_by, '<id>') where '<id>' = any(blocked_by);
-delete from tasks where id = '<id>';
+select hub_delete('tasks', '<id>');   -- also removes it from other tasks' blocked_by
+select hub_delete('notes', '<id>');   -- also clears superseded_by pointers to it
+-- also: 'agenda_items', 'inputs' (removes its uses too), 'input_uses', 'hub_sessions', 'routing_rules'
 ```
 
 ## Notes

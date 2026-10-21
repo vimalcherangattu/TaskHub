@@ -53,6 +53,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 - **Use the Task Hub connector, not the general Supabase one.** Run every Task Hub read and write with `Supabase_Connector` (`mcp__Supabase_Connector__execute_sql` / `apply_migration`; no `project_id` needed, it's tied to this project).
   - The account-wide `Supabase` connector asks a person to confirm anything it considers destructive: DELETE, DROP, and often ordinary UPDATEs. Nobody answers in an unattended session, so the call fails after 60 seconds with "timed out". That is not a database problem.
   - Only if `Supabase_Connector` isn't available, use `Supabase` with `project_id = 'mbbucsageoyxhekzbmyq'`. Keep writes to plain single-row `insert`/`update … where id = '…'`, avoid `drop`, and expect deletes to stall.
+- **Deleting: never write a raw `DELETE`.** Any SQL containing DELETE (or DROP) triggers a confirmation prompt that cancels itself after 60 seconds. Use `select hub_delete('<table>', '<id>');` instead (tables: tasks, notes, agenda_items, inputs, input_uses, hub_sessions, routing_rules). It deletes one row and cleans up links (tasks that waited on it, notes that pointed to it). If `hub_delete` doesn't exist yet, mark the item instead (a task `status = 'done'` with a note, or a note's `superseded_by`) and tell Vimal the delete needs his OK.
 - **Timeouts.** If a write times out, it may or may not have happened. Check with a SELECT before retrying, and retry on `Supabase_Connector`. Never tell Vimal something was saved unless a SELECT confirms it.
 
 ## Projects
