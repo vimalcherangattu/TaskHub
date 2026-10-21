@@ -60,6 +60,13 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 
 `projects(id, name, area, color, order, parent_id, scope)`, where `scope` describes what belongs in the project and what doesn't. Keep it current when a project's remit changes; routing reads it.
 
+**Hierarchy: Area → Workspace → Project → Task → Steps. Every level below Area is used only when needed** (decision of 21 Oct 2026):
+- **Area** (`Career`, `Products`, `Life`): always set; it groups the sidebar.
+- **Workspace**: a top-level project that has sub-projects (the app labels it "Workspace"). Use one only when a body of work has 2 or more distinct streams that each carry their own tasks (Zenara, Small Fish, Faceless YouTube). Don't split a project that one list handles fine.
+- **Project**: the usual home. File tasks in the most specific one; keep a workspace's own list for work that truly spans its projects (normally empty).
+- **Task**: one outcome with its own due date or owner.
+- **Steps** (`steps`): the sub-tasks. Use them when parts share one due date and one owner; make parts separate tasks only when they need their own dates, owners or `blocked_by` links. Two small tasks that are really parts of one job are merged: steps on the kept task, `superseded_by` on the other.
+
 - Always file tasks and notes under an existing project id. Prefer the most specific sub-project: Zenara work goes in `zenara-content`, `zenara-launches`, `zenara-ops`, `zenara-positioning` or `zenara-website` when one fits, otherwise `zenara`. Small Fish work goes in `sf-domain`, `sf-gtm`, `sf-product` or `sf-website`, otherwise `account-finder`.
 - If nothing fits, use `project_id = null` (shown as Unsorted) and ask whether to create a project.
 - **Creating a project (only after he says yes):**

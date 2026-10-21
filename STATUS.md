@@ -18,6 +18,7 @@
   - It paints from a localStorage snapshot on open, and tasks render before the slower data arrives.
   - d3 loads lazily, and date formatters are cached.
   - Today renders in about 10 ms with 470 tasks; clicks show in about 10 ms.
+- **Hierarchy:** Area → Workspace → Project → Task → Steps, each level only when needed (rule in `skills/task-hub/SKILL.md`). Hub cleaned up on 21 Oct: nothing open in Unsorted or on the Zenara workspace itself, 3 duplicate or part tasks merged.
 - **Tests:** all 10 pass (`tests/*.mjs`, including the new `brain.mjs`).
 
 ## In progress
