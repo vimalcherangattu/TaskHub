@@ -224,6 +224,19 @@ select whats_new(now() - interval '24 hours');
 select whats_new(now() - interval '7 days', 'zenara');
 ```
 
+## Session sync
+
+```sql
+-- Register this session for its projects (id from get_session in Claude Code, or 'chat:<project>' in claude.ai)
+select hub_register_session('<session id>', '{zenara-positioning,zenara-launches}', '<short title>');
+
+-- Pull: what changed in this session's projects since it last looked (moves the marker)
+select catch_up('<session id>');
+
+-- Which sessions cover what
+select session_id, title, project_ids, last_synced_at, push from hub_sessions order by last_synced_at desc;
+```
+
 ## Briefs
 
 ```sql
