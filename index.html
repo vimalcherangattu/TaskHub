@@ -363,6 +363,9 @@ dialog[open]::backdrop{animation:fade .3s var(--ease)}
 .login .btn{min-height:46px}
 .side-out{border:0;background:none;color:var(--faint);padding:16px 12px 0;font-size:13px;text-align:left;width:100%}
 .side-out:hover{color:var(--ink)}
+.feeds{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;font-size:13px;color:var(--muted);margin:-4px 0 14px}
+.feeds b{font-weight:600;color:var(--ink)}.feeds.stale{background:var(--danger-soft);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 14px;margin:0 0 14px}
+.feeds.stale b,.feeds .bad{color:var(--danger)}.feeds .why{flex-basis:100%}
 .notice{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:20px;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);background:var(--strong);color:var(--on-strong);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .35s var(--ease);z-index:20;box-shadow:var(--lift)}
 .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
@@ -1019,6 +1022,9 @@ async function teachRule(segId){const g=S.segs.find(x=>x.id===segId);const sel=d
   const{error}=await sb.from("routing_rules").insert({pattern:pat,project_id:to,note:"Added from the app"});
   toast(error?(error.code==="23505"?"That rule already exists.":"Couldn't save that rule."):`Calls mentioning “${pat}” will go to ${proj(to)?.name}`,false)}
 const istFmt=(iso,o)=>new Date(iso).toLocaleString(undefined,{timeZone:"Asia/Kolkata",...o});
+/* feed freshness: a second brain is only as good as what keeps flowing in, so say when a feed stops */
+function feedsHtml(){if(!S.feeds?.length)return"";const st=S.feeds.map(([l,at,h])=>({l,at,bad:!at||Date.now()-new Date(at)>h*36e5}));const bad=st.filter(x=>x.bad);
+  return `<div class="feeds${bad.length?" stale":""}" role="status"><b>${bad.length?`${esc(bad.map(x=>x.l).join(" and "))} ${bad.length>1?"have":"has"} stopped coming in`:"Feeds are up to date"}</b>${st.map(x=>`<span${x.bad?' class="bad"':""}>${esc(x.l)}: ${esc(x.at?agoTxt(x.at):"never read")}</span>`).join("")}${bad.length?`<span class="why">The hourly agent fills these. Check its connectors or run it once by hand.</span>`:""}</div>`}
 const whenIST=iso=>istFmt(iso,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const agoTxt=iso=>{const m=Math.round((Date.now()-new Date(iso))/6e4);return m<1?"just now":m<60?m+" min ago":m<1440?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"};
 function md(src){const lines=esc(src||"").split("\n");let h="",ul=false;
@@ -1183,6 +1189,7 @@ function renderView(){
     const ks=[["","All"],["idea","Ideas"],["decision","Decisions"],["fact","About"],["person","People"],["link","Links"],["note","Notes"]];
     const list=S.notes.filter(n=>!S.nk||n.kind===S.nk).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
     h+=`<div class="head"><div><h1>Notes</h1><div class="sub">Everything you keep that isn't a task: ideas, decisions, people, links and facts</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="brain">Mind map</button><button class="btn primary" data-capture>Capture</button></div></div>`;
+    h+=feedsHtml();
     h+=`<div class="filters one"><div class="chips">${ks.map(([k,l])=>`<button class="chip" data-nk="${k}" aria-pressed="${(S.nk||"")===k}">${l} <span>${k?S.notes.filter(n=>n.kind===k).length:S.notes.length}</span></button>`).join("")}</div></div>`;
     const inbox=list.filter(n=>!proj(n.projectId));
     if(inbox.length)h+=`<section><div class="sh"><h2>Inbox · not filed yet</h2><span class="n">${inbox.length}</span></div>${inbox.map(noteRow).join("")}</section>`;
@@ -1646,15 +1653,20 @@ document.getElementById("capForm").addEventListener("submit",async e=>{
 /* search everything: tasks, notes, calls and briefs on this device; call transcripts on the server */
 let findHits=[],findSel=0,findT=0,findDeep=[];
 function findLocal(q){const w=q.toLowerCase().split(/\s+/).filter(Boolean);if(!w.length)return[];
-  const has=s=>{s=s.toLowerCase();return w.every(x=>s.includes(x))};
-  const score=t=>{t=String(t||"").toLowerCase();return w.reduce((a,x)=>a+(t.includes(x)?2:0),0)+(t.startsWith(w[0])?1:0)};
   const snip=s=>{s=String(s||"").replace(/\s+/g," ");const i=s.toLowerCase().indexOf(w[0]);return i<0?s.slice(0,110):(i>40?"…":"")+s.slice(Math.max(0,i-40),i+90)};
-  const out=[];
+  const dd=d=>d?istFmt(d,{day:"numeric",month:"short"}):"";
+  const docs=[];const add=(x,title,text,at)=>docs.push({x,ti:String(title||"").toLowerCase(),tx:(title+" "+text).toLowerCase(),at});
   for(const t of S.tasks){const st=(Array.isArray(t.steps)?t.steps:[]).map(x=>x.text).join(" ");
-    if(has([t.title,t.notes,t.resumeNote,st,t.waitingOn,fullName(proj(t.projectId))].join(" ")))out.push({g:"Tasks",type:"task",id:t.id,title:t.title,sub:fullName(proj(t.projectId))+" · "+({todo:"To do",doing:"Started",waiting:"Waiting",suggested:"Suggested",done:"Done"}[t.status]||""),c:proj(t.projectId)?.color,s:score(t.title)+(open(t)?3:t.status==="done"?0:1)})}
-  for(const n of S.notes)if(has([n.title,n.body,n.url,(n.tags||[]).join(" "),fullName(proj(n.projectId))].join(" ")))out.push({g:"Notes",type:"note",id:n.id,title:n.title,sub:(KIND[n.kind]?.l||"Note")+" · "+snip(n.body||n.url||fullName(proj(n.projectId))),c:KIND[n.kind]?.c,s:score(n.title)+1});
-  for(const x of S.sources)if(has([x.title,x.summary].join(" ")))out.push({g:"Calls",type:"call",id:x.id,pid:x.projectId,title:callTitle(x),sub:(x.occurredAt?istFmt(x.occurredAt,{day:"numeric",month:"short"})+" · ":"")+snip(x.summary),s:score(x.title)});
-  for(const[pid,b] of Object.entries(S.briefs)){const p=proj(pid);if(p&&has(p.name+" "+(b.body||"")))out.push({g:"Project briefs",type:"brief",id:pid,pid,title:fullName(p),sub:snip(b.body),c:p.color,s:score(p.name)})}
+    add({g:"Tasks",type:"task",id:t.id,title:t.title,sub:fullName(proj(t.projectId))+" · "+({todo:"To do",doing:"Started",waiting:"Waiting",suggested:"Suggested",done:"Done"}[t.status]||""),c:proj(t.projectId)?.color,b:open(t)?3:t.status==="done"?0:1},t.title,[t.notes,t.resumeNote,st,t.waitingOn,fullName(proj(t.projectId))].join(" "),t.updatedAt||t.createdAt)}
+  for(const n of S.notes){const at=n.updatedAt||n.createdAt;add({g:"Notes",type:"note",id:n.id,title:n.title,sub:(KIND[n.kind]?.l||"Note")+(at?" · "+dd(at):"")+" · "+snip(n.body||n.url||fullName(proj(n.projectId))),c:KIND[n.kind]?.c,b:1},n.title,[n.body,n.url,(n.tags||[]).join(" "),fullName(proj(n.projectId))].join(" "),at)}
+  for(const x of S.sources)add({g:"Calls",type:"call",id:x.id,pid:x.projectId,title:callTitle(x),sub:(x.occurredAt?dd(x.occurredAt)+" · ":"")+snip(x.summary),b:0},x.title,x.summary,x.occurredAt);
+  for(const[pid,b] of Object.entries(S.briefs)){const p=proj(pid);if(p)add({g:"Project briefs",type:"brief",id:pid,pid,title:fullName(p),sub:snip(b.body),c:p.color,b:0},p.name,b.body,b.updatedAt)}
+  /* rank like BM25-lite × recency: rare words count more than common ones, a title hit beats a body hit,
+     and newer items win ties, so this month's price outranks last year's (today ×1, 3 months ×0.68, floor ×0.5) */
+  const hit=docs.filter(d=>w.every(x=>d.tx.includes(x)));if(!hit.length)return[];
+  const idf=Object.fromEntries(w.map(x=>[x,Math.log(1+docs.length/(1+docs.filter(d=>d.tx.includes(x)).length))])),now=Date.now();
+  const out=hit.map(d=>{const rel=w.reduce((a,x)=>a+idf[x]*(d.ti.includes(x)?3:1),0)+(d.ti.startsWith(w[0])?1:0);
+    const age=d.at?Math.max(0,(now-new Date(d.at))/864e5):0;return{...d.x,s:(rel+d.x.b)*(0.5+0.5*Math.exp(-age/90))}});
   const order=["Tasks","Notes","Calls","Project briefs"];
   return order.flatMap(g=>out.filter(x=>x.g===g).sort((a,b)=>b.s-a.s).slice(0,g==="Tasks"||g==="Notes"?8:5))}
 function drawFind(){const q=document.getElementById("findQ").value.trim(),el=document.getElementById("findRes");
@@ -1820,12 +1832,15 @@ async function doRefresh(){
     sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id").order("occurred_at",{ascending:false}).limit(300),
     sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500),
     sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
+  // feed freshness is optional: if it can't load, nothing else waits on it
+  const feeds=(async()=>{try{return await Promise.all([sb.from("processing_log").select("status,processed_at").order("processed_at",{ascending:false}).limit(20),sb.from("sync_state").select("source,last_seen_at,last_run_at")])}catch{return[{error:1},{error:1}]}})();
   const[p,t]=await core;
   if(p.error||t.error){if(!S.ready.t)document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
   // a save started or finished while we were fetching: this snapshot may be stale, so fetch again shortly
   const fresh=W.n===0&&W.seq===seq0;
   if(fresh){S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow).filter(x=>!x.supersededBy);S.ready.p=S.ready.t=true;render()}
-  const[n,b,g,so,c,ii,iu]=await rest;
+  const[n,b,g,so,c,ii,iu]=await rest,[pl,ss]=await feeds;
+  if(!pl.error&&!ss.error)S.feeds=[["Calls",(pl.data.find(x=>x.status!=="skipped")||{}).processed_at,3],...ss.data.map(x=>[x.source[0].toUpperCase()+x.source.slice(1),x.last_run_at&&x.last_seen_at,26])];
   if(!ii.error)S.inputs=ii.data.map(fromRow);
   if(!iu.error)S.iuses=iu.data.map(fromRow);
   if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.supersededBy);

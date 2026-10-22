@@ -21,6 +21,6 @@ Every test prints `errors []` (no page errors) and ends with exit code 0. Read t
 | `hov.mjs` | Hover tools don't squeeze titles |
 | `ctx.mjs` | Briefs, calls, refiling a call, routing rules, filing an unfiled call |
 | `inp.mjs` | Pending inputs: received, used in another doc, track a new one |
-| `brain.mjs` | Capture (C key, link detection, idea into a project), Notes view and inbox, Ctrl+K search with transcript hits, lazy mind map, painting from the local cache, a shared link opening Capture |
+| `brain.mjs` | Capture (C key, link detection, idea into a project), Notes view and inbox, Ctrl+K search with transcript hits, recency ranking (a newer fact beats an older one), the stale-feed banner, lazy mind map, painting from the local cache, a shared link opening Capture |
 | `calls.mjs` | Call prep sheet, agenda add, cover and undo, the Next call card |
 | `login.mjs` | Sign-in: link sent opens the paste step, a wrong code says so, a pasted (even Gmail-wrapped) link signs in by its token, a second send within a minute explains the wait |

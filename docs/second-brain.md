@@ -50,6 +50,18 @@ This avoids the most common failure, where reference material clutters the to-do
 - **Notes view**: filters by kind, an inbox of unfiled items at the top, then grouped by project. It replaces Map in the phone tab bar; the mind map is linked from the Notes page.
 - **Speed**: the screen comes from a local copy at open, then refreshes. Tasks draw before the slower data arrives, d3 loads only when needed, and date formatting is cached.
 
+## Built on 22 Oct 2026 (from the "second brain without RAG" video)
+
+The video's points that apply here, and what changed:
+
+- **Recency weighting.** Search treats an old price and a new one the same unless it knows their dates. Both searches now multiply the word-match score by `0.5 + 0.5·e^(−age/90 days)`: ×1.0 today, ×0.68 at 3 months, ×0.51 at a year, never below ×0.5. Old items still show up; they just lose ties to newer ones.
+  - `brain_search` (server; used by the app, the hourly agent and the skill) does this, and also normalises `ts_rank` by document length (flag 1), which is close to how BM25 treats long documents. Its signature is unchanged.
+  - The on-device search (Ctrl/⌘+K) now ranks like a light BM25: rarer words count more than common ones, a title hit counts 3× a body hit, and recency is applied as above. Note results show their date.
+- **Plain-text search, not embeddings.** Ambalam already uses Postgres full-text search, which the video argues is enough. "Meaning-based search" (item 4 above) drops in priority; better summaries help more.
+- **Keep the feeds fresh.** A second brain fails silently when a connector stops. The Notes page now shows when each feed last came in: calls (the agent's last filed run in `processing_log`, stale after 3 h) and each `sync_state` cursor (Gmail, Linear; stale after 26 h or if no run has advanced it). Stale feeds show a red banner.
+  - On 22 Oct the Gmail and Linear cursors had never been advanced by a run (`last_run_at` empty, read up to 19 Oct), so the agent's step for them isn't running or its connectors are missing.
+- **Summaries and "atoms" from a cheap model.** Calls already get this (segments, notes, briefs). Manual captures don't yet: that is item 1 above (AI filing for the inbox), which should also write a one-line summary and the question you'd type to find each capture.
+
 ### Bookmarklet (desktop)
 
 Make a bookmark with this as the address. Clicking it on any page sends that page to Capture:

@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 22 Oct 2026 (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 22 Oct 2026, evening (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Today:** the redesign from the design canvas is live:
@@ -19,7 +19,9 @@
   - d3 loads lazily, and date formatters are cached.
   - Today renders in about 10 ms with 470 tasks; clicks show in about 10 ms.
 - **Quick look:** closes on a click anywhere outside it (desktop too). Other quick-look triggers, dialogs and the undo toast/bar don't close it.
-- **Tests:** all 11 pass (`tests/*.mjs`); `ui.mjs` checks the outside-click close.
+- **Search ranking:** newer items win ties in both searches (recency weighting), and on-device search weights rare words and title hits more. `brain_search` was replaced in Supabase with the same signature. Details in `docs/second-brain.md`.
+- **Feed freshness:** the Notes page shows when calls, Gmail and Linear last came in, with a red banner when one is stale.
+- **Tests:** all 11 pass (`tests/*.mjs`); `brain.mjs` checks recency ranking and the stale-feed banner.
 
 ## In progress
 - Nothing mid-change.
@@ -30,6 +32,7 @@
 These are logged as suggested tasks in project `task-hub` (named "Ambalam").
 
 ## Known issues
+- **Gmail and Linear feeds:** their `sync_state` cursors have never been advanced by an agent run (read up to 19 Oct, `last_run_at` empty). The new banner shows this; the agent's Gmail/Linear step or its connectors need checking.
 - **Share target:** not tested on a real Android phone (no installability check run). iOS has no share target; use a Shortcut or the bookmarklet with `?url=`.
 - **No offline queue:** captures made while offline fail with a toast instead of waiting to save.
 - **Tap targets:** the step checkboxes in the editor draw at 22px. On phone their tap area is extended to 44px with an invisible overlay, so the drawn box still reports as small.

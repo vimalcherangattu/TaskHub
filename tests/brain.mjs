@@ -8,7 +8,11 @@ const mock=()=>{
     tasks:[{id:'a',title:'Send pricing deck to David',project_id:'w',status:'todo',priority:'high',due:t0,notes:'v3 of the rate card'},
            {id:'b',title:'Pay electricity bill',project_id:'h',status:'todo',priority:'low',today_date:t0}],
     notes:[{id:'n1',project_id:'w',kind:'decision',title:'Prices shown to the cent',body:'Billing people read exact numbers, so no rounding on the rate card.',created_at:new Date().toISOString()},
-           {id:'n2',project_id:null,kind:'idea',title:'Weekly review ritual',body:'Sunday 20 minutes',created_at:new Date().toISOString()}],
+           {id:'n2',project_id:null,kind:'idea',title:'Weekly review ritual',body:'Sunday 20 minutes',created_at:new Date().toISOString()},
+           {id:'n3',project_id:'w',kind:'fact',title:'Retainer fee is 40k',body:'monthly',created_at:new Date(Date.now()-400*864e5).toISOString()},
+           {id:'n4',project_id:'w',kind:'fact',title:'Retainer fee is 55k',body:'monthly',created_at:new Date(Date.now()-3*864e5).toISOString()}],
+    processing_log:[{status:'filed',processed_at:new Date(Date.now()-20*6e4).toISOString()}],
+    sync_state:[{source:'gmail',last_seen_at:new Date(Date.now()-3*864e5).toISOString(),last_run_at:null}],
     sources:[{id:'s1',project_id:'w',title:'GTM sync',occurred_at:new Date().toISOString(),summary:'Talked about the rate card and pilots'}],
     project_briefs:[{project_id:'w',body:'**Status:** Rate card agreed. Pilots next.'}],source_segments:[],changes:[],inputs:[],input_uses:[],call_series:[],agenda_items:[]};
   let n=0;
@@ -40,6 +44,7 @@ console.log('idea saved:',await p.evaluate(()=>JSON.stringify(DB.notes.filter(x=
 // notes view: inbox first, then projects
 await p.click('#side [data-go="notes"]');await p.waitForTimeout(200);
 console.log('notes sections:',await p.evaluate(()=>[...document.querySelectorAll('#view section')].map(s=>s.querySelector('h2').textContent+'='+s.querySelectorAll('.nrow').length).join(' | ')));
+console.log('feeds:',await p.evaluate(()=>{const f=document.querySelector('#view .feeds');return f&&(f.classList.contains('stale')?'stale ':'')+f.textContent}));
 await p.click('[data-nk="idea"]');await p.waitForTimeout(100);console.log('ideas filter rows:',await p.evaluate(()=>document.querySelectorAll('#view .nrow').length));
 await p.screenshot({path:new URL('./out/brain-notes.png', import.meta.url).pathname});
 // search: Ctrl+K, local + transcript hits, Enter opens the quick look
@@ -48,6 +53,7 @@ console.log('search groups:',await p.evaluate(()=>[...document.querySelectorAll(
 await p.screenshot({path:new URL('./out/brain-search.png', import.meta.url).pathname});
 await p.keyboard.press('Enter');await p.waitForTimeout(300);
 console.log('enter → peek:',await p.evaluate(()=>S.peek));
+console.log('newer fact ranks first:',await p.evaluate(()=>findLocal('retainer fee').map(x=>x.title).join(' > ')));
 await p.keyboard.press('Escape');await p.keyboard.press('/');await p.keyboard.type('weekly');await p.waitForTimeout(150);await p.keyboard.press('Enter');await p.waitForTimeout(300);
 console.log('note result opens editor:',await p.evaluate(()=>document.getElementById('noteDlg').open&&document.querySelector('#noteForm [name=title]').value));
 await p.evaluate(()=>document.getElementById('noteDlg').close());
