@@ -1791,6 +1791,9 @@ function paintHist(){const h=document.getElementById("hist");if(!h)return;
 document.addEventListener("click",e=>{if(!e.target.closest("[data-hundo],[data-hredo]"))HIST.begin()},true);
 document.addEventListener("submit",()=>HIST.begin(),true);
 document.getElementById("peekBg").addEventListener("click",()=>setPeek(null));
+// a press anywhere outside the quick look closes it (other quick-look triggers, dialogs and the toast/undo bar excepted)
+document.addEventListener("pointerdown",e=>{if(!S.peek||e.button>0)return;const t=e.target;if(!(t instanceof Element)||!t.isConnected)return;
+  if(t.closest("#peek,#peekBg,[data-peek],dialog,#toast,#hist"))return;setPeek(null)},true);
 document.addEventListener("keydown",e=>{
   if(!S.peek||document.querySelector("dialog[open]"))return;const a=document.activeElement;if(a&&(a.matches("input,textarea,select")||a.isContentEditable))return;
   if(e.key==="Escape"){e.preventDefault();setPeek(null);return}

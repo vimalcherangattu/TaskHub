@@ -48,6 +48,7 @@ await p.click('#peek [data-step="t2"][data-i="4"]'); await p.waitForTimeout(300)
 console.log('step ticked:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t2').steps[4].done), '| peek still open:', await p.evaluate(()=>!document.getElementById('peek').hidden));
 await p.keyboard.press('ArrowDown'); await p.waitForTimeout(200); console.log('arrow →', await p.evaluate(()=>S.peek));
 await p.keyboard.press('Escape'); await p.waitForTimeout(200); console.log('esc closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
+await p.click('.task[data-tid="t2"] .title'); await p.waitForTimeout(300); await p.mouse.click(700,20); await p.waitForTimeout(200); console.log('outside click closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
 await p.click('[data-focusall]'); await p.waitForTimeout(200); console.log('on it now rows (all):', await p.evaluate(()=>document.querySelectorAll('.focus .task').length));
 await p.click('[data-focusall]'); await p.waitForTimeout(200);
 await p.evaluate(()=>{S.view='followups';render()}); await p.waitForTimeout(300); await p.screenshot({path:new URL('./out/v2-waiting.png', import.meta.url).pathname});
