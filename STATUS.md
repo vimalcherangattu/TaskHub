@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 21 Oct 2026 (commit fb0051c, live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 22 Oct 2026 (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Today:** the redesign from the design canvas is live:
@@ -18,10 +18,11 @@
   - It paints from a localStorage snapshot on open, and tasks render before the slower data arrives.
   - d3 loads lazily, and date formatters are cached.
   - Today renders in about 10 ms with 470 tasks; clicks show in about 10 ms.
-- **Tests:** all 10 pass (`tests/*.mjs`, including the new `brain.mjs`).
+- **Quick look:** closes on a click anywhere outside it (desktop too). Other quick-look triggers, dialogs and the undo toast/bar don't close it.
+- **Tests:** all 11 pass (`tests/*.mjs`); `ui.mjs` checks the outside-click close.
 
 ## In progress
-- Nothing mid-change. The working tree is clean apart from these two files.
+- Nothing mid-change.
 
 ## Next step
 1. Have the hourly agent file Notes inbox captures: project, kind and tags, and split out any task. This is #1 in `docs/second-brain.md`.
