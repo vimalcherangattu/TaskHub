@@ -1023,8 +1023,9 @@ async function teachRule(segId){const g=S.segs.find(x=>x.id===segId);const sel=d
   toast(error?(error.code==="23505"?"That rule already exists.":"Couldn't save that rule."):`Calls mentioning “${pat}” will go to ${proj(to)?.name}`,false)}
 const istFmt=(iso,o)=>new Date(iso).toLocaleString(undefined,{timeZone:"Asia/Kolkata",...o});
 /* feed freshness: a second brain is only as good as what keeps flowing in, so say when a feed stops */
-function feedsHtml(){if(!S.feeds?.length)return"";const st=S.feeds.map(([l,at,h])=>({l,at,bad:!at||Date.now()-new Date(at)>h*36e5}));const bad=st.filter(x=>x.bad);
-  return `<div class="feeds${bad.length?" stale":""}" role="status"><b>${bad.length?`${esc(bad.map(x=>x.l).join(" and "))} ${bad.length>1?"have":"has"} stopped coming in`:"Feeds are up to date"}</b>${st.map(x=>`<span${x.bad?' class="bad"':""}>${esc(x.l)}: ${esc(x.at?agoTxt(x.at):"never read")}</span>`).join("")}${bad.length?`<span class="why">The hourly agent fills these. Check its connectors or run it once by hand.</span>`:""}</div>`}
+/* the hourly agent runs 18:05–23:05 IST, so a feed is stale only after a whole day without a successful read */
+function feedsHtml(){if(!S.feeds?.length)return"";const st=S.feeds.map(x=>({...x,bad:!x.at||Date.now()-new Date(x.at)>26*36e5}));const bad=st.filter(x=>x.bad);
+  return `<div class="feeds${bad.length?" stale":""}" role="status"><b>${bad.length?`${esc(bad.map(x=>x.l).join(" and "))} ${bad.length>1?"have":"has"} stopped coming in`:"Feeds are up to date"}</b>${st.map(x=>`<span${x.bad?' class="bad"':""}>${esc(x.l)}: ${esc(x.at?agoTxt(x.at):"never read")}</span>`).join("")}${bad.map(x=>`<span class="why">${esc(x.l)}: ${esc(String(x.note||"no reason recorded").replace(/^Hourly agent:\s*/,""))}</span>`).join("")}</div>`}
 const whenIST=iso=>istFmt(iso,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const agoTxt=iso=>{const m=Math.round((Date.now()-new Date(iso))/6e4);return m<1?"just now":m<60?m+" min ago":m<1440?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"};
 function md(src){const lines=esc(src||"").split("\n");let h="",ul=false;
@@ -1833,14 +1834,14 @@ async function doRefresh(){
     sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500),
     sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
   // feed freshness is optional: if it can't load, nothing else waits on it
-  const feeds=(async()=>{try{return await Promise.all([sb.from("processing_log").select("status,processed_at").order("processed_at",{ascending:false}).limit(20),sb.from("sync_state").select("source,last_seen_at,last_run_at")])}catch{return[{error:1},{error:1}]}})();
+  const feeds=(async()=>{try{return await sb.from("sync_state").select("source,last_run_at,note")}catch{return{error:1}}})();
   const[p,t]=await core;
   if(p.error||t.error){if(!S.ready.t)document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
   // a save started or finished while we were fetching: this snapshot may be stale, so fetch again shortly
   const fresh=W.n===0&&W.seq===seq0;
   if(fresh){S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow).filter(x=>!x.supersededBy);S.ready.p=S.ready.t=true;render()}
-  const[n,b,g,so,c,ii,iu]=await rest,[pl,ss]=await feeds;
-  if(!pl.error&&!ss.error)S.feeds=[["Calls",(pl.data.find(x=>x.status!=="skipped")||{}).processed_at,3],...ss.data.map(x=>[x.source[0].toUpperCase()+x.source.slice(1),x.last_run_at&&x.last_seen_at,26])];
+  const[n,b,g,so,c,ii,iu]=await rest,ss=await feeds;
+  if(!ss.error&&Array.isArray(ss.data))S.feeds=ss.data.map(x=>({l:{wispr:"Calls",gmail:"Gmail",linear:"Linear"}[x.source]||x.source,at:x.last_run_at,note:x.note})).sort((a,b)=>a.l.localeCompare(b.l));
   if(!ii.error)S.inputs=ii.data.map(fromRow);
   if(!iu.error)S.iuses=iu.data.map(fromRow);
   if(!n.error)S.notes=n.data.map(fromRow).filter(x=>!x.supersededBy);

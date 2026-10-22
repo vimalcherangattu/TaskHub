@@ -304,3 +304,13 @@ Vimal's topic sessions (Claude Code sessions, one per stream or project) are reg
 4. If `send_message` isn't available in this run, skip this step and note "session push skipped: Claude Code Remote not connected".
 
 Never send to this run's own session, and never send more than one message per session per run. Add "sessions updated: N" to the report. These sends don't need their own push notification.
+
+---
+
+# Addendum — Record each feed's health (every run)
+
+The Task Hub app warns Vimal when a feed stops coming in, using `sync_state`. Keep it accurate:
+
+- **Calls:** after Step 1 finishes without error (even if there were no new meetings), run `update sync_state set last_seen_at = now(), last_run_at = now(), note = 'Hourly agent: calls checked' where source = 'wispr';`. If the Wispr Flow connector is missing or Step 1 failed, leave the timestamps alone and set `note = 'Hourly agent: <reason, e.g. Wispr Flow not connected> (<d Mon HH:MM IST>)'`.
+- **Gmail and Linear:** when you advance a cursor (Step 3 of the email and Linear addendum), also set `note = 'Hourly agent: read up to here'`. When you skip a source because its connector is missing or a read failed, leave last_seen_at and last_run_at alone and set `note = 'Hourly agent: <Gmail|Linear> not connected (<d Mon HH:MM IST>)'` or `'… read failed: <short error> (…)'`.
+- Begin these writes with `select set_config('app.actor','meeting-agent',true);`. One small UPDATE per source.

@@ -11,8 +11,8 @@ const mock=()=>{
            {id:'n2',project_id:null,kind:'idea',title:'Weekly review ritual',body:'Sunday 20 minutes',created_at:new Date().toISOString()},
            {id:'n3',project_id:'w',kind:'fact',title:'Retainer fee is 40k',body:'monthly',created_at:new Date(Date.now()-400*864e5).toISOString()},
            {id:'n4',project_id:'w',kind:'fact',title:'Retainer fee is 55k',body:'monthly',created_at:new Date(Date.now()-3*864e5).toISOString()}],
-    processing_log:[{status:'filed',processed_at:new Date(Date.now()-20*6e4).toISOString()}],
-    sync_state:[{source:'gmail',last_seen_at:new Date(Date.now()-3*864e5).toISOString(),last_run_at:null}],
+    sync_state:[{source:'wispr',last_run_at:new Date(Date.now()-20*36e5).toISOString(),note:'Hourly agent: calls checked'},
+                {source:'gmail',last_run_at:null,note:'Hourly agent: Gmail connector not attached to its scheduled task'}],
     sources:[{id:'s1',project_id:'w',title:'GTM sync',occurred_at:new Date().toISOString(),summary:'Talked about the rate card and pilots'}],
     project_briefs:[{project_id:'w',body:'**Status:** Rate card agreed. Pilots next.'}],source_segments:[],changes:[],inputs:[],input_uses:[],call_series:[],agenda_items:[]};
   let n=0;

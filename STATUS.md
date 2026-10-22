@@ -20,7 +20,7 @@
   - Today renders in about 10 ms with 470 tasks; clicks show in about 10 ms.
 - **Quick look:** closes on a click anywhere outside it (desktop too). Other quick-look triggers, dialogs and the undo toast/bar don't close it.
 - **Search ranking:** newer items win ties in both searches (recency weighting), and on-device search weights rare words and title hits more. `brain_search` was replaced in Supabase with the same signature. Details in `docs/second-brain.md`.
-- **Feed freshness:** the Notes page shows when calls, Gmail and Linear last came in, with a red banner when one is stale.
+- **Feed freshness:** the Notes page shows when calls, Gmail and Linear last had a successful read (`sync_state`), with a red banner and the agent's reason when one is over 26 h old. The agent records this through the new `meeting-agent-8-run-record` addendum.
 - **Tests:** all 11 pass (`tests/*.mjs`); `brain.mjs` checks recency ranking and the stale-feed banner.
 
 ## In progress
@@ -32,7 +32,7 @@
 These are logged as suggested tasks in project `task-hub` (named "Ambalam").
 
 ## Known issues
-- **Gmail and Linear feeds:** their `sync_state` cursors have never been advanced by an agent run (read up to 19 Oct, `last_run_at` empty). The new banner shows this; the agent's Gmail/Linear step or its connectors need checking.
+- **Hourly agent connectors (needs Vimal):** its scheduled task (`trig_01VKWQV67JJLvzwVZB7HjokL`) has only Supabase and Wispr Flow attached, so Gmail, Linear and session sync are skipped every run. Attach Gmail, Linear, Supabase_Connector and Claude_Code_Remote to it. Claude was not allowed to grant connectors itself. Until then the Notes banner stays red for Gmail and Linear, with that reason.
 - **Share target:** not tested on a real Android phone (no installability check run). iOS has no share target; use a Shortcut or the bookmarklet with `?url=`.
 - **No offline queue:** captures made while offline fail with a toast instead of waiting to save.
 - **Tap targets:** the step checkboxes in the editor draw at 22px. On phone their tap area is extended to 44px with an invisible overlay, so the drawn box still reports as small.
