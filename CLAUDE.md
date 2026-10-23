@@ -6,7 +6,7 @@ At session start, read this file and `STATUS.md`. At every wrap-up, update `STAT
 ## Stack
 - **App:** one file, `index.html`. It's vanilla JS with no build step. It loads supabase-js 2.45.4 from jsdelivr; d3 7.9.0 loads lazily for the mind map only. Fonts are Bricolage Grotesque and IBM Plex.
 - **PWA files:** `manifest.webmanifest` (with a share target) and `icon.svg`.
-- **Data:** Supabase project "Task-Hub" (`mbbucsageoyxhekzbmyq`). Tables include projects, tasks, notes, sources, source_segments, project_briefs, changes, inputs, input_uses, call_series and agenda_items. The RPCs are `call_prep`, `call_prep_md` and `brain_search` (recency-weighted; see `docs/second-brain.md`).
+- **Data:** Supabase project "Task-Hub" (`mbbucsageoyxhekzbmyq`). Tables include projects, tasks, notes, sources, source_segments, project_briefs, changes, inputs, input_uses, call_series, agenda_items and focus_themes (high-impact themes; starred tasks use `tasks.highlight_day`). The RPCs are `call_prep`, `call_prep_md` and `brain_search` (recency-weighted; see `docs/second-brain.md`).
 - **Deploy:** Vercel deploys every push to `main`. There is no config file; it serves the repo root statically.
 - **Other writers to the same tables:**
   - the hourly meeting agent (`agents/meeting-agent.md`; the live copy is in `agent_config`)

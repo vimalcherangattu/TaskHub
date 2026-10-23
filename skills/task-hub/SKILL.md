@@ -92,7 +92,8 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `source` | `chat` for tasks from a conversation (the routine uses `scheduled:*`; the app uses `hub`). |
 | `source_chat` | Short origin, e.g. "Chat: HLTH outreach plan" or "Email from Pratik: Slice 1". Shown on suggested tasks. |
 | `started_at`, `done_at` | Set by status changes. |
-| `superseded_by` | Id of the task that replaced this one. Set it together with `status='done'`, `done_at=now()`. The app hides replaced tasks. Use only when a task is genuinely replaced by a different approach; if it's the same goal, rename or re-scope instead. |
+| `superseded_by` | Id of the task that replaced this one, or that it was **merged into**. Set it together with `status='done'`, `done_at=now()`. The app hides replaced tasks. Use it for a different approach, or for a merge (see *High impact and merging*); if it's the same goal, rename or re-scope instead. |
+| `highlight_day` | The day this task is **high impact** (one of the few things that would make that day count). The app shows today's at the top of Today. Clear it (null) to unstar. `highlight_week` is reserved; don't set it. |
 
 ### Adding tasks
 
@@ -122,6 +123,13 @@ As the chat goes on, keep the matching task right and confirm each change in one
 - **Changed shape**: rename it, rewrite or extend the steps, change `due`, `priority` or `project_id` to match.
 - **Moved**: new `due` and/or `today_date` (null if off today). Apply the `carry_count` rule. Then check dependents (see Dependencies).
 - **After every change**: append one line to `activity`, and update `resume_note` to the next step when there is one.
+
+### High impact and merging
+
+- **"This is the big one today" / "focus on X today"** for one task: set `highlight_day = current_date` (and `today_date` too). Keep it to about three a day; if more are starred, ask which matter most.
+- **A theme** ("close all the automation things today"): insert into `focus_themes(day, title, task_ids)` with `day = current_date`, a short title in his words, and the ids of the open tasks it covers (`task_ids` may be empty for a theme that isn't about specific tasks). The app shows "n of m closed". Mark a task-less theme done with `done_at = now()`. Unfinished themes and stars from the last week are offered as "Carry to today".
+- **"I did B while working on A"**: mark B done as usual and add activity to both: on B "Done while working on “A”", on A "Also closed: B".
+- **"Merge B into A"** (same work split across dates): append B's title to A's `steps` (or each of B's steps as "B: step", keeping ticks), append B's `notes` to A's under "From “B”:", keep the earlier `due` and the higher `priority`, replace B with A in other tasks' `blocked_by` and in `focus_themes.task_ids`, add activity on A "Merged in “B”", then set B `status='done'`, `done_at=now()`, `superseded_by='<A id>'` with activity "Merged into “A”". Don't delete B.
 
 ### Steps
 

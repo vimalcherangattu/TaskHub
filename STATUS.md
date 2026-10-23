@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 23 Oct 2026, evening (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 23 Oct 2026, late evening (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Today:** the redesign from the design canvas is live:
@@ -25,14 +25,18 @@
 - **Inbox filing (23 Oct, live):** the hourly agent files Notes inbox captures (`agent_config` row `meeting-agent-9-inbox-filing`, mirrored in `agents/meeting-agent.md`). It logs each one as `processing_log` `inbox:<note id>`.
 - **Search ranking:** newer items win ties in both searches (recency weighting), and on-device search weights rare words and title hits more. `brain_search` was replaced in Supabase with the same signature. Details in `docs/second-brain.md`.
 - **Feed freshness:** the Notes page shows when calls, Gmail and Linear last had a successful read (`sync_state`), with a red banner and the agent's reason when one is over 26 h old. The agent records this through the new `meeting-agent-8-run-record` addendum.
-- **Tests:** all 12 pass (`tests/*.mjs`). The new `people.mjs` covers People pages and the From your notes card.
+- **High impact today (23 Oct, late):** a block at the top of Today. Star any task (quick look or task sheet: "★ High impact", stored in the existing `tasks.highlight_day`), or add a **theme** ("+ Theme", e.g. "Close all the automation tasks") that covers several tasks and counts "n of m closed". Words in a theme's title pre-tick matching tasks. Themes live in the new `focus_themes` table. Unfinished stars and themes from the last 7 days get a "Carry to today" link. Starred and theme tasks show only in this block, not again in the lists below.
+- **Merge and tick off (23 Oct, late):** a task's quick look lists "Also open in <project>" (other dates included) with Done and Merge on each, plus a "pick several" dialog that can search other projects. Done logs "Done while working on…" on the closed task and "Also closed:…" on the one you're on. Merge turns the other task into steps (its own steps keep their ticks), moves its notes over, keeps the earlier deadline and higher priority, repoints dependents and themes, and hides it as done + `superseded_by`. Undo restores it.
+- **Tests:** all 13 pass (`tests/*.mjs`). The new `focus.mjs` covers high impact, themes, merging and done-here.
 
 ## In progress
 - Nothing mid-change.
 
 ## Next step
-1. Check the first agent runs that file inbox captures (`select * from processing_log where external_id like 'inbox:%'`).
-2. Next in `docs/second-brain.md`: Topics (#4), then Ask Ambalam (#5).
+1. The task-hub skill in claude.ai is a separate install: copy the new "High impact and merging" section of `skills/task-hub/SKILL.md` into it so chats can star tasks, set themes and merge.
+2. Maybe: let the 9 AM routine propose today's high-impact items, and use `highlight_week` for a weekly focus.
+3. Check the first agent runs that file inbox captures (`select * from processing_log where external_id like 'inbox:%'`).
+4. Next in `docs/second-brain.md`: Topics (#4), then Ask Ambalam (#5).
 
 ## Known issues
 - **Hourly agent connectors (needs Vimal):** its scheduled task (`trig_01VKWQV67JJLvzwVZB7HjokL`) has only Supabase and Wispr Flow attached, so Gmail, Linear and session sync are skipped every run. Attach Gmail, Linear, Supabase_Connector and Claude_Code_Remote to it. Claude was not allowed to grant connectors itself. Until then the Notes banner stays red for Gmail and Linear, with that reason.
