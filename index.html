@@ -841,9 +841,9 @@ function attentionLine(){
   const tot=attentionCount(),list=parts.length>1?parts.slice(0,-1).join(", ")+" and "+parts[parts.length-1]:parts[0]||"";
   return `${cap(word(tot))} need${tot===1?"s":""} attention${list?": "+list:""}.`}
 function renderSide(){
-  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["notes","Notes",S.notes.filter(n=>!proj(n.projectId)).length],["brain","Mind map",""],["all","All tasks",S.tasks.filter(open).length]];
+  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["notes","Notes",S.notes.filter(n=>!proj(n.projectId)).length],["people","People",""],["brain","Mind map",""],["all","All tasks",S.tasks.filter(open).length]];
   let h=`<div class="brand">Ambalam<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="side-acts"><button class="side-act" data-find><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Search<kbd>${/Mac|iP/.test(navigator.platform)?"⌘K":"Ctrl K"}</kbd></button><button class="side-act" data-capture><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Capture<kbd>C</kbd></button></div><div class="nav">`;
-  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`;
+  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v||(v==="people"&&S.view==="person")}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`;
   h+=`</div>`;
   for(const a of AREAS){
     const ps=tops(a);
@@ -994,6 +994,22 @@ function progress(done,total,label){const pct=total?Math.round(done/total*100):0
 
 function suggActs(t,cls){const id=esc(t.id),b=(a,l,ti,x="")=>`<button class="${cls}${x}" ${a}="${id}" title="${ti}">${l}</button>`;
   return b("data-accept","Accept","Add to your list"," yes")+b("data-stoday","Today","Add to today's list")+b("data-sweek","Week","Add to this week")+b("data-sstart","Start","Add and start now")+b("data-quickdone","Done","Already done")+b("data-dismiss","Dismiss","Not needed")}
+/* resurfacing: notes that share words with today's tasks (same project family), plus one older idea or decision a day */
+const STOPW=new Set("about after also back before call calls doc docs done draft from have into just make more need next note notes over plan send sent show some than that their them then they this what when will with work your".split(" "));
+const kwOf=s=>new Set((String(s||"").toLowerCase().match(/[\p{L}\p{N}]{4,}/gu)||[]).filter(w=>!STOPW.has(w)));
+const topId=id=>{const p=proj(id);return p?topOf(p).id:null};
+function fromNotes(){const tasks=S.tasks.filter(x=>onToday(x)||doing(x)),out=[],seen=new Set();
+  const tk=tasks.map(x=>({x,top:topId(x.projectId),k:kwOf(x.title+" "+(x.resumeNote||""))}));
+  const hits=[];for(const n of S.notes){if(n.kind==="person"||!n.projectId)continue;const top=topId(n.projectId),nk=kwOf(n.title);let best=null,bs=0;
+    for(const t of tk){if(t.top!==top)continue;let s=0;for(const w of nk)if(t.k.has(w))s++;if(s>bs){bs=s;best=t.x}}
+    if(bs>=2)hits.push({n,t:best,s:bs})}
+  hits.sort((a,b)=>b.s-a.s||String(b.n.createdAt||"").localeCompare(String(a.n.createdAt||"")));
+  for(const h of hits){if(out.length>=3)break;if(seen.has(h.n.id))continue;seen.add(h.n.id);out.push({n:h.n,why:"For: "+trunc(h.t.title,60)})}
+  const old=S.notes.filter(n=>(n.kind==="idea"||n.kind==="decision")&&!seen.has(n.id)&&n.createdAt&&Date.now()-new Date(n.createdAt)>21*864e5).sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  if(old.length){const n=old[Math.floor(parse(T())/864e5)%old.length];out.push({n,why:`${n.kind==="idea"?"An idea":"A decision"} from ${ago(n.createdAt)}`})}
+  return out}
+function fromNotesCard(){const l=fromNotes();if(!l.length)return"";
+  return `<section class="card"><div class="card-h"><h2>From your notes</h2></div>${l.map(({n,why})=>`<button class="ritem" data-editnote="${esc(n.id)}"><b><span class="kd" style="background:${KIND[n.kind]?.c||"var(--ink)"}"></span>${esc(n.title)}</b><span>${esc(why)}</span></button>`).join("")}</section>`}
 function rail(){
   const t=T();let h=`<div class="rail" role="complementary" aria-label="At a glance">`+nextCallCard();
   const wl=S.tasks.filter(waiting).sort((a,b)=>(a.followUpOn||t).localeCompare(b.followUpOn||t));
@@ -1012,6 +1028,7 @@ function rail(){
     if(sl.length>2)h+=`<button class="more" data-go="suggested">See all ${sl.length}</button>`;
     h+=`</section>`;
   }
+  h+=fromNotesCard();
   const openW=S.tasks.filter(onWeek).length,doneW=S.tasks.filter(doneThisWeek).length,tot=openW+doneW,att=attentionCount();
   h+=`<section class="card dashed"><div class="card-h"><h2 style="font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)">This week</h2></div><div class="stat">${doneW}<small>of ${tot} done</small></div><div class="bar"><i style="width:${tot?Math.round(doneW/tot*100):0}%"></i></div>`;
   h+=att?`<p class="why">${esc(attentionLine())}</p><button class="more" data-go="attention">Open Needs attention</button>`:`<div class="note">Nothing needs attention.</div>`;
@@ -1125,6 +1142,36 @@ function nextCallCard(){const t=Date.now();
   return `<section class="card next-call"><div class="card-h"><h2>${esc(s.name)}</h2></div><span class="when">${esc(nt.txt)} · ${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask</span><button class="more" data-cs="${esc(s.id)}">Open prep</button></section>`}
 function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
   return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
+/* ---------- people: one page per person note, pulling together what's scattered (waiting_on, inputs, calls, agenda, decisions) ---------- */
+const pName=n=>String(n?.title||"").split(/[:(–—]/)[0].trim();
+const pRole=n=>String(n?.title||"").slice(pName(n).length).replace(/^\s*[:–—]\s*/,"").replace(/^\((.*)\)$/,"$1").trim();
+const pFirst=n=>(pName(n).replace(/^(dr|mr|mrs|ms|prof)\.?\s+/i,"").match(/[\p{L}][\p{L}'-]*/u)||[""])[0];
+const wordRe=w=>new RegExp(`(^|[^\\p{L}])${w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}(?![\\p{L}])`,"iu");
+function personData(n){const first=pFirst(n);if(!first)return null;const r=wordRe(first),has=s=>r.test(String(s||""));
+  const series=S.series.filter(s=>s.active!==false&&(s.people||[]).some(x=>x.toLowerCase()===first.toLowerCase()));
+  const nexts=series.map(s=>({s,at:S.prep[s.id]?.next_at||s.nextAt})).filter(x=>x.at&&new Date(x.at)>Date.now()-90*6e4).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  return{first,series,next:nexts[0]||null,
+    theyOwe:sortT(S.tasks.filter(t=>waiting(t)&&has(t.waitingOn))),
+    inputs:S.inputs.filter(i=>i.status==="pending"&&has(i.owner)),
+    youOwe:sortT(S.tasks.filter(t=>open(t)&&!waiting(t)&&has(t.title))),
+    agenda:S.agenda_items.filter(a=>a.status==="open"&&series.some(s=>s.id===a.seriesId)),
+    calls:S.sources.filter(s=>(s.attendees||[]).some(has)||has(s.title)).sort((a,b)=>String(b.occurredAt).localeCompare(String(a.occurredAt))).slice(0,6),
+    decisions:S.notes.filter(x=>x.kind==="decision"&&(has(x.title)||has(x.body))).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))).slice(0,8)}}
+const people=()=>S.notes.filter(n=>n.kind==="person").sort((a,b)=>pName(a).localeCompare(pName(b)));
+function personRow(n){const d=personData(n),loops=d?d.theyOwe.length+d.inputs.length:0,mine=d?d.youOwe.length:0,p=proj(n.projectId);
+  const bits=[pRole(n)||fullName(p),loops?`owes you ${loops}`:"",mine?`${mine} for them`:"",d?.next?`next call ${nextTxt(d.next.at).txt}`:""].filter(Boolean);
+  return `<button class="nrow" data-person="${esc(n.id)}"><span class="kd" style="background:${KIND.person.c}"></span><span class="nb"><b>${esc(pName(n))}</b><span>${bits.map(esc).join(" · ")}</span></span></button>`}
+function personPage(n){const d=personData(n)||{theyOwe:[],inputs:[],youOwe:[],agenda:[],calls:[],decisions:[],series:[]},p=proj(n.projectId);let h="";
+  h+=`<div class="head"><div><h1>${esc(pName(n))}</h1><div class="sub"><button class="crumb" data-go="people">People</button>${pRole(n)?` · ${esc(pRole(n))}`:""}${p?` · ${esc(fullName(p))}`:""}</div></div><div class="right"><button class="btn" data-editnote="${esc(n.id)}">Edit note</button></div></div>`;
+  if(n.body)h+=`<section class="brief"><div class="md">${md(n.body)}</div></section>`;
+  if(d.next){const nt=nextTxt(d.next.at);h+=`<section class="card next-call"><div class="card-h"><h2>Next call: ${esc(d.next.s.name)}</h2></div><span class="when">${esc(nt.txt)} · ${d.agenda.filter(a=>a.seriesId===d.next.s.id).length} to raise</span><button class="more" data-cs="${esc(d.next.s.id)}">Open prep</button></section>`}
+  h+=sec(`They owe you`,d.theyOwe,{empty:d.inputs.length?"":`Nothing waiting on ${esc(d.first)}.`});
+  if(d.inputs.length)h+=prepBox("Inputs they owe",d.inputs.length,d.inputs.map(i=>prepLi("Input","ask",esc(i.question),"since "+esc(nice(iso(new Date(i.createdAt)))))));
+  h+=sec(`You owe them, or about them`,d.youOwe);
+  if(d.agenda.length)h+=prepBox("To raise with them",d.agenda.length,d.agenda.map(a=>prepLi(KLBL[a.kind]||a.kind,a.kind,esc(a.text))));
+  if(d.calls.length)h+=`<section><div class="sh"><h2>Recent calls</h2><span class="n">${d.calls.length}</span></div><ul class="pk-list">${d.calls.map(s=>`<li>${/^https?:/.test(s.url||"")?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(callTitle(s))}</a>`:esc(callTitle(s))}<span class="when">${esc(istFmt(s.occurredAt,{day:"numeric",month:"short"}))}${s.summary?` · ${esc(trunc(s.summary,140))}`:""}</span></li>`).join("")}</ul></section>`;
+  if(d.decisions.length)h+=`<section><div class="sh"><h2>Decisions they're in</h2><span class="n">${d.decisions.length}</span></div>${d.decisions.map(noteRow).join("")}</section>`;
+  return h}
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
@@ -1204,7 +1251,7 @@ function renderView(){
   else if(S.view==="notes"){
     const ks=[["","All"],["idea","Ideas"],["decision","Decisions"],["fact","About"],["person","People"],["link","Links"],["note","Notes"]];
     const list=S.notes.filter(n=>!S.nk||n.kind===S.nk).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
-    h+=`<div class="head"><div><h1>Notes</h1><div class="sub">Everything you keep that isn't a task: ideas, decisions, people, links and facts</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="brain">Mind map</button><button class="btn primary" data-capture>Capture</button></div></div>`;
+    h+=`<div class="head"><div><h1>Notes</h1><div class="sub">Everything you keep that isn't a task: ideas, decisions, people, links and facts</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="people">People</button><button class="btn" data-go="brain">Mind map</button><button class="btn primary" data-capture>Capture</button></div></div>`;
     h+=feedsHtml();
     h+=`<div class="filters one"><div class="chips">${ks.map(([k,l])=>`<button class="chip" data-nk="${k}" aria-pressed="${(S.nk||"")===k}">${l} <span>${k?S.notes.filter(n=>n.kind===k).length:S.notes.length}</span></button>`).join("")}</div></div>`;
     const inbox=list.filter(n=>!proj(n.projectId));
@@ -1213,6 +1260,14 @@ function renderView(){
     for(const k of [...g.keys()].sort())h+=`<section><div class="sh"><h2>${esc(k)}</h2><span class="n">${g.get(k).length}</span></div>${g.get(k).map(noteRow).join("")}</section>`;
     if(!list.length)h+=`<div class="empty">Nothing saved here yet. Press C or tap Capture to keep an idea, link or decision.</div>`;
   }
+  else if(S.view==="people"){const ps=people(),busy=ps.filter(n=>{const d=personData(n);return d&&(d.theyOwe.length||d.inputs.length||d.youOwe.length||d.next)});
+    h+=`<div class="head"><div><h1>People</h1><div class="sub">Who they are, what's open both ways, your calls and decisions with them</div></div><div class="right"><button class="btn" data-go="notes">Notes</button></div></div>`;
+    if(busy.length)h+=`<section><div class="sh"><h2>Open loops or a call coming up</h2><span class="n">${busy.length}</span></div>${busy.map(personRow).join("")}</section>`;
+    const rest=ps.filter(n=>!busy.includes(n));
+    if(rest.length)h+=`<section><div class="sh"><h2>${busy.length?"Everyone else":"Everyone"}</h2><span class="n">${rest.length}</span></div>${rest.map(personRow).join("")}</section>`;
+    if(!ps.length)h+=`<div class="empty">No people saved yet. Capture one as a Person, e.g. “Sam Ghosh: marketing lead”.</div>`;
+  }
+  else if(S.view==="person"){const n=S.notes.find(x=>x.id===S.person);h+=n?personPage(n):`<div class="empty">That person isn't in your notes any more. <button class="act" data-go="people">See everyone</button></div>`}
   else if(S.view==="projects"){
     h+=`<div class="head"><div><h1>Projects</h1></div><div class="right"><button class="btn" data-newproj>New project</button></div></div>`;
     for(const a of AREAS){const ps=tops(a);if(!ps.length)continue;
@@ -1334,7 +1389,7 @@ function brainSelect(id){
   drawBrain();
 }
 function noteRow(n){const p=proj(n.projectId);
-  return `<button class="nrow" data-editnote="${esc(n.id)}"><span class="kd" style="background:${KIND[n.kind]?.c||"var(--ink)"}"></span><span class="nb"><b>${esc(n.title)}</b><span>${esc(KIND[n.kind]?.l||"Note")}${n.url?" · "+esc(n.url.replace(/^https?:\/\/(www\.)?/,"")):""}${n.body?" · "+esc(trunc(n.body,140)):""}</span></span>${n.createdAt?`<span class="when">${esc(ago(n.createdAt))}</span>`:""}</button>`}
+  return `<button class="nrow" data-${n.kind==="person"?"person":"editnote"}="${esc(n.id)}"><span class="kd" style="background:${KIND[n.kind]?.c||"var(--ink)"}"></span><span class="nb"><b>${esc(n.title)}</b><span>${esc(KIND[n.kind]?.l||"Note")}${n.url?" · "+esc(n.url.replace(/^https?:\/\/(www\.)?/,"")):""}${n.body?" · "+esc(trunc(n.body,140)):""}</span></span>${n.createdAt?`<span class="when">${esc(ago(n.createdAt))}</span>`:""}</button>`}
 function noteItem(n){return `<button class="nitem" data-bsel="n:${esc(n.id)}"><b><span class="kd" style="background:${KIND[n.kind]?.c||"var(--ink)"}"></span>${esc(n.title)}</b>${n.body?`<span class="t">${esc(n.body)}</span>`:""}</button>`}
 function brainPanel(){
   const id=S.bsel||"root";
@@ -1477,6 +1532,7 @@ document.addEventListener("click",async e=>{
     if(error||!data){toast("Couldn't build the text.",false);return}
     try{await navigator.clipboard.writeText(data);toast("Prep copied. Paste it into your notes or the meeting chat.",false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
   if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
+  if(b.dataset.person){S.view="person";S.person=b.dataset.person;S.pid=null;S.day=null;setPeek(null);const fd=document.getElementById("findDlg");if(fd.open)fd.close();render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.proj){S.view="project";S.pid=b.dataset.proj;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if("themeToggle" in b.dataset){const d=document.documentElement,dark=d.dataset.theme!=="dark";if(dark)d.dataset.theme="dark";else delete d.dataset.theme;try{localStorage.setItem("hub-theme",dark?"dark":"light")}catch{}document.querySelector('meta[name="theme-color"]').content=dark?"#121418":"#FFFFFF";renderSide();return}
   if("signout" in b.dataset){try{localStorage.removeItem(CACHE)}catch{}await sb.auth.signOut();location.reload();return}
@@ -1852,7 +1908,7 @@ async function doRefresh(){
   const core=Promise.all([sb.from("projects").select("*"),sb.from("tasks").select("*")]);
   const rest=Promise.all([sb.from("notes").select("*"),
     sb.from("project_briefs").select("project_id,body,updated_at,updated_from"),sb.from("source_segments").select("id,source_id,project_id,summary,created_at"),
-    sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id").order("occurred_at",{ascending:false}).limit(300),
+    sb.from("sources").select("id,project_id,related_projects,title,occurred_at,url,summary,tags,external_id,attendees").order("occurred_at",{ascending:false}).limit(300),
     sb.from("changes").select("id,at,project_id,kind,summary,actor,source_id,ref_id").gte("at",since).order("at",{ascending:false}).limit(500),
     sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
   // feed freshness is optional: if it can't load, nothing else waits on it

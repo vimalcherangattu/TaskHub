@@ -62,6 +62,13 @@ The video's points that apply here, and what changed:
   - **Found on 23 Oct:** the hourly agent's scheduled task had only the Supabase and Wispr Flow connectors attached, so it skipped Gmail, Linear and session sync on every run. It also fell back to the general Supabase connector, which can stall on writes. The fix is to attach Gmail, Linear, Supabase_Connector and Claude_Code_Remote to that scheduled task.
 - **Summaries and "atoms" from a cheap model.** Calls already get this (segments, notes, briefs). Manual captures don't yet: that is item 1 above (AI filing for the inbox), which should also write a one-line summary and the question you'd type to find each capture.
 
+## Built on 23 Oct 2026
+
+- **AI filing for the inbox (#1).** The hourly agent now files Notes inbox captures: project, kind, 2–4 tags, a one-line "Filed: … Find it by: …" line, and any task split out as a suggestion. Duplicates are merged with `superseded_by`; anything it can't place stays in the inbox. Each capture is logged once as `processing_log` `inbox:<note id>`. Live as `agent_config` row `meeting-agent-9-inbox-filing`, mirrored in `agents/meeting-agent.md`.
+- **People pages (#2).** Notes → People (and the sidebar) lists every person note, with open loops or a coming call first. A person page shows their note, the next call, what they owe you (waiting tasks and inputs), open tasks that mention them, agenda points for their calls, recent calls they attended and decisions that name them. Matching is by first name, so a common first name can pull in extra items.
+- **Resurfacing on Today (#3).** A "From your notes" card in the rail shows up to 3 notes that share two or more words with today's or started tasks in the same workspace, plus one idea or decision over 3 weeks old (a different one each day).
+- **Work with Claude.** Each open task's quick look opens a new claude.ai chat with the task's context and asks Claude to write progress back through the task-hub skill.
+
 ### Bookmarklet (desktop)
 
 Make a bookmark with this as the address. Clicking it on any page sends that page to Capture:
