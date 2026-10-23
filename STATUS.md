@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 23 Oct 2026, evening (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 23 Oct 2026, 22:15 IST (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Today:** the redesign from the design canvas is live:
@@ -31,11 +31,11 @@
 - Nothing mid-change.
 
 ## Next step
-1. Check the first agent runs that file inbox captures (`select * from processing_log where external_id like 'inbox:%'`).
+1. Check the 23:05 IST hourly run read Gmail and Linear (Notes banner gone). Then check the first agent runs that file inbox captures (`select * from processing_log where external_id like 'inbox:%'`).
 2. Next in `docs/second-brain.md`: Topics (#4), then Ask Ambalam (#5).
 
 ## Known issues
-- **Hourly agent connectors (needs Vimal):** its scheduled task (`trig_01VKWQV67JJLvzwVZB7HjokL`) has only Supabase and Wispr Flow attached, so Gmail, Linear and session sync are skipped every run. Attach Gmail, Linear, Supabase_Connector and Claude_Code_Remote to it. Claude was not allowed to grant connectors itself. Until then the Notes banner stays red for Gmail and Linear, with that reason.
+- **Hourly agent connectors (23 Oct evening):** Vimal attached Gmail, Linear, Supabase_Connector and Google Drive to `trig_01VKWQV67JJLvzwVZB7HjokL` (claude.ai > Scheduled > "Show" hidden tasks > edit > Advanced settings > Connectors). The first run with them is 23:05 IST, which should clear the red Notes banner. Claude_Code_Remote wasn't offered there, so session sync is still skipped. Claude can't attach connectors (`create_trigger` refuses them in this org), so edit the task in place; don't recreate it.
 - **Share target:** not tested on a real Android phone (no installability check run). iOS has no share target; use a Shortcut or the bookmarklet with `?url=`.
 - **No offline queue:** captures made while offline fail with a toast instead of waiting to save.
 - **Tap targets:** the step checkboxes in the editor draw at 22px. On phone their tap area is extended to 44px with an invisible overlay, so the drawn box still reports as small.
