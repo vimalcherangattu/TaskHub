@@ -131,6 +131,10 @@ As the chat goes on, keep the matching task right and confirm each change in one
 - **"I did B while working on A"**: mark B done as usual and add activity to both: on B "Done while working on “A”", on A "Also closed: B".
 - **"Merge B into A"** (same work split across dates): append B's title to A's `steps` (or each of B's steps as "B: step", keeping ticks), append B's `notes` to A's under "From “B”:", keep the earlier `due` and the higher `priority`, replace B with A in other tasks' `blocked_by` and in `focus_themes.task_ids`, add activity on A "Merged in “B”", then set B `status='done'`, `done_at=now()`, `superseded_by='<A id>'` with activity "Merged into “A”". Don't delete B.
 
+### Topics
+
+A note tag used on 3+ current notes in 2+ projects (e.g. `pricing`, `flow`) is a **topic**; the app gives it a page. Tag notes with lowercase, reusable words so topics form. Each topic's brief is in `topic_briefs(tag, body, updated_at)`, written by the hourly agent; `select * from topics_due(10);` lists topics whose brief is missing or stale. When asked "what do we know about <topic>", read its brief plus its notes (`where exists (select 1 from unnest(tags) g where lower(g) = '<tag>')`).
+
 ### Steps
 
 `steps` is a JSON array of `{"text": string, "done": boolean}` objects, in order, with nothing else in them. Edit it with the jsonb recipes in `reference/queries.md` (positions are 0-based). Never write it as a plain string. Ticking a step never finishes the task; mark the task done separately when everything is done.
