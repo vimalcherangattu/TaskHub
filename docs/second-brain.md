@@ -34,7 +34,7 @@ This avoids the most common failure, where reference material clutters the to-do
 2. **People pages** (6). One page per person with their note, open loops both ways, recent calls, decisions and the next call. It reuses data that already exists.
 3. **Resurfacing on Today** (7). A small "From your notes" card in the rail: notes linked to today's tasks, plus one older idea or decision.
 4. **Topics** (3 and 8). Reference areas that aren't projects, each with an auto-written brief like a project's. *Built 23 Oct.*
-5. **Ask Ambalam** (4). A question box that answers from your notes, calls and briefs, and cites them.
+5. **Ask Ambalam** (4). A question box that answers from your notes, calls and briefs, and cites them. *Skipped 23 Oct: it would need paid API credits; ask a chat with the task-hub skill instead.*
 6. **More ways in** (1): forward an email to an address, voice notes, and WhatsApp or Telegram.
 7. **Safety** (10): an offline capture queue, export and a weekly backup.
 

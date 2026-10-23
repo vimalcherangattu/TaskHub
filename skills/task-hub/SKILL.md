@@ -93,7 +93,8 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `source_chat` | Short origin, e.g. "Chat: HLTH outreach plan" or "Email from Pratik: Slice 1". Shown on suggested tasks. |
 | `started_at`, `done_at` | Set by status changes. |
 | `superseded_by` | Id of the task that replaced this one, or that it was **merged into**. Set it together with `status='done'`, `done_at=now()`. The app hides replaced tasks. Use it for a different approach, or for a merge (see *High impact and merging*); if it's the same goal, rename or re-scope instead. |
-| `highlight_day` | The day this task is **high impact** (one of the few things that would make that day count). The app shows today's at the top of Today. Clear it (null) to unstar. `highlight_week` is reserved; don't set it. |
+| `highlight_day` | The day this task is **high impact** (one of the few things that would make that day count). The app shows today's at the top of Today. Clear it (null) to unstar. |
+| `highlight_week` | The **Monday** of the week this task is a **week focus**. The app shows it at the top of the Week view. |
 
 ### Adding tasks
 
@@ -127,9 +128,11 @@ As the chat goes on, keep the matching task right and confirm each change in one
 ### High impact and merging
 
 - **"This is the big one today" / "focus on X today"** for one task: set `highlight_day = current_date` (and `today_date` too). Keep it to about three a day; if more are starred, ask which matter most.
-- **A theme** ("close all the automation things today"): insert into `focus_themes(day, title, task_ids)` with `day = current_date`, a short title in his words, and the ids of the open tasks it covers (`task_ids` may be empty for a theme that isn't about specific tasks). The app shows "n of m closed". Mark a task-less theme done with `done_at = now()`. Unfinished themes and stars from the last week are offered as "Carry to today".
+- **A theme** ("close all the automation things today"): insert into `focus_themes(day, span, title, task_ids)` with `span = 'day'`, `day` = today, a short title in his words, and the ids of the open tasks it covers (`task_ids` may be empty for a theme that isn't about specific tasks). The app shows "n of m closed". Mark a task-less theme done with `done_at = now()`. Unfinished themes and stars from the last week are offered as "Carry to today".
+- **Week focus** ("this week is about X"): set `highlight_week` to this Monday on the task, or insert a theme with `span = 'week'` and `day` = this Monday. Keep it to about 3–5 items a week. The 9 AM routine sets the week's themes on Mondays if he hasn't.
 - **"I did B while working on A"**: mark B done as usual and add activity to both: on B "Done while working on “A”", on A "Also closed: B".
-- **"Merge B into A"** (same work split across dates): append B's title to A's `steps` (or each of B's steps as "B: step", keeping ticks), append B's `notes` to A's under "From “B”:", keep the earlier `due` and the higher `priority`, replace B with A in other tasks' `blocked_by` and in `focus_themes.task_ids`, add activity on A "Merged in “B”", then set B `status='done'`, `done_at=now()`, `superseded_by='<A id>'` with activity "Merged into “A”". Don't delete B.
+- **"Merge B into A"** (same work split across dates or parts): `select hub_merge_tasks('<A id>', array['<B id>', ...], 'claude', '<why>');`. It does what the app does: B's title (or each of its steps, keeping ticks) becomes a step of A, notes move over, the earlier `due` and higher `priority` win, dependents and themes point to A, and B becomes done + `superseded_by` A. Never delete B. To undo, set B back to its old status with `superseded_by = null`.
+- **Automatic tidy-up:** the hourly agent tags untagged notes and merges clear duplicate tasks (up to 3 a run, addendum `meeting-agent-9c-tidy`); the Friday review in the 9 AM routine merges up to 5 more. Anything unsure is only listed as a possible merge.
 
 ### Topics
 

@@ -77,6 +77,22 @@ await p.click('#view .task[data-tid="h1"] .title'); await p.waitForTimeout(100);
 console.log('sheet pill pressed:', await p.getAttribute('#taskForm [data-ck="onHi"]','aria-pressed'));
 await p.click('#taskForm [data-ck="onHi"]'); await p.click('#taskForm button[type="submit"]'); await p.waitForTimeout(200);
 console.log('unstarred via sheet:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='h1').highlight_day));
+// weekly focus: star for the week from the quick look, a week theme, next week's line-up, carry from last week
+await p.evaluate(()=>{const m=week()[0],a=d=>{const x=parse(m);x.setDate(x.getDate()+d);return iso(x)};
+  S.focus_themes.push({id:'w-old',day:a(-7),span:'week',title:'Last week: close Filow launch',taskIds:['h1']},{id:'w-next',day:a(7),span:'week',title:'Next week: ICP calls',taskIds:[]});
+  S.view='week';setPeek(null);render()}); await p.waitForTimeout(150);
+await p.evaluate(()=>setPeek('f4')); await p.waitForTimeout(100);
+await p.click('#peek [data-hiw="f4"]'); await p.waitForTimeout(150);
+console.log('week star:', await p.evaluate(()=>({db:DB.tasks.find(x=>x.id==='f4').highlight_week===week()[0],fact:[...document.querySelectorAll('#peek .pk-facts span')].map(x=>x.textContent).includes('★ Week focus')})));
+await p.evaluate(()=>setPeek(null)); await p.waitForTimeout(100);
+await p.click('#view [data-newtheme="week"]'); await p.waitForTimeout(150);
+await p.fill('#themeForm input[name="title"]','Small Fish polish'); await p.waitForTimeout(100);
+await p.click('#themeForm button[type="submit"]'); await p.waitForTimeout(250);
+const wk=()=>p.evaluate(()=>{const s=document.querySelector('#view .hi');return{h:s.querySelector('h2').textContent,rows:[...s.querySelectorAll('.task')].map(x=>x.dataset.tid),themes:[...s.querySelectorAll('.theme-t')].map(x=>x.textContent),carry:[...s.querySelectorAll('.hi-carry')].map(x=>x.textContent),dupes:[...document.querySelectorAll('#view .task[data-tid="f4"]')].length}});
+console.log('week block:', await wk(), 'db span', await p.evaluate(()=>DB.focus_themes.filter(f=>f.span==='week').map(f=>f.title+':'+f.day)));
+await p.click('#view [data-hicarry="week"]'); await p.waitForTimeout(250);
+console.log('after week carry:', (await wk()).themes);
+await p.screenshot({path:new URL('./out/focus-week.png', import.meta.url).pathname});
 // phone
 await p.setViewportSize({width:390,height:844}); await p.evaluate(()=>{setPeek(null);render()}); await p.waitForTimeout(200);
 await p.screenshot({path:new URL('./out/focus-phone.png', import.meta.url).pathname,fullPage:false});

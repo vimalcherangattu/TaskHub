@@ -872,17 +872,20 @@ const tops=a=>S.projects.filter(p=>(p.area||"Life")===a&&!parentOf(p)).sort(ordS
 const fam=id=>[id,...kidsOf(id).map(k=>k.id)];
 const fullName=p=>{if(!p)return"Unsorted";const pa=parentOf(p);return pa?`${pa.name} › ${p.name}`:p.name};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-/* high impact: single tasks (tasks.highlight_day) and themes that cover several tasks (focus_themes) */
+/* high impact: single tasks (tasks.highlight_day, or highlight_week for the week's focus) and themes that cover several tasks (focus_themes; span day or week) */
 const hiTask=t=>t.highlightDay===T();
-const themesOn=d=>(S.focus_themes||[]).filter(f=>f.day===d).sort((a,b)=>String(a.createdAt||"").localeCompare(String(b.createdAt||"")));
+const wkTask=t=>t.highlightWeek===week()[0];
+const FOCUS={day:{key:()=>T(),f:"highlightDay",is:hiTask,h:"High impact today",star:"★ High impact",carry:"Carry to today"},
+  week:{key:()=>week()[0],f:"highlightWeek",is:wkTask,h:"Focus this week",star:"★ Week focus",carry:"Carry to this week"}};
+const themesOn=(d,sp="day")=>(S.focus_themes||[]).filter(f=>f.day===d&&(f.span||"day")===sp).sort((a,b)=>String(a.createdAt||"").localeCompare(String(b.createdAt||"")));
 const themeTasks=f=>(Array.isArray(f.taskIds)?f.taskIds:[]).map(id=>S.tasks.find(x=>x.id===id)).filter(Boolean);
 const themeDone=f=>{if(f.doneAt)return true;const l=themeTasks(f);return l.length>0&&l.every(x=>x.status==="done")};
-const themeOf=t=>themesOn(T()).find(f=>(f.taskIds||[]).includes(t.id));
-const hiCount=()=>S.tasks.filter(x=>hiTask(x)&&open(x)).length+themesOn(T()).filter(f=>!themeDone(f)).length;
-// unfinished high-impact items from the last week that aren't on today yet
-function hiCarry(){const t=T(),lo=addDays(t,-7),now=themesOn(t).map(f=>f.title);
-  const ts=S.tasks.filter(x=>open(x)&&x.highlightDay&&x.highlightDay<t&&x.highlightDay>=lo);
-  const th=(S.focus_themes||[]).filter(f=>f.day<t&&f.day>=lo&&!themeDone(f)&&!now.includes(f.title));
+const themeOf=(t,sp="day")=>themesOn(FOCUS[sp].key(),sp).find(f=>(f.taskIds||[]).includes(t.id));
+const hiCount=(sp="day")=>S.tasks.filter(x=>FOCUS[sp].is(x)&&open(x)).length+themesOn(FOCUS[sp].key(),sp).filter(f=>!themeDone(f)).length;
+// unfinished items from the last 7 days (day) or last week (week) that aren't carried yet
+function hiCarry(sp="day"){const F=FOCUS[sp],t=F.key(),lo=addDays(t,-7),now=themesOn(t,sp).map(f=>f.title);
+  const ts=S.tasks.filter(x=>open(x)&&x[F.f]&&x[F.f]<t&&x[F.f]>=lo);
+  const th=(S.focus_themes||[]).filter(f=>(f.span||"day")===sp&&f.day<t&&f.day>=lo&&!themeDone(f)&&!now.includes(f.title));
   return ts.length+th.length?{ts,th}:null}
 
 /* ---------- rendering ---------- */
@@ -983,7 +986,9 @@ function peekHtml(t){
   facts.push(`<span>${{high:"High",med:"Medium",low:"Low"}[t.priority||"med"]} priority</span>`);
   if(t.due)facts.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"warn":""}">${overdue(t)?"Overdue · ":"Due "}${esc(nice(t.due))}</span>`);
   if(hiTask(t)&&open(t))facts.push(`<span class="acc">★ High impact today</span>`);
+  if(wkTask(t)&&open(t))facts.push(`<span class="acc">★ Week focus</span>`);
   {const th=themeOf(t);if(th)facts.push(`<span class="acc">Theme: ${esc(trunc(th.title,40))}</span>`)}
+  {const th=themeOf(t,"week");if(th)facts.push(`<span class="acc">Week theme: ${esc(trunc(th.title,40))}</span>`)}
   if(t.todayDate===T()&&open(t))facts.push(`<span class="acc">On today</span>`);
   if(t.weekOf===week()[0]&&open(t))facts.push(`<span class="acc">This week</span>`);
   {const sb=startBy(t);if(sb&&open(t)&&!doing(t))facts.push(`<span class="${sb<T()?"late":""}">Start by ${esc(nice(sb))}</span>`)}
@@ -1003,7 +1008,7 @@ function peekHtml(t){
   else if(doing(t))acts=b(`data-done="${id}"`,"Done","primary")+b(`data-park="${id}"`,"Park","","Pause and note where you left it")+b(`data-rnote="${id}"`,"Note","","Where you left it");
   else acts=b(`data-done="${id}"`,"Start","primary")+b(`data-quickdone="${id}"`,"Done","","Mark done without starting");
   if(open(t)&&!sugg(t)){
-    acts+=`<button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}">Week</button><button class="tool" data-hi="${id}" aria-pressed="${hiTask(t)}" title="One of the few things that would make today count">★ High impact</button>`;
+    acts+=`<button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}">Week</button><button class="tool" data-hi="${id}" aria-pressed="${hiTask(t)}" title="One of the few things that would make today count">★ High impact</button><button class="tool" data-hiw="${id}" aria-pressed="${wkTask(t)}" title="One of the few things that have to move this week">★ Week focus</button>`;
     if(blocked(t))acts+=b(`data-pushafter="${id}"`,"Move after","","Plan this after what it waits on");
     if(!waiting(t))acts+=b(`data-handoff="${id}"`,"Hand off","","Sent to someone, now waiting on them");}
   if(t.status!=="done")acts+=b(`data-claude="${id}"`,"Work with Claude","","Open a Claude chat with this task's context");
@@ -1065,17 +1070,23 @@ function todayHead(n,done){
   const line=n?`${cap(word(n))} thing${n===1?"":"s"} today.`:"Nothing left for today.";
   const tot=n+done,pct=tot?Math.round(done/tot*100):0;
   return `<header class="thead"><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))}</div><h1>${hi} ${line}</h1><div class="tprog"><div class="bar" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}"><i style="width:${pct}%"></i></div><span>${done} of ${tot} done</span></div></header>`}
-function hiBlock(){
-  const t=T(),ts=S.tasks.filter(x=>hiTask(x)&&(open(x)||doneOn(x,t))),th=themesOn(t),cy=hiCarry();
-  let h=`<section class="hi" aria-label="High impact today"><div class="sh"><h2>High impact today</h2><span class="n">${ts.length+th.length||""}</span><button class="act" data-newtheme title="A theme covers several tasks, like “close all the automation tasks”">+ Theme</button></div>`;
+// tasks the focus block shows, so the lists below can leave them out
+const focusIds=sp=>new Set([...S.tasks.filter(FOCUS[sp].is).map(x=>x.id),...themesOn(FOCUS[sp].key(),sp).flatMap(f=>themeTasks(f).map(x=>x.id))]);
+function hiBlock(sp="day"){
+  const F=FOCUS[sp],t=T(),k=F.key(),th=themesOn(k,sp),inTh=new Set(th.flatMap(f=>f.taskIds||[])),cy=hiCarry(sp);
+  // a starred task that's also in a theme shows once, under the theme
+  const ts=S.tasks.filter(x=>F.is(x)&&!inTh.has(x.id)&&(open(x)||(sp==="day"?doneOn(x,t):doneThisWeek(x))));
+  let h=`<section class="hi" aria-label="${F.h}"><div class="sh"><h2>${F.h}</h2><span class="n">${ts.length+th.length||""}</span><button class="act" data-newtheme="${sp}" title="A theme covers several tasks, like “close all the automation tasks”">+ Theme</button></div>`;
   if(cy){const names=[...cy.th.map(f=>f.title),...cy.ts.map(x=>x.title)];
-    h+=`<p class="hi-carry">Not finished from earlier: ${esc(names.slice(0,3).map(x=>trunc(x,40)).join("; "))}${names.length>3?` and ${names.length-3} more`:""}.<button class="act" data-hicarry>Carry to today</button></p>`}
-  if(!ts.length&&!th.length)h+=`<p class="hi-empty">What would make today count? Mark a task <b>★ High impact</b> in its quick look, or set a theme such as “Close all the automation tasks”.</p>`;
+    h+=`<p class="hi-carry">Not finished from ${sp==="day"?"earlier":"last week"}: ${esc(names.slice(0,3).map(x=>trunc(x,40)).join("; "))}${names.length>3?` and ${names.length-3} more`:""}.<button class="act" data-hicarry="${sp}">${F.carry}</button></p>`}
+  if(!ts.length&&!th.length)h+=sp==="day"?`<p class="hi-empty">What would make today count? Mark a task <b>★ High impact</b> in its quick look, or set a theme such as “Close all the automation tasks”.</p>`:`<p class="hi-empty">What has to move this week? Mark a task <b>★ Week focus</b> in its quick look, or set a theme such as “Ship the HLTH campaign”.</p>`;
   h+=[...sortT(ts.filter(open)),...ts.filter(x=>!open(x))].map(row).join("");
   for(const f of th){const l=themeTasks(f),dn=l.filter(x=>x.status==="done").length,fid=esc(f.id);
     h+=`<div class="theme${themeDone(f)?" done":""}"><div class="theme-h"><button class="theme-t" data-themeedit="${fid}" title="Edit this theme">${esc(f.title)}</button>`;
     h+=l.length?`<span class="theme-n">${dn} of ${l.length} closed</span><span class="bar" aria-hidden="true"><i style="width:${Math.round(dn/l.length*100)}%"></i></span>`:`<button class="tool" data-themedone="${fid}" aria-pressed="${!!f.doneAt}">${f.doneAt?"Done":"Mark done"}</button>`;
     h+=`</div>${[...sortT(l.filter(open)),...l.filter(x=>x.status==="done")].map(row).join("")}</div>`}
+  if(sp==="week"){const nx=addDays(k,7),nl=[...themesOn(nx,"week").map(f=>f.title),...S.tasks.filter(x=>open(x)&&x.highlightWeek===nx).map(x=>x.title)];
+    if(nl.length)h+=`<p class="hi-carry">Lined up for next week: ${esc(nl.slice(0,4).map(x=>trunc(x,48)).join("; "))}${nl.length>4?` and ${nl.length-4} more`:""}.</p>`}
   return h+`</section>`}
 function progress(done,total,label){const pct=total?Math.round(done/total*100):0;return `<div class="right"><div class="meter">${done}<span> of ${total} ${label}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`}
 
@@ -1260,7 +1271,7 @@ function personPage(n){const d=personData(n)||{theyOwe:[],inputs:[],youOwe:[],ag
   if(d.decisions.length)h+=`<section><div class="sh"><h2>Decisions they're in</h2><span class="n">${d.decisions.length}</span></div>${d.decisions.map(noteRow).join("")}</section>`;
   return h}
 /* ---------- topics: note tags that cut across projects (3+ notes in 2+ top-level projects, same rule as topics_due()); the hourly agent writes topic_briefs ---------- */
-const TOPIC_SKIP=new Set("handoff decision process schedule topics idea note notes usage todo person link fact".split(" "));
+const TOPIC_SKIP=new Set("handoff decision process schedule topics idea note notes usage todo person link fact overview family friends".split(" "));
 function topics(){const m=new Map();
   for(const n of S.notes)for(const g of (Array.isArray(n.tags)?n.tags:[])){const k=String(g).toLowerCase();if(TOPIC_SKIP.has(k))continue;
     const e=m.get(k)||{tag:k,notes:[],tops:new Set()};if(!e.notes.includes(n))e.notes.push(n);e.tops.add(topId(n.projectId)||"none");m.set(k,e)}
@@ -1293,7 +1304,7 @@ function renderView(){
     const startA=S.tasks.filter(x=>startNow(x)&&!leftover(x)&&!blocked(x));
     const heldA=S.tasks.filter(x=>blocked(x)&&!doing(x)&&!waiting(x)&&(onToday(x)||startNow(x)||leftover(x)));
     // high-impact tasks and today's theme tasks show once, in their own block at the top
-    const hiIds=new Set([...S.tasks.filter(hiTask).map(x=>x.id),...themesOn(t).flatMap(f=>themeTasks(f).map(x=>x.id))]);
+    const hiIds=focusIds("day");
     const pool=[...new Set([...fuA,...motionA,...startA,...listA,...leftA,...S.tasks.filter(x=>hiIds.has(x.id)&&open(x))])];
     const nh=a=>a.filter(x=>tfilter(x)&&!hiIds.has(x.id));
     const held=nh(heldA),fus=nh(fuA),motion=nh(motionA),starts=nh(startA),list=nh(listA),left=nh(leftA),doneT=nh(doneA);
@@ -1314,14 +1325,17 @@ function renderView(){
     h+=`</div>${rail()}</div>`;
   }
   else if(S.view==="week"){
-    const w=week();const openW=S.tasks.filter(onWeek);const doneW=S.tasks.filter(doneThisWeek);
-    h+=`<div class="head"><div><h1>Finish this week</h1><div class="sub">${esc(nice(w[0]))} to ${esc(nice(w[6]))}</div></div>${progress(doneW.length,doneW.length+openW.length,"finished")}</div>`;
+    const w=week(),wIds=focusIds("week");const allW=S.tasks.filter(onWeek);const doneW=S.tasks.filter(doneThisWeek);
+    // week-focus tasks show once, in the focus block
+    const openW=allW.filter(x=>!wIds.has(x.id));
+    h+=`<div class="head"><div><h1>Finish this week</h1><div class="sub">${esc(nice(w[0]))} to ${esc(nice(w[6]))}</div></div>${progress(doneW.length,doneW.length+allW.length,"finished")}</div>`;
+    h+=hiBlock("week");
     h+=strip()+quick("Add something to finish this week");
     const days=S.day?[S.day]:w;
     h+=sec("Overdue",sortT(openW.filter(overdue)),{cls:"danger"});
     for(const d of days){const l=sortT(openW.filter(x=>!overdue(x)&&(x.due===d||(!x.due&&x.todayDate===d))));if(l.length||d===t)h+=sec(d===t?"Today":esc(nice(d)),l,{empty:"Nothing scheduled."})}
     if(!S.day)h+=sec("Anytime this week",sortT(openW.filter(x=>!overdue(x)&&!inWeek(x.due)&&!inWeek(x.todayDate))),{empty:"Tap Week on any task to add it here."});
-    h+=sec("Finished this week",S.tasks.filter(doneThisWeek));
+    h+=sec("Finished this week",S.tasks.filter(x=>doneThisWeek(x)&&!wIds.has(x.id)));
   }
   else if(S.view==="attention"){
     h+=`<div class="head"><div><h1>Needs attention</h1><div class="sub">Overdue, stalled, pushed too often, or waiting on someone else</div></div></div>`;
@@ -1672,17 +1686,19 @@ document.addEventListener("click",async e=>{
   if(b.dataset.day){S.day=S.day===b.dataset.day?null:b.dataset.day;render();return}
   if(b.dataset.hi){const t=S.tasks.find(x=>x.id===b.dataset.hi);if(!t)return;const on=!hiTask(t);await upd(t.id,{highlightDay:on?T():null});
     toast(!on?"No longer high impact":hiCount()>3?"Marked high impact. That's more than three today; keep the few that matter most.":"Marked high impact for today");return}
+  if(b.dataset.hiw){const t=S.tasks.find(x=>x.id===b.dataset.hiw);if(!t)return;const on=!wkTask(t);await upd(t.id,{highlightWeek:on?week()[0]:null});
+    toast(!on?"No longer a week focus":hiCount("week")>5?"Added to this week's focus. That's more than five; keep the few that matter most.":"Added to this week's focus");return}
   if(b.dataset.donehere||b.dataset.mergein){const t=S.tasks.find(x=>x.id===b.dataset.into),s=S.tasks.find(x=>x.id===(b.dataset.donehere||b.dataset.mergein));if(!t||!s)return;
     if(b.dataset.donehere)await doneHere(t,[s]);else await mergeInto(t,[s]);return}
   if(b.dataset.merge){openMerge(S.tasks.find(x=>x.id===b.dataset.merge));return}
-  if("newtheme" in b.dataset){openTheme(null);return}
+  if("newtheme" in b.dataset){openTheme(null,b.dataset.newtheme||"day");return}
   if(b.dataset.themeedit){openTheme(S.focus_themes.find(f=>f.id===b.dataset.themeedit));return}
   if(b.dataset.themedone){const f=S.focus_themes.find(x=>x.id===b.dataset.themedone);if(!f)return;
     try{await S.db.doc("focus_themes/"+f.id).update({doneAt:f.doneAt?null:now()});toast(f.doneAt?"Theme done":"Theme reopened")}catch{toast("Couldn't update that theme.",false,true)}return}
-  if("hicarry" in b.dataset){const c=hiCarry();if(!c)return;
-    for(const x of c.ts)await upd(x.id,{highlightDay:T()});
-    for(const f of c.th)try{await S.db.doc("focus_themes/"+f.id).update({day:T()})}catch{}
-    toast("Carried to today");return}
+  if("hicarry" in b.dataset){const sp=b.dataset.hicarry||"day",F=FOCUS[sp],k=F.key(),c=hiCarry(sp);if(!c)return;
+    for(const x of c.ts)await upd(x.id,{[F.f]:k});
+    for(const f of c.th)try{await S.db.doc("focus_themes/"+f.id).update({day:k})}catch{}
+    toast(sp==="day"?"Carried to today":"Carried to this week");return}
   if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;
     if(t.status==="done"){await upd(t.id,{status:"todo",doneAt:null});return}
     if(sugg(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
@@ -1839,9 +1855,9 @@ document.getElementById("mergeDone").addEventListener("click",async()=>{const t=
 const THEMEW=new Set("close finish clear wrap things tasks stuff everything today ship sort".split(" "));
 function themeMatches(title){const ws=[...kwOf(title)].filter(w=>!THEMEW.has(w)).map(w=>w.slice(0,Math.min(w.length,6)));if(!ws.length)return[];
   return S.tasks.filter(x=>open(x)&&[...kwOf(x.title+" "+fullName(proj(x.projectId)))].some(k=>ws.some(w=>k.startsWith(w)))).map(x=>x.id)}
-let themeE=null,tSel=new Set(),tAuto=true;
-function openTheme(f){themeE=f;const fm=document.getElementById("themeForm");fm.title.value=f?.title||"";document.getElementById("themeQ").value="";
-  tSel=new Set(f?.taskIds||[]);tAuto=!f;document.getElementById("themeDlgTitle").textContent=f?"Edit theme":"High-impact theme";document.getElementById("delTheme").hidden=!f;
+let themeE=null,themeSp="day",tSel=new Set(),tAuto=true;
+function openTheme(f,sp="day"){themeE=f;themeSp=f?.span||sp;const fm=document.getElementById("themeForm");fm.title.value=f?.title||"";document.getElementById("themeQ").value="";
+  tSel=new Set(f?.taskIds||[]);tAuto=!f;document.getElementById("themeDlgTitle").textContent=f?"Edit theme":themeSp==="week"?"Theme for this week":"High-impact theme";document.getElementById("delTheme").hidden=!f;
   drawTheme();document.getElementById("themeDlg").showModal();setTimeout(()=>fm.title.focus(),50)}
 function drawTheme(){const q=document.getElementById("themeQ").value.trim().toLowerCase();
   const picked=[...tSel].map(id=>S.tasks.find(x=>x.id===id)).filter(Boolean);
@@ -1853,8 +1869,8 @@ document.getElementById("themeForm").title.addEventListener("input",e=>{if(!tAut
 document.getElementById("themeQ").addEventListener("input",drawTheme);
 document.getElementById("themeList").addEventListener("change",e=>{const c=e.target;if(c.type!=="checkbox")return;tAuto=false;c.checked?tSel.add(c.value):tSel.delete(c.value);drawTheme()});
 document.getElementById("themeForm").addEventListener("submit",async e=>{const title=e.target.title.value.trim();if(!title)return;const taskIds=[...tSel].filter(id=>S.tasks.some(x=>x.id===id));
-  try{if(themeE)await S.db.doc("focus_themes/"+themeE.id).update({title,taskIds});else await S.db.collection("focus_themes").add({day:T(),title,taskIds});
-    toast(themeE?"Theme saved":taskIds.length?`Theme set for today, covering ${word(taskIds.length)} task${taskIds.length===1?"":"s"}`:"Theme set for today")}catch{toast("Couldn't save that theme. Try again.",false,true)}});
+  try{if(themeE)await S.db.doc("focus_themes/"+themeE.id).update({title,taskIds});else await S.db.collection("focus_themes").add({day:FOCUS[themeSp].key(),span:themeSp,title,taskIds});
+    toast(themeE?"Theme saved":taskIds.length?`Theme set for ${themeSp==="week"?"this week":"today"}, covering ${word(taskIds.length)} task${taskIds.length===1?"":"s"}`:`Theme set for ${themeSp==="week"?"this week":"today"}`)}catch{toast("Couldn't save that theme. Try again.",false,true)}});
 document.getElementById("delTheme").addEventListener("click",async()=>{if(!themeE)return;document.getElementById("themeDlg").close();
   try{await S.db.doc("focus_themes/"+themeE.id).delete();toast("Theme removed")}catch{toast("Couldn't remove that theme.",false,true)}});
 

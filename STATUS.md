@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 23 Oct 2026, night (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 23 Oct 2026, late night (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Today:** the redesign from the design canvas is live:
@@ -31,15 +31,20 @@
 - **Topics (23 Oct, late):** a note tag on 3+ notes in 2+ top-level projects becomes a topic (sidebar and Notes → Topics). Each topic page shows a brief, decisions, open tasks and calls that mention it, and notes. Briefs are in the new `topic_briefs` table, written by the hourly agent (`meeting-agent-9b-topic-briefs`, up to 3 a run, picked by the new `topics_due()` RPC). 13 topics qualified on day one; their briefs appear after the agent's next runs.
 - **Inbox filing check (23 Oct):** the agent's first run logged one capture (`unroutable`, left in the inbox for Vimal). Working as designed.
 - **Skill:** the claude.ai task-hub skill was replaced with the repo's `skills/task-hub/SKILL.md` on 23 Oct (high impact, merging, Topics).
+- **Week focus (23 Oct):** the Week view opens with "Focus this week": week-focus tasks (`tasks.highlight_week`, "★ Week focus" in the quick look) and week themes (`focus_themes.span = 'week'`, day = the Monday), with carry-over from last week and a "Lined up for next week" line. On Mondays the 9 AM routine carries unfinished week themes and adds up to 4 for the week if Vimal hasn't.
+- **Cleanup of existing data (23 Oct):** all 109 untagged notes tagged (Topics grew from 13 to more); 8 duplicate or split tasks merged into 5 with the new `hub_merge_tasks()` RPC (PostHog, booking automation, COM-538 pamphlet, Sam's Linear cleanup, ICP validation with Tyler); the "replace SKILL.md" task marked done; week themes set: "Meditation guide: Days 1–4" (this week) and 4 for the week of 26 Oct (HLTH campaign, Flow collateral and claims, Filow launch push, School Story).
+- **Automatic from now on:** the hourly agent tags up to 20 untagged notes and merges up to 3 clear duplicate tasks per run (`meeting-agent-9c-tidy`); the Friday review in the 9 AM routine merges up to 5 more; unsure cases are only listed.
+- **Ask Ambalam:** skipped by Vimal (23 Oct), because a question box in the app would need paid API credits.
 - **Tests:** all 14 pass (`tests/*.mjs`). `focus.mjs` covers high impact, themes, merging and done-here; `topics.mjs` covers Topics.
 
 ## In progress
 - Nothing mid-change.
 
 ## Next step
-1. After 24 Oct 9 AM: check the routine's high-impact picks; after tonight's hourly runs: `select tag, updated_at from topic_briefs;`.
-2. Next in `docs/second-brain.md`: Ask Ambalam (#5).
-3. Maybe: `highlight_week` for a weekly focus in the Week view.
+1. Vimal: replace the claude.ai task-hub skill again with `skills/task-hub/SKILL.md` (now has week focus and `hub_merge_tasks`).
+2. After 24 Oct 9 AM: check the routine's high-impact picks; after the hourly runs: `select tag, updated_at from topic_briefs;` and the agent's "tidy" line.
+3. Mon 26 Oct: check the routine's week focus and that the 4 pre-set themes show on the Week view.
+4. Next in `docs/second-brain.md`: More ways in (#6) or Safety (#7). Ask Ambalam (#5) is skipped.
 
 ## Known issues
 - **Hourly agent connectors (needs Vimal):** its scheduled task (`trig_01VKWQV67JJLvzwVZB7HjokL`) has only Supabase and Wispr Flow attached, so Gmail, Linear and session sync are skipped every run. Attach Gmail, Linear, Supabase_Connector and Claude_Code_Remote to it. Claude was not allowed to grant connectors itself. Until then the Notes banner stays red for Gmail and Linear, with that reason.

@@ -349,3 +349,15 @@ Topics are note tags that cut across projects (e.g. `pricing`, `flow`): a tag on
 5. Zenara privacy: the Zen privacy addendum applies; leave out anything it says not to repeat.
 
 Add "topics: N briefs updated" to the report. These don't need their own push notification.
+
+---
+
+# Addendum — Keep notes tagged and tasks merged (every run, after topic briefs, before the session push)
+
+Topics and the app's merge view only work if notes carry tags and the same work isn't split across duplicate tasks. Tidy a little every run:
+
+1. **Tag untagged notes** (at most 20 a run): `select id, kind, title, left(body, 200) body, project_id from notes where superseded_by is null and (tags is null or cardinality(tags) = 0) order by created_at desc limit 20;`. Give each 1–3 lowercase tags, reusing the existing vocabulary first (`select lower(g) tag, count(*) from notes, unnest(tags) g where superseded_by is null group by 1 order by 2 desc limit 80;`): the subject (`pricing`, `flow`, `icp`, `youtube`…), a person's first name only when the note is about working with them, and `overview` for a project's "What it is" note. Use hyphens for two words (`cold-email`). One UPDATE per note: `update notes set tags = '{a,b}' where id = '<id>' and (tags is null or cardinality(tags) = 0);`.
+2. **Merge duplicate open tasks** (at most 3 merges a run). Look at open tasks created or changed in the last 14 days (`status <> 'done' and superseded_by is null`). Two or more tasks are duplicates only when they are in the same project family AND clearly the same goal or the same deliverable split into parts (e.g. "Create a PostHog account" and "Add PostHog analytics"; "Build the booking automation" and "Confirm the booking automation works"). Never merge tasks that only share a topic, tasks waiting on different people, or anything you're unsure about: list it under "possible merges" in the report instead. Keep the oldest or most complete task as the target, then: `select hub_merge_tasks('<target id>', array['<id>', ...], 'meeting-agent', '<why, a few words>');`. The function moves steps, notes, the earliest due date, the higher priority, dependents and theme links, and marks the others done + `superseded_by`.
+3. **When filing new work** (calls, email, Linear): if a new action is the same goal as an open task, update that task (tick or add steps, append notes) rather than inserting a second one.
+
+Begin writes with `select set_config('app.actor','meeting-agent',true);`. Add "tidy: N notes tagged, M tasks merged (titles)" to the report.
