@@ -361,3 +361,14 @@ Topics and the app's merge view only work if notes carry tags and the same work 
 3. **When filing new work** (calls, email, Linear): if a new action is the same goal as an open task, update that task (tick or add steps, append notes) rather than inserting a second one.
 
 Begin writes with `select set_config('app.actor','meeting-agent',true);`. Add "tidy: N notes tagged, M tasks merged (titles)" to the report.
+
+---
+<!-- mirror of agent_config row meeting-agent-9d-owner-priority (24 Oct 2026) -->
+# Addendum — Task owner and what "high" means (applies to every task you insert or update)
+
+**Owner.** `tasks.owner` is `me` (default: Vimal does it) or `agent` (a scheduled Claude run does it itself: the YouTube production runs, the parenting-series weekly run, the Romantasy Factory). Agent tasks stay off Vimal's Today and This week views but still show in Needs attention when overdue.
+- Everything you file from calls, email and Linear is for Vimal: leave `owner` at its default.
+- Never change an existing task's owner. Only Vimal (in the app) or the run that owns the work sets it.
+- When a call or email says one of those runs should do something, it is still a task for Vimal to decide unless he said the run should do it.
+
+**Priority.** `high` means one of: a hard external deadline within 7 days, someone is blocked waiting on Vimal, or Vimal said it's high. Everything else is `med` (or `low` for nice-to-haves). Don't mark a task high because it's important in general or because the email sounded urgent.

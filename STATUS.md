@@ -1,8 +1,15 @@
 # Status
 
-**Last updated:** 23 Oct 2026, late night (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 24 Oct 2026, 01:45 IST (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
+- **Agent work split from Vimal's (24 Oct):** new column `tasks.owner` ('me' default, 'agent'). Agent tasks (scheduled production runs) are off Today and This week and live in a "Run by agents" view (sidebar, phone tab, a one-line hint at the bottom of Today); overdue ones still count in Needs attention. Quick look has an "Agent's job" toggle. Backfilled: saw002 build and ep5 Gold build. The plate query in the skill filters to owner='me'.
+- **Agents consolidated (24 Oct):**
+  - The 9 AM routine is now the **lead** ("Daily 9 AM lead: agent health + calendar + plan"): STEP 0 checks every scheduled run's last result, feed freshness (`sync_state`), stalled agent tasks and agent collisions, and opens its push with one "Agents:" line. It no longer reads Gmail/Linear (the hourly agent does). It keeps calendar, call dates, picks (owner='me' only), Monday focus, Friday review (plus a "High but maybe not" list) and the topic-session push.
+  - The hourly agent runs at 08:05 again (cron `5 8,18-23`) so overnight mail is still caught before 9 AM.
+  - New `agent_config` row `meeting-agent-9d-owner-priority`: owner stays 'me' for filed work; 'high' only for a hard deadline within 7 days, someone blocked on Vimal, or his say-so.
+  - Parenting weekly run, parenting KDP run and nightly sweep prompts carry the owner rule and their own actor names (`agent:<run>`, `routine:<name>`).
+  - **New monthly run** (1st, 10:13 IST, `trig_019y5XmTL3j7mEpdA3mH7ufe`): folds settled decisions/facts into each project's brief ("Settled" section); never deletes or supersedes notes.
 - **plain-talk Claude Code mod (v0.3.0, 23 Oct):** lives in `mods/plain-talk`; `.claude-plugin/marketplace.json` makes this repo the `vimal-mods` marketplace, and 15 repos enable it in `.claude/settings.json`. Plain-language replies (Done / Next / Waiting on you / Heads up), `/technical`, `/plain`, and a Project status panel (`/project`) with progress, waiting-on-you count and notifications, big-move alerts, links and check steps, "From last time" from STATUS.md, a per-project word list, and one-tap buttons. Tests: `claude plugin test mods/plain-talk`. Bump `plugin.json` version on each change.
 - **Today:** the redesign from the design canvas is live:
   - greeting header and progress bar;
@@ -36,23 +43,24 @@
 - **Cleanup of existing data (23 Oct):** all 109 untagged notes tagged (Topics grew from 13 to more); 8 duplicate or split tasks merged into 5 with the new `hub_merge_tasks()` RPC (PostHog, booking automation, COM-538 pamphlet, Sam's Linear cleanup, ICP validation with Tyler); the "replace SKILL.md" task marked done; week themes set: "Meditation guide: Days 1–4" (this week) and 4 for the week of 26 Oct (HLTH campaign, Flow collateral and claims, Filow launch push, School Story).
 - **Automatic from now on:** the hourly agent tags up to 20 untagged notes and merges up to 3 clear duplicate tasks per run (`meeting-agent-9c-tidy`); the Friday review in the 9 AM routine merges up to 5 more; unsure cases are only listed.
 - **Ask Ambalam:** skipped by Vimal (23 Oct), because a question box in the app would need paid API credits.
-- **Tests:** all 14 pass (`tests/*.mjs`). `focus.mjs` covers high impact, themes, merging and done-here; `topics.mjs` covers Topics.
+- **Tests:** all 15 pass (`tests/*.mjs`; `owner.mjs` added 24 Oct). `focus.mjs` covers high impact, themes, merging and done-here; `topics.mjs` covers Topics.
 
 ## In progress
 - Nothing mid-change.
 
 ## Next step
+0. Vimal: paste the owner rule into the 4 session-bound production runs (This Weigh, So Anyway Why ×2, Romantasy). Their prompts can only be edited from their own sessions; the exact text is in Task Hub task "Paste the owner rule into the 4 production-run sessions" (due 26 Oct).
 1. Vimal: replace the claude.ai task-hub skill again with `skills/task-hub/SKILL.md` (now has week focus and `hub_merge_tasks`).
 2. After 24 Oct 9 AM: check the routine's high-impact picks; after the hourly runs: `select tag, updated_at from topic_briefs;` and the agent's "tidy" line.
 3. Mon 26 Oct: check the routine's week focus and that the 4 pre-set themes show on the Week view.
 4. Next in `docs/second-brain.md`: More ways in (#6) or Safety (#7). Ask Ambalam (#5) is skipped.
 
 ## Known issues
-- **Hourly agent session sync:** Claude_Code_Remote isn't attached to the hourly scheduled task, so its topic-session push is skipped (the 9 AM routine still does it daily). Gmail, Linear and Supabase_Connector were attached on 23 Oct.
+- **Hourly agent session sync:** Claude_Code_Remote isn't attached to the hourly scheduled task, so the topic-session push happens once a day in the 9 AM lead. Gmail, Linear and Supabase_Connector were attached on 23 Oct.
 - **Share target:** not tested on a real Android phone (no installability check run). iOS has no share target; use a Shortcut or the bookmarklet with `?url=`.
 - **No offline queue:** captures made while offline fail with a toast instead of waiting to save.
 - **Tap targets:** the step checkboxes in the editor draw at 22px. On phone their tap area is extended to 44px with an invisible overlay, so the drawn box still reports as small.
 - **People matching:** it uses first names, so two people with the same first name share loops. Calls only match if `sources.attendees` or the title has the name.
 - **Work with Claude:** it starts a new chat each time; the task doesn't remember a chat link yet.
-- **Tests:** they need network access for the jsdelivr scripts.
+- **Tests:** they need network access for the jsdelivr scripts. Where the CDN is blocked, run them on a copy of `index.html` pointing at a local `supabase.js` (`npm pack @supabase/supabase-js@2.45.4`).
 - **Stray file:** `Test` at the repo root holds "Hello World". It looks like a leftover but I haven't removed it without asking.

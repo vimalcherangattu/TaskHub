@@ -30,7 +30,7 @@ o as (
     exists (select 1 from unnest(t.blocked_by) b join tasks x on x.id = b where x.status <> 'done') blocked,
     (select string_agg(x.title, '; ') from unnest(t.blocked_by) b join tasks x on x.id = b where x.status <> 'done') waits_on_titles
   from tasks t left join projects p on p.id = t.project_id
-  where t.status not in ('done','suggested'))
+  where t.status not in ('done','suggested') and t.owner = 'me')  -- agent-owned tasks live under "Run by agents"; list them separately if asked
 select case
     when o.status = 'doing' then '1 on it now'
     when o.status = 'waiting' then '2 follow up today'

@@ -42,6 +42,7 @@ At session start, read this file and `STATUS.md`. At every wrap-up, update `STAT
   - `tasks.status`: todo, doing, waiting, suggested, done
   - `priority`: high, med, low
   - `notes.kind`: fact, person, idea, decision, link, note
+  - `tasks.owner`: me (default), agent. `bot(t)` in the app; agent tasks are filtered out of Today/Week and listed in the "Run by agents" view, but still count in Needs attention.
 - **Keep these working:** the quick look (`peekHtml`, `renderPeek`, `setPeek`), the task editor's field names and ids (`#taskForm`, `#depList`, `#depAdd`, `#stepList`, `#stepNew`, `#actList`, `#delTask`) and its submit handler.
 - **`doRefresh`:** keep the staleness check (`W.n`, `W.seq`) so a sync never overwrites a save in flight.
 - **Library choice:** don't add frameworks or build tools. Keep it one HTML file plus static assets.

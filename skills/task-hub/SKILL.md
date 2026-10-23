@@ -45,6 +45,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 - **Use only allowed values.** The database rejects anything else.
   - `tasks.status`: `todo` | `doing` | `waiting` | `suggested` | `done`
   - `tasks.priority`: `high` | `med` | `low`
+  - `tasks.owner`: `me` | `agent`
   - `notes.kind`: `fact` | `person` | `idea` | `decision` | `link` | `note`
 - **Never set `id` on insert.** Tasks get `t-<uuid>`, notes `n-<uuid>`, sources `s-<uuid>`. Projects are the exception: they need a slug id.
 - **Never set `updated_at`.** A trigger does it.
@@ -76,7 +77,8 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `title` | Short and specific. The verb first. |
 | `project_id` | See Projects. |
 | `status` | See *Status changes* below. Each status needs its fields. |
-| `priority` | `high` / `med` / `low`. Default `med`. |
+| `priority` | `high` / `med` / `low`. Default `med`. **`high` only** for a hard external deadline within 7 days, someone blocked waiting on Vimal, or when he says so. Important-in-general is `med`. |
+| `owner` | `me` (default: Vimal does it) or `agent` (a scheduled Claude run does it itself, e.g. a YouTube episode build or a book draft). Agent tasks stay off Today and This week (app view "Run by agents") but still show in Needs attention when overdue. Tasks from chats are `me`; set `agent` only when he says a run will do it. Never flip an owner the app or a run set without him asking. |
 | `due` | Deadline. Always set one; if he gave none, pick a sensible date and say so. |
 | `today_date` | On today's list when it equals today. Tasks due today or earlier show on Today anyway. Clear it (null) to take a task off today. |
 | `week_of` | The **Monday** of the week it should finish. Any other day breaks the Week view. |
@@ -95,6 +97,15 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `superseded_by` | Id of the task that replaced this one, or that it was **merged into**. Set it together with `status='done'`, `done_at=now()`. The app hides replaced tasks. Use it for a different approach, or for a merge (see *High impact and merging*); if it's the same goal, rename or re-scope instead. |
 | `highlight_day` | The day this task is **high impact** (one of the few things that would make that day count). The app shows today's at the top of Today. Clear it (null) to unstar. |
 | `highlight_week` | The **Monday** of the week this task is a **week focus**. The app shows it at the top of the Week view. |
+
+### Who does what (agents, consolidated 24 Oct 2026)
+
+- **Hourly agent** (08:05 and 18:05–23:05 IST): calls, all new email and Linear, Notes inbox, topic briefs, tidy/merge. Instructions in `agent_config` rows `meeting-agent%`.
+- **9 AM lead** ("Daily 9 AM lead"): checks every scheduled run and feed is healthy and reports one Agents line in the morning push; calendar, call dates, high-impact picks, Monday week focus, Friday review (including a "High but maybe not" list), and the daily topic-session push. It no longer reads email or Linear.
+- **Nightly wrap-up sweep** (01:11): only chats that never got a "wrap up".
+- **Monthly brief compaction** (1st, 10:13): folds settled decisions and facts into each project's brief ("Settled" section). Notes are never deleted or superseded by it.
+- **Production runs** (This Weigh, So Anyway Why, parenting series, Romantasy Factory): own their `owner='agent'` tasks.
+- Actor names: `chat`, `meeting-agent`, `routine`, `routine:<name>`, `agent:<run>`.
 
 ### Adding tasks
 
