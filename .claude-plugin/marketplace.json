@@ -1,0 +1,5 @@
+{
+  "name": "vimal-mods",
+  "owner": { "name": "vimalcherangattu" },
+  "plugins": [{ "name": "plain-talk", "source": "./mods/plain-talk" }]
+}
