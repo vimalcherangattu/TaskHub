@@ -583,8 +583,10 @@ button.group-h[aria-expanded="false"] svg{transform:rotate(-90deg)}
 .pri.high{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .pri.med{background:var(--sunken);color:var(--muted)}
 .pri.low{color:var(--faint);box-shadow:inset 0 0 0 1px var(--line-strong)}
-.duec{flex:none;width:64px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--faint);white-space:nowrap}
+.duec{flex:none;min-width:64px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--faint);white-space:nowrap}
 .duec.late{color:var(--danger);font-weight:500}
+.duec.firm{color:var(--ink);font-weight:600}
+.meta .firm{color:var(--ink);font-weight:500}
 .task.done .pri{opacity:.6}
 .resume1{margin:8px 0 2px;padding:8px 14px;background:var(--bg);border-radius:12px;font-family:var(--serif);font-style:italic;font-size:14.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .why{font-size:13px;color:var(--muted);margin:0}
@@ -697,6 +699,7 @@ dialog.find:not([open]){display:none}
   <div class="row">
     <label>Project<select name="projectId"></select></label>
     <label>Deadline<span class="ts-box"><input type="date" name="due"><span class="ts-tag" id="dueTag"></span></span></label>
+    <label>Due by (time)<input type="time" name="dueTime" title="Optional. A set time makes the deadline hard; with no date it means today."></label>
     <label>Effort<span class="ts-box ts-eff"><input type="number" name="effortDays" min="0" max="365" step="1" placeholder="Days" aria-label="Work needed in days"><span id="effHint"></span></span></label>
     <div class="ts-grp"><span id="prioLbl">Priority</span><div class="seg" role="radiogroup" aria-labelledby="prioLbl" id="prioSeg"><button type="button" role="radio" data-prio="low">Low</button><button type="button" role="radio" data-prio="med">Med</button><button type="button" role="radio" data-prio="high">High</button></div><input type="hidden" name="priority" value="med"></div>
   </div>
@@ -707,6 +710,8 @@ dialog.find:not([open]){display:none}
     <button type="button" class="pill" data-ck="onToday" aria-pressed="false">On today</button>
     <button type="button" class="pill" data-ck="onWeek" aria-pressed="false">This week</button>
     <button type="button" class="pill" data-ck="onHi" aria-pressed="false" title="One of the few things that would make today count">★ High impact</button>
+    <button type="button" class="pill" id="tsFirm" aria-pressed="false" title="The deadline can't move. It shows in “Can't slip” on its day.">Hard deadline</button>
+    <input type="checkbox" name="dueFirm" hidden aria-label="Hard deadline">
     <input type="checkbox" name="onToday" hidden aria-label="On today's list"><input type="checkbox" name="onWeek" hidden aria-label="Finish this week"><input type="checkbox" name="onHi" hidden aria-label="High impact today">
   </div>
   <details class="ts-more" id="tsMore"><summary>More details <small id="tsMoreHint"></small></summary><div class="ts-body">
@@ -833,7 +838,15 @@ const now=()=>new Date().toISOString();
 /* ---------- task logic ---------- */
 const sugg=t=>t.status==="suggested";
 const open=t=>t.status!=="done"&&!sugg(t);
-const overdue=t=>open(t)&&t.due&&t.due<T();
+/* hard deadlines (rare): dueFirm = the day can't move; dueTime = due by that time on the day (implies firm) */
+const hm=t=>t.dueTime?String(t.dueTime).slice(0,5):"";
+const firm=t=>open(t)&&!!t.due&&(!!t.dueFirm||!!hm(t));
+const dueMs=t=>{const d=parse(t.due),[h,m]=(hm(t)||"23:59").split(":");d.setHours(+h,+m,59,999);return +d};
+const clock=s=>{const[h,m]=s.split(":").map(Number);return `${h%12||12}${m?":"+String(m).padStart(2,"0"):""}${h<12?"am":"pm"}`};
+const leftTxt=ms=>{const m=Math.max(1,Math.round(ms/6e4));return m<60?`${m} min`:m<1440?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:""}`:`${Math.round(m/1440)} days`};
+// slip = a hard deadline due today or already missed: these sit in "Can't slip" at the top of Today
+const slip=t=>firm(t)&&t.due<=T();
+const overdue=t=>open(t)&&t.due&&(t.due<T()||(t.due===T()&&!!hm(t)&&Date.now()>dueMs(t)));
 const onToday=t=>open(t)&&(t.todayDate===T()||(t.due&&t.due<=T()));
 const leftover=t=>open(t)&&t.todayDate&&t.todayDate<T()&&!onToday(t);
 const inWeek=s=>{const w=week();return s&&s>=w[0]&&s<=w[6]};
@@ -957,6 +970,10 @@ function statusBit(t){
   if(open(t)){const bs=blockers(t);if(bs.length)return `<span class="dep">Waits on ${esc(trunc(bs[0].title,34))}${bs.length>1?` +${bs.length-1}`:""}</span>`}
   if(waiting(t)){const fu=t.followUpOn||T(),who=esc(t.waitingOn||"someone");
     return fu<T()?`<span class="late">Chase overdue · ${who}</span>`:fu===T()?`<span class="started">Chase today · ${who}</span>`:`<span class="wait">${who} · nudge ${esc(nice(fu))}</span>`}
+  if(firm(t)){const c=hm(t),ms=dueMs(t)-Date.now();
+    if(t.due<T())return `<span class="late">Missed hard deadline · ${esc(nice(t.due))}${c?" "+esc(clock(c)):""}</span>`;
+    if(t.due===T())return !c?`<span class="firm">Must be done today</span>`:ms<0?`<span class="late">Missed · was due ${esc(clock(c))}</span>`:`<span class="${ms<36e5?"soon":"firm"}">Due by ${esc(clock(c))} · ${esc(leftTxt(ms))} left</span>`;
+    if(!startBy(t)||doing(t))return `<span class="firm">Hard deadline${c?` · by ${esc(clock(c))}`:""}</span>`}
   if(overdue(t))return `<span class="late">Overdue</span>`;
   if(doing(t)&&stalled(t))return `<span class="late">Stalled</span>`;
   const sb=startBy(t);if(sb&&!doing(t))return sb<T()?`<span class="late">Start was ${esc(nice(sb))}</span>`:`<span class="${sb===T()?"started":""}">Start ${esc(nice(sb))}</span>`;
@@ -965,8 +982,8 @@ function statusBit(t){
 }
 // right-hand due column: TODAY, a weekday within 6 days, else 22 OCT
 function dueCol(t){if(!t.due)return `<span class="duec"></span>`;const td=T(),k=daysBetween(td,t.due),d=parse(t.due);
-  const txt=k===0?"Today":k>0&&k<=6?d.toLocaleDateString("en-GB",{weekday:"short"}):d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-  return `<span class="duec ${overdue(t)?"late":""}" title="${overdue(t)?"Overdue · ":"Due "}${esc(nice(t.due))}">${esc(txt.toUpperCase())}</span>`}
+  const c=hm(t),txt=k===0?(c?"By":"Today"):k>0&&k<=6?d.toLocaleDateString("en-GB",{weekday:"short"}):d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  return `<span class="duec ${overdue(t)?"late":firm(t)?"firm":""}" title="${overdue(t)?"Overdue · ":firm(t)?"Hard deadline · ":"Due "}${esc(nice(t.due))}${c?" by "+esc(clock(c)):""}">${esc((txt+(c?" "+clock(c):"")).toUpperCase())}</span>`}
 const PRI={high:"HIGH",med:"MED",low:"LOW"};
 let resumeFirst=null;
 function row(t){
@@ -988,7 +1005,8 @@ function row(t){
 function peekHtml(t){
   const p=proj(t.projectId),id=esc(t.id),facts=[];
   facts.push(`<span>${{high:"High",med:"Medium",low:"Low"}[t.priority||"med"]} priority</span>`);
-  if(t.due)facts.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"warn":""}">${overdue(t)?"Overdue · ":"Due "}${esc(nice(t.due))}</span>`);
+  if(t.due)facts.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"warn":""}">${overdue(t)?"Overdue · ":"Due "}${esc(nice(t.due))}${hm(t)?` by ${esc(clock(hm(t)))}`:""}</span>`);
+  if(firm(t))facts.push(`<span class="acc">Hard deadline: can't move</span>`);
   if(hiTask(t)&&open(t))facts.push(`<span class="acc">★ High impact today</span>`);
   if(wkTask(t)&&open(t))facts.push(`<span class="acc">★ Week focus</span>`);
   {const th=themeOf(t);if(th)facts.push(`<span class="acc">Theme: ${esc(trunc(th.title,40))}</span>`)}
@@ -1079,7 +1097,7 @@ const focusIds=sp=>new Set([...S.tasks.filter(FOCUS[sp].is).map(x=>x.id),...them
 function hiBlock(sp="day"){
   const F=FOCUS[sp],t=T(),k=F.key(),th=themesOn(k,sp),inTh=new Set(th.flatMap(f=>f.taskIds||[])),cy=hiCarry(sp);
   // a starred task that's also in a theme shows once, under the theme
-  const ts=S.tasks.filter(x=>F.is(x)&&!inTh.has(x.id)&&(open(x)||(sp==="day"?doneOn(x,t):doneThisWeek(x))));
+  const ts=S.tasks.filter(x=>F.is(x)&&!inTh.has(x.id)&&!(sp==="day"&&slip(x))&&(open(x)||(sp==="day"?doneOn(x,t):doneThisWeek(x))));
   let h=`<section class="hi" aria-label="${F.h}"><div class="sh"><h2>${F.h}</h2><span class="n">${ts.length+th.length||""}</span><button class="act" data-newtheme="${sp}" title="A theme covers several tasks, like “close all the automation tasks”">+ Theme</button></div>`;
   if(cy){const names=[...cy.th.map(f=>f.title),...cy.ts.map(x=>x.title)];
     h+=`<p class="hi-carry">Not finished from ${sp==="day"?"earlier":"last week"}: ${esc(names.slice(0,3).map(x=>trunc(x,40)).join("; "))}${names.length>3?` and ${names.length-3} more`:""}.<button class="act" data-hicarry="${sp}">${F.carry}</button></p>`}
@@ -1309,11 +1327,14 @@ function renderView(){
     const heldA=S.tasks.filter(x=>blocked(x)&&!doing(x)&&!waiting(x)&&(onToday(x)||startNow(x)||leftover(x)));
     // high-impact tasks and today's theme tasks show once, in their own block at the top
     const hiIds=focusIds("day");
-    const pool=[...new Set([...fuA,...motionA,...startA,...listA,...leftA,...S.tasks.filter(x=>hiIds.has(x.id)&&open(x))])].filter(x=>!bot(x));
-    const nh=a=>a.filter(x=>tfilter(x)&&!hiIds.has(x.id)&&!bot(x));
+    // hard deadlines due today (or missed) go above everything, earliest time first, and don't repeat below
+    const slipA=S.tasks.filter(x=>slip(x)&&!bot(x)).sort((a,b)=>dueMs(a)-dueMs(b));
+    const pool=[...new Set([...slipA,...fuA,...motionA,...startA,...listA,...leftA,...S.tasks.filter(x=>hiIds.has(x.id)&&open(x))])].filter(x=>!bot(x));
+    const nh=a=>a.filter(x=>tfilter(x)&&!hiIds.has(x.id)&&!slip(x)&&!bot(x));
     const held=nh(heldA),fus=nh(fuA),motion=nh(motionA),starts=nh(startA),list=nh(listA),left=nh(leftA),doneT=nh(doneA);
     h+=todayHead(pool.filter(tfilter).length,doneA.filter(tfilter).length);
     h+=`<div class="today-grid"><div class="today-main">`;
+    h+=sec("Can't slip",slipA.filter(tfilter),{cls:"danger slip"});
     h+=hiBlock()+strip()+quick("Add something for today");
     h+=todayFilters(pool);
     if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
@@ -1651,7 +1672,7 @@ document.addEventListener("click",async e=>{
   if("hredo" in b.dataset){HIST.run("redo");return}
   if(b.dataset.pushafter){const x=S.tasks.find(y=>y.id===b.dataset.pushafter);if(!x)return;
     const ds=blockers(x).map(planOf).filter(Boolean).sort();const last=ds[ds.length-1];
-    const patch={todayDate:null};if(last&&(!x.due||x.due<=last))patch.due=addDays(last<T()?T():last,1);
+    const patch={todayDate:null};if(last&&(!x.due||x.due<=last)&&(!firm(x)||confirm(`“${x.title}” has a hard deadline (${nice(x.due)}${hm(x)?" by "+clock(hm(x)):""}). Move it anyway?`)))patch.due=addDays(last<T()?T():last,1);
     await upd(x.id,patch);toast(patch.due?`Moved to ${nice(patch.due)}, after what it waits on`:"Off today until what it waits on is done");return}
   if(b.dataset.irecv){const i=S.inputs.find(x=>x.id===b.dataset.irecv);if(!i)return;
     const a=(prompt(`What came back for:\n${i.question}\n\n(The number, claim or answer. A task to update every doc that uses it is created automatically.)`)||"").trim();if(!a)return;
@@ -1774,7 +1795,7 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   dSteps=clone(Array.isArray(t?.steps)?t.steps:[]);drawSteps();dDeps=(Array.isArray(t?.blockedBy)?t.blockedBy:[]).filter(id=>S.tasks.some(x=>x.id===id));drawDeps();document.getElementById("stepNew").value="";
   const act=(Array.isArray(t?.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-5).reverse();
   document.getElementById("actList").innerHTML=act.length?`<div class="lbl">Recent changes</div>`+act.map(x=>`<div class="act"><b>${x.by==="claude"?"Claude":"You"}</b><span>${esc(x.text)}</span><time>${x.at?esc(ago(x.at)):""}</time></div>`).join(""):"";
@@ -1798,7 +1819,7 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
   const f=e.target;const st=f.status.value;
   const ef=parseInt(f.elements.effortDays.value,10);
   const wx=st==="waiting"?{waitingOn:f.elements.waitingOn.value.trim()||null,followUpOn:f.elements.followUpOn.value||(editing?.status==="waiting"?editing.followUpOn:null)||nextWork(T(),1),...(editing?.status!=="waiting"?{waitingSince:now(),followUps:0}:{})}:{followUpOn:null};
-  const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||null,priority:f.priority.value,
+  const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||(f.dueTime.value?T():null),dueTime:f.dueTime.value||null,dueFirm:f.dueFirm.checked||!!f.dueTime.value,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),
     highlightDay:f.onHi.checked?T():(editing?.highlightDay===T()?null:editing?.highlightDay||null),notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,
@@ -1834,6 +1855,7 @@ async function mergeInto(t,srcs){
   const patch={steps:st,notes:notes.filter(Boolean).join("\n\n"),activity:act.slice(-20),priority:pri,resumeNote:rn,
     blockedBy:[...new Set([...(t.blockedBy||[]),...srcs.flatMap(s=>s.blockedBy||[])])].filter(id=>id!==t.id&&!ids.has(id))};
   if(due!==(t.due||null))patch.due=due;
+  {const hs=[t,...srcs].filter(x=>firm(x)&&x.due===due);if(hs.length&&!firm(t)||due!==(t.due||null)){patch.dueFirm=hs.length>0;patch.dueTime=hs.map(hm).filter(Boolean).sort()[0]||null}}
   if(srcs.some(s=>s.todayDate===T())&&t.todayDate!==T())patch.todayDate=T();
   if(!t.weekOf){const w=srcs.find(s=>s.weekOf);if(w)patch.weekOf=w.weekOf}
   if(srcs.some(hiTask)&&!hiTask(t))patch.highlightDay=T();
@@ -1905,6 +1927,7 @@ document.getElementById("resumeForm").addEventListener("submit",async e=>{if(!re
 function tsSync(){const f=document.getElementById("taskForm").elements;
   document.querySelectorAll("#prioSeg [data-prio]").forEach(b=>{const on=b.dataset.prio===f.priority.value;b.setAttribute("aria-checked",on);b.tabIndex=on?0:-1});
   document.querySelectorAll("#taskForm [data-ck]").forEach(b=>b.setAttribute("aria-pressed",f[b.dataset.ck].checked));
+  document.getElementById("tsFirm").setAttribute("aria-pressed",f.dueFirm.checked||!!f.dueTime.value);
   const park=document.getElementById("tsPark");park.hidden=editing?.status!=="doing";park.setAttribute("aria-pressed",editing?.status==="doing"&&f.status.value==="todo");
   document.getElementById("tsHand").hidden=!editing||editing.status==="waiting"||!open(editing);
   const ns=dSteps.length,nd=dSteps.filter(x=>x.done).length;
@@ -1914,6 +1937,7 @@ document.getElementById("prioSeg").addEventListener("click",e=>{const b=e.target
 document.getElementById("prioSeg").addEventListener("keydown",e=>{const k={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(!k)return;e.preventDefault();
   const o=["low","med","high"],f=document.getElementById("taskForm").elements;f.priority.value=o[(o.indexOf(f.priority.value)+k+3)%3];tsSync();document.querySelector(`#prioSeg [data-prio="${f.priority.value}"]`).focus()});
 document.querySelectorAll("#taskForm [data-ck]").forEach(b=>b.addEventListener("click",()=>{const c=document.getElementById("taskForm").elements[b.dataset.ck];c.checked=!c.checked;tsSync()}));
+document.getElementById("tsFirm").addEventListener("click",()=>{const f=document.getElementById("taskForm").elements,on=f.dueFirm.checked||!!f.dueTime.value;f.dueFirm.checked=!on;if(on)f.dueTime.value="";tsSync()});
 document.getElementById("tsPark").addEventListener("click",()=>{const f=document.getElementById("taskForm").elements;f.status.value=f.status.value==="doing"?"todo":"doing";tsSync();if(f.status.value==="todo")f.resumeNote.focus()});
 document.getElementById("tsHand").addEventListener("click",()=>{const t=editing;document.getElementById("taskDlg").close();openHandoff(t)});
 document.getElementById("taskForm").addEventListener("change",e=>{if(e.target.name==="status")tsSync()});
@@ -1925,7 +1949,7 @@ function sbHint(){const f=document.getElementById("taskForm").elements;const ef=
   document.getElementById("effHint").textContent=ef>0?`day${ef===1?"":"s"}${sb?` · start by ${parse(sb).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}`:"days of work";
   if(f.startDate.value){el.textContent="Set by you";return}
   el.textContent=f.due.value&&ef>0?`Auto: ${nice(addDays(f.due.value,-ef))} (deadline minus work)`:"Leave blank to work it out from deadline and work needed"}
-document.getElementById("taskForm").addEventListener("input",e=>{if(["effortDays","startDate","due"].includes(e.target.name))sbHint()});
+document.getElementById("taskForm").addEventListener("input",e=>{if(["effortDays","startDate","due"].includes(e.target.name))sbHint();if(e.target.name==="dueTime")tsSync()});
 /* hand-off */
 let handT=null;
 function openHandoff(t){if(!t)return;handT=t;const f=document.getElementById("handoffForm").elements;
@@ -2050,7 +2074,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -2242,7 +2266,7 @@ async function start(){
     .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},later)
     .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"call_series"},()=>{S.prepDirty=true;soon()}).on("postgres_changes",{event:"*",schema:"public",table:"agenda_items"},()=>{S.prepDirty=true;soon()}).subscribe();
-  let last=T();setInterval(()=>{if(T()!==last){last=T();render()}},60000);
+  let last=T();setInterval(()=>{if(T()!==last){last=T();render()}else if(S.view==="today"&&S.tasks.some(x=>slip(x)&&hm(x)))paint()},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }
 (async()=>{

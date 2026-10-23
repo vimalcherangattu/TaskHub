@@ -136,6 +136,7 @@ activity = (select coalesce(jsonb_agg(e order by i), '[]'::jsonb) from jsonb_arr
 | An existing waiting task: the person says it needs more time | Move `follow_up_on` to the date implied (e.g. "a couple more days" = +2 working days). Log it. |
 | Something is finished | `status='done', done_at=now()`, append `[Auto-completed <YYYY-MM-DD>: <evidence>]` to notes, plus an activity entry. Only when the evidence covers the WHOLE task; partial evidence ticks the matching steps instead: `steps = jsonb_set(steps, '{<n>,done}', 'true')`. |
 | A date moved | Update `due`. If the old due date or today_date is already past, add 1 to `carry_count`. Clear `today_date` if it is in the past. Log it. |
+| A hard deadline ("has to be today", "by 3pm Friday") | Set `due`, `due_firm = true`, and `due_time` (HH:MM IST) when a time is given. Never move a task that already has `due_firm` or `due_time` without Vimal saying so. |
 | Scope changed | Rename it, edit or extend steps, change priority. Log it. |
 | A task is replaced by a different approach | If it's the same goal, re-scope the existing task instead. If it's genuinely replaced ("we're not doing X, instead Y"): insert Y (suggested), then `update tasks set superseded_by='<Y id>', status='done', done_at=now() where id='<X id>'` with an activity entry. |
 | A dependency is stated ("can't launch until positioning is signed off") | Run the loop check first, then add the prerequisite (below). If a prerequisite now lands after a dependent's due date, don't move the dependent; report it. |

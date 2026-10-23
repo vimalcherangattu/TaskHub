@@ -32,6 +32,7 @@ o as (
   from tasks t left join projects p on p.id = t.project_id
   where t.status not in ('done','suggested') and t.owner = 'me')  -- agent-owned tasks live under "Run by agents"; list them separately if asked
 select case
+    when (o.due_firm or o.due_time is not null) and o.due <= d.today then '0 can''t slip'  -- hard deadline today or missed; lead with these, earliest time first
     when o.status = 'doing' then '1 on it now'
     when o.status = 'waiting' then '2 follow up today'
     when o.blocked and (o.today_date = d.today or o.due <= d.today or o.start_by <= d.today) then '5 cannot start yet'
@@ -39,10 +40,10 @@ select case
     when o.today_date = d.today or o.due = d.today then '4 today'
     when o.start_by <= d.today then '4 start today'
     when o.due <= d.today + 6 then '6 later this week'
-  end as bucket, o.project, o.title, o.priority, o.due, o.waiting_on, o.waits_on_titles
+  end as bucket, o.project, o.title, o.priority, o.due, to_char(o.due_time, 'HH24:MI') due_by, o.waiting_on, o.waits_on_titles
 from o, d
 where (o.status <> 'waiting' or coalesce(o.follow_up_on, d.today) <= d.today)
-order by 1 nulls last, case o.priority when 'high' then 0 when 'med' then 1 else 2 end, o.due nulls last;
+order by 1 nulls last, o.due, o.due_time nulls last, case o.priority when 'high' then 0 when 'med' then 1 else 2 end, o.due nulls last;
 -- Rows with a null bucket are later than this week; leave them out of the answer.
 ```
 
@@ -84,7 +85,11 @@ update tasks set week_of = (now() at time zone 'Asia/Kolkata')::date
   - (extract(isodow from (now() at time zone 'Asia/Kolkata'))::int - 1)
 where id = '<id>';
 
+-- Hard deadline: "has to be done today/Friday" → due_firm only; "by 3pm (Friday)" → due_time too (a time alone means today)
+update tasks set due = '<date>', due_firm = true, due_time = '<HH:MM or null>' where id = '<id>';
+
 -- Move the deadline (adds to carry_count when the task was already past due or past its today date)
+-- If due_firm or due_time is set, ask Vimal before moving it. To drop the hard deadline: due_firm = false, due_time = null.
 update tasks set
   carry_count = carry_count + case when (due < (now() at time zone 'Asia/Kolkata')::date and '<new due>'::date > due)
                                      or (today_date < (now() at time zone 'Asia/Kolkata')::date) then 1 else 0 end,

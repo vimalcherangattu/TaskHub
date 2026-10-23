@@ -90,6 +90,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `activity` | Change log, see *Activity log*. |
 | `blocked_by` | Ids of prerequisite tasks, see *Dependencies*. |
 | `waiting_on`, `waiting_since`, `follow_up_on`, `follow_ups` | Waiting-on-someone fields, see *Waiting on people*. |
+| `due_firm`, `due_time` | **Hard deadline** (rare). `due_firm = true` when the date can't move ("has to be done today", "must go out Friday"). `due_time` (HH:MM, IST) when it's due by a time ("by 3pm", "before the 11:00 call"); a time implies `due_firm = true`, and a time with no date means today. Most deadlines are soft: leave both off unless he says it can't move or gives a time. The app puts hard ones due today in "Can't slip" at the top of Today with a countdown. **Never move a hard deadline without asking him.** |
 | `carry_count` | How often an overdue task was pushed later. Add 1 whenever you move a task whose `due` or `today_date` is already in the past to a later date. At 3 or more the app asks him to decide on it. |
 | `source` | `chat` for tasks from a conversation (the routine uses `scheduled:*`; the app uses `hub`). |
 | `source_chat` | Short origin, e.g. "Chat: HLTH outreach plan" or "Email from Pratik: Slice 1". Shown on suggested tasks. |
@@ -133,7 +134,7 @@ As the chat goes on, keep the matching task right and confirm each change in one
 
 - **Partly done**: tick the matching step. If the task has no steps but clearly has several parts, add them, ticking the finished ones.
 - **Changed shape**: rename it, rewrite or extend the steps, change `due`, `priority` or `project_id` to match.
-- **Moved**: new `due` and/or `today_date` (null if off today). Apply the `carry_count` rule. Then check dependents (see Dependencies).
+- **Moved**: new `due` and/or `today_date` (null if off today). Apply the `carry_count` rule. Then check dependents (see Dependencies). If the task has a hard deadline (`due_firm` or `due_time`), confirm with him first; when he moves it, ask whether the new date is hard too.
 - **After every change**: append one line to `activity`, and update `resume_note` to the next step when there is one.
 
 ### High impact and merging

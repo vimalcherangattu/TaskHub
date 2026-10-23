@@ -1,8 +1,9 @@
 # Status
 
-**Last updated:** 24 Oct 2026, 01:45 IST (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 24 Oct 2026, 02:45 IST (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
+- **Hard deadlines (24 Oct):** new columns `tasks.due_firm` (the date can't move) and `tasks.due_time` (due by a time, IST; implies firm). Task sheet: "Due by (time)" field and a "Hard deadline" pill. Today opens with a red "Can't slip" band (hard ones due today or missed, earliest first, minute-by-minute countdown); a missed time counts as overdue; other rows show "Hard deadline" and the time in the due column; Push-after asks before moving one. `hub_merge_tasks` and the app's merge keep the winning date's hard flag and time. Skill, `reference/queries.md` (plate query has a "0 can't slip" bucket) and the agent (`agent_config` row `meeting-agent-9e-hard-deadlines`) set them only when told and never move them. Test: `hard.mjs`.
 - **Agent work split from Vimal's (24 Oct):** new column `tasks.owner` ('me' default, 'agent'). Agent tasks (scheduled production runs) are off Today and This week and live in a "Run by agents" view (sidebar, phone tab, a one-line hint at the bottom of Today); overdue ones still count in Needs attention. Quick look has an "Agent's job" toggle. Backfilled: saw002 build and ep5 Gold build. The plate query in the skill filters to owner='me'.
 - **Agents consolidated (24 Oct):**
   - The 9 AM routine is now the **lead** ("Daily 9 AM lead: agent health + calendar + plan"): STEP 0 checks every scheduled run's last result, feed freshness (`sync_state`), stalled agent tasks and agent collisions, and opens its push with one "Agents:" line. It no longer reads Gmail/Linear (the hourly agent does). It keeps calendar, call dates, picks (owner='me' only), Monday focus, Friday review (plus a "High but maybe not" list) and the topic-session push.
