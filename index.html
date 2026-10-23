@@ -935,6 +935,7 @@ function peekHtml(t){
     acts+=`<button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}">Week</button>`;
     if(blocked(t))acts+=b(`data-pushafter="${id}"`,"Move after","","Plan this after what it waits on");
     if(!waiting(t))acts+=b(`data-handoff="${id}"`,"Hand off","","Sent to someone, now waiting on them");}
+  if(t.status!=="done")acts+=b(`data-claude="${id}"`,"Work with Claude","","Open a Claude chat with this task's context");
   acts+=b(`data-edit="${id}"`,"Edit","quiet","Open the full editor");
   if(open(t))acts+=b(`data-drop="${id}"`,"Delete","quiet","Delete this task");
   let h=`<div class="pk-top"><span>${p?`<span class="dot" style="background:${esc(p.color||"var(--faint)")}"></span>${esc(fullName(p))}`:"Unsorted"}</span><button class="pk-x" data-peekclose aria-label="Close quick look" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
@@ -949,6 +950,20 @@ function peekHtml(t){
   if(t.notes)h+=`<div class="pk-sec"><h3>Notes</h3><div class="pk-notes">${esc(t.notes)}</div></div>`;
   h+=`<div class="pk-src">${t.sourceChat?`From ${esc(t.sourceChat)} · `:""}${t.createdAt?`added ${esc(ago(t.createdAt))}`:""}</div>`;
   return h}
+/* "Work with Claude": a new claude.ai chat pre-filled with the task, told to load context and write progress back via the task-hub skill */
+function claudePrompt(t){
+  const p=proj(t.projectId),L=[],st=Array.isArray(t.steps)?t.steps:[],bs=blockers(t),up=(Array.isArray(t.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-3);
+  L.push(`Let's get this Ambalam task done. Use the task-hub skill.`);
+  L.push(`First ${p?`run project_context('${p.id}') and `:""}read task ${t.id} for the latest.`,"");
+  L.push(`Task: ${t.title}`,`Project: ${fullName(p)}${p?` (${p.id})`:""}`);
+  L.push(`Status: ${t.status} · Priority: ${t.priority||"med"}${t.due?` · Due: ${nice(t.due)} (${t.due})`:""}${waiting(t)?` · Waiting on: ${t.waitingOn||"someone"}`:""}`);
+  if(t.resumeNote)L.push(`Where I left it: ${t.resumeNote}`);
+  if(st.length)L.push("Steps:",...st.map(x=>`- [${x.done?"x":" "}] ${x.text}`));
+  if(bs.length)L.push("Waits on:",...bs.map(x=>`- ${x.title} (${x.id})`));
+  if(up.length)L.push("Recent updates:",...up.map(x=>`- ${x.text}`));
+  if(t.notes)L.push("Notes:",trunc(t.notes,1500));
+  L.push("",`Help me finish it: propose a short plan, then do the work with me (drafts, research, messages). As we go, update this task through the skill: tick steps, set the resume note, add an activity entry by "claude", and mark it done when it's finished.`);
+  return L.join("\n")}
 function renderPeek(){
   const el=document.getElementById("peek"),bg=document.getElementById("peekBg");if(!el)return;
   const t=S.peek&&S.tasks.find(x=>x.id===S.peek);
@@ -1417,7 +1432,9 @@ async function addTask(data){try{await S.db.collection("tasks").add({status:"tod
 
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
-  const b=e.target.closest("button");if(!b)return;
+  const b=e.target.closest("button");
+  // a click on a task row's blank space opens (or switches) its quick look, like its title does
+  if(!b){const r=e.target.closest("#view .task[data-tid]");if(r&&!e.target.closest("a,input,select,textarea")&&!getSelection().toString())setPeek(r.dataset.tid);return}
   if(b.dataset.peek){setPeek(S.peek===b.dataset.peek&&!b.closest("#peek")?null:b.dataset.peek);return}
   if("peekclose" in b.dataset){setPeek(null);return}
   if("find" in b.dataset){openFind();return}
@@ -1498,6 +1515,9 @@ document.addEventListener("click",async e=>{
     await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
   if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
+  if(b.dataset.claude){const t=S.tasks.find(x=>x.id===b.dataset.claude);if(!t)return;const q=claudePrompt(t);
+    window.open("https://claude.ai/new?q="+encodeURIComponent(q),"_blank","noopener");
+    try{await navigator.clipboard.writeText(q);toast("Opened Claude with this task. The prompt is also copied.",false)}catch{toast("Opened Claude with this task.",false)}return}
   if(b.dataset.edit){openTask(S.tasks.find(x=>x.id===b.dataset.edit));return}
   if("newproj" in b.dataset){openProj(null);return}
   if(b.dataset.newsub){openProj(null,b.dataset.newsub);return}
@@ -1806,7 +1826,9 @@ document.addEventListener("submit",()=>HIST.begin(),true);
 document.getElementById("peekBg").addEventListener("click",()=>setPeek(null));
 // a press anywhere outside the quick look closes it (other quick-look triggers, dialogs and the toast/undo bar excepted)
 document.addEventListener("pointerdown",e=>{if(!S.peek||e.button>0)return;const t=e.target;if(!(t instanceof Element)||!t.isConnected)return;
-  if(t.closest("#peek,#peekBg,[data-peek],dialog,#toast,#hist"))return;setPeek(null)},true);
+  if(t.closest("#peek,#peekBg,[data-peek],dialog,#toast,#hist"))return;
+  if(!t.closest("button")&&t.closest("#view .task[data-tid]"))return; // the click switches the quick look to that task
+  setPeek(null)},true);
 document.addEventListener("keydown",e=>{
   if(!S.peek||document.querySelector("dialog[open]"))return;const a=document.activeElement;if(a&&(a.matches("input,textarea,select")||a.isContentEditable))return;
   if(e.key==="Escape"){e.preventDefault();setPeek(null);return}

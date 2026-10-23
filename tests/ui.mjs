@@ -46,9 +46,15 @@ await p.screenshot({path:new URL('./out/v2-peek.png', import.meta.url).pathname}
 console.log('peek open:', await p.evaluate(()=>!document.getElementById('peek').hidden), '| sel:', await p.evaluate(()=>document.querySelector('.task.sel')?.dataset.tid));
 await p.click('#peek [data-step="t2"][data-i="4"]'); await p.waitForTimeout(300);
 console.log('step ticked:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t2').steps[4].done), '| peek still open:', await p.evaluate(()=>!document.getElementById('peek').hidden));
+await p.evaluate(()=>{window.open=(u)=>{window.__opened=u;return null}});
+await p.click('#peek [data-claude="t2"]'); await p.waitForTimeout(200);
+{const u=await p.evaluate(()=>window.__opened||''),q=decodeURIComponent(u.split('?q=')[1]||'');
+ console.log('claude link:', u.startsWith('https://claude.ai/new?q='), '| has context:', q.includes("project_context('zenara-launches')")&&q.includes('Task: Close COM-432')&&q.includes('- [x] Discovery call guide')&&q.includes('task-hub skill'));}
 await p.keyboard.press('ArrowDown'); await p.waitForTimeout(200); console.log('arrow →', await p.evaluate(()=>S.peek));
+await p.click('.task[data-tid="t5"] .title'); await p.waitForTimeout(200); console.log('title click switches peek →', await p.evaluate(()=>S.peek));
+await p.click('.task[data-tid="t8"] .body', {position:{x:5,y:5}}); await p.waitForTimeout(200); console.log('row click switches peek →', await p.evaluate(()=>S.peek));
 await p.keyboard.press('Escape'); await p.waitForTimeout(200); console.log('esc closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
-await p.click('.task[data-tid="t2"] .title'); await p.waitForTimeout(300); await p.mouse.click(700,20); await p.waitForTimeout(200); console.log('outside click closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
+await p.click('.task[data-tid="t2"] .title'); await p.waitForTimeout(300); /* blank sidebar space: (700,20) can land on a task row, which now switches the quick look */ await p.click('#side', {position:{x:5,y:990}}); await p.waitForTimeout(200); console.log('outside click closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
 await p.click('[data-focusall]'); await p.waitForTimeout(200); console.log('on it now rows (all):', await p.evaluate(()=>document.querySelectorAll('.focus .task').length));
 await p.click('[data-focusall]'); await p.waitForTimeout(200);
 await p.evaluate(()=>{S.view='followups';render()}); await p.waitForTimeout(300); await p.screenshot({path:new URL('./out/v2-waiting.png', import.meta.url).pathname});
