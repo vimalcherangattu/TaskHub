@@ -3,6 +3,7 @@
 **Last updated:** 23 Oct 2026, late night (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
+- **plain-talk Claude Code mod (23 Oct, late):** lives in `mods/plain-talk`; `.claude-plugin/marketplace.json` makes this repo the `vimal-mods` marketplace. 15 repos enable it in `.claude/settings.json`. It gives plain-language replies (Done / Next / Waiting on you / Heads up), `/technical` and `/plain`, and a Project status side panel (`/project`). Bump `plugin.json` version on each change.
 - **Today:** the redesign from the design canvas is live:
   - greeting header and progress bar;
   - filled selected day with load bars;
