@@ -33,7 +33,7 @@ This avoids the most common failure, where reference material clutters the to-do
 1. **AI filing for the inbox** (fixes 2 and 9). The hourly agent reads unfiled captures and assigns project, kind and tags, splits out any task, and links each one to related notes. You only review. This is the biggest win for the least effort, because the agent already does this for calls.
 2. **People pages** (6). One page per person with their note, open loops both ways, recent calls, decisions and the next call. It reuses data that already exists.
 3. **Resurfacing on Today** (7). A small "From your notes" card in the rail: notes linked to today's tasks, plus one older idea or decision.
-4. **Topics** (3 and 8). Reference areas that aren't projects, each with an auto-written brief like a project's.
+4. **Topics** (3 and 8). Reference areas that aren't projects, each with an auto-written brief like a project's. *Built 23 Oct.*
 5. **Ask Ambalam** (4). A question box that answers from your notes, calls and briefs, and cites them.
 6. **More ways in** (1): forward an email to an address, voice notes, and WhatsApp or Telegram.
 7. **Safety** (10): an offline capture queue, export and a weekly backup.
@@ -68,6 +68,9 @@ The video's points that apply here, and what changed:
 - **People pages (#2).** Notes → People (and the sidebar) lists every person note, with open loops or a coming call first. A person page shows their note, the next call, what they owe you (waiting tasks and inputs), open tasks that mention them, agenda points for their calls, recent calls they attended and decisions that name them. Matching is by first name, so a common first name can pull in extra items.
 - **Resurfacing on Today (#3).** A "From your notes" card in the rail shows up to 3 notes that share two or more words with today's or started tasks in the same workspace, plus one idea or decision over 3 weeks old (a different one each day).
 - **Work with Claude.** Each open task's quick look opens a new claude.ai chat with the task's context and asks Claude to write progress back through the task-hub skill.
+
+- **Topics (#4), late 23 Oct.** A note tag becomes a topic once 3 current notes in 2 different top-level projects use it (meta tags like `handoff` and `decision` are skipped). Notes → Topics (and the sidebar) lists them; a topic page shows its brief, decisions, open tasks and calls that mention it, and its other notes. Briefs live in `topic_briefs`; the hourly agent rewrites up to 3 a run, picked by `topics_due()` (no brief yet, or a note newer than the brief). Live as `agent_config` row `meeting-agent-9b-topic-briefs`, mirrored in `agents/meeting-agent.md`. 13 topics qualified on day one (Flow, Pricing, GTM, Instantly…).
+- **High impact and merging** (Do side, same evening): see `STATUS.md`. The 9 AM routine now stars up to 3 tasks (or sets one theme) when Vimal hasn't picked any for the day.
 
 ### Bookmarklet (desktop)
 

@@ -815,7 +815,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
 let _ac=[];try{_ac=JSON.parse(localStorage.getItem("hub-areas")||"[]")}catch{}
-const S={focus_themes:[],peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={focus_themes:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -910,9 +910,9 @@ function attentionLine(){
   const tot=attentionCount(),list=parts.length>1?parts.slice(0,-1).join(", ")+" and "+parts[parts.length-1]:parts[0]||"";
   return `${cap(word(tot))} need${tot===1?"s":""} attention${list?": "+list:""}.`}
 function renderSide(){
-  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["notes","Notes",S.notes.filter(n=>!proj(n.projectId)).length],["people","People",""],["brain","Mind map",""],["all","All tasks",S.tasks.filter(open).length]];
+  const nav=[["today","Today",S.tasks.filter(onToday).length],["week","This week",S.tasks.filter(onWeek).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["notes","Notes",S.notes.filter(n=>!proj(n.projectId)).length],["people","People",""],["topics","Topics",""],["brain","Mind map",""],["all","All tasks",S.tasks.filter(open).length]];
   let h=`<div class="brand">Ambalam<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="side-acts"><button class="side-act" data-find><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Search<kbd>${/Mac|iP/.test(navigator.platform)?"⌘K":"Ctrl K"}</kbd></button><button class="side-act" data-capture><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Capture<kbd>C</kbd></button></div><div class="nav">`;
-  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v||(v==="people"&&S.view==="person")}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`;
+  for(const[v,l,c] of nav) h+=`<button data-go="${v}" aria-current="${S.view===v||(v==="people"&&S.view==="person")||(v==="topics"&&S.view==="topic")}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`;
   h+=`</div>`;
   for(const a of AREAS){
     const ps=tops(a);
@@ -1259,6 +1259,33 @@ function personPage(n){const d=personData(n)||{theyOwe:[],inputs:[],youOwe:[],ag
   if(d.calls.length)h+=`<section><div class="sh"><h2>Recent calls</h2><span class="n">${d.calls.length}</span></div><ul class="pk-list">${d.calls.map(s=>`<li>${/^https?:/.test(s.url||"")?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(callTitle(s))}</a>`:esc(callTitle(s))}<span class="when">${esc(istFmt(s.occurredAt,{day:"numeric",month:"short"}))}${s.summary?` · ${esc(trunc(s.summary,140))}`:""}</span></li>`).join("")}</ul></section>`;
   if(d.decisions.length)h+=`<section><div class="sh"><h2>Decisions they're in</h2><span class="n">${d.decisions.length}</span></div>${d.decisions.map(noteRow).join("")}</section>`;
   return h}
+/* ---------- topics: note tags that cut across projects (3+ notes in 2+ top-level projects, same rule as topics_due()); the hourly agent writes topic_briefs ---------- */
+const TOPIC_SKIP=new Set("handoff decision process schedule topics idea note notes usage todo person link fact".split(" "));
+function topics(){const m=new Map();
+  for(const n of S.notes)for(const g of (Array.isArray(n.tags)?n.tags:[])){const k=String(g).toLowerCase();if(TOPIC_SKIP.has(k))continue;
+    const e=m.get(k)||{tag:k,notes:[],tops:new Set()};if(!e.notes.includes(n))e.notes.push(n);e.tops.add(topId(n.projectId)||"none");m.set(k,e)}
+  return [...m.values()].filter(e=>e.notes.length>=3&&e.tops.size>=2).sort((a,b)=>b.notes.length-a.notes.length||a.tag.localeCompare(b.tag))}
+const topicName=k=>cap(String(k).replace(/-/g," "));
+// "cold-email" also matches "cold email"; short tags (pr, gtm) must be whole words
+const topicRe=k=>new RegExp(`(^|[^\\p{L}\\p{N}])${k.split("-").map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("[-\\s]")}${k.length<5?"(?![\\p{L}\\p{N}])":""}`,"iu");
+function topicData(k){const e=topics().find(x=>x.tag===k),notes=e?e.notes:S.notes.filter(n=>(n.tags||[]).some(g=>String(g).toLowerCase()===k)),r=topicRe(k),has=s=>r.test(String(s||""));
+  const byDate=(a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""));
+  return{notes,decisions:notes.filter(n=>n.kind==="decision").sort(byDate),other:notes.filter(n=>n.kind!=="decision").sort(byDate),
+    projs:[...new Set(notes.map(n=>proj(n.projectId)).filter(Boolean))],
+    tasks:sortT(S.tasks.filter(t=>open(t)&&(has(t.title)||has(t.notes)))),
+    calls:S.sources.filter(s=>has(s.title)||has(s.summary)).sort((a,b)=>String(b.occurredAt).localeCompare(String(a.occurredAt))).slice(0,6),
+    brief:S.topicBriefs[k]||null}}
+function topicRow(e){const b=S.topicBriefs[e.tag],ps=[...new Set(e.notes.map(n=>proj(n.projectId)?.name).filter(Boolean))];
+  const line=b?trunc(String(b.body).replace(/\*\*/g,"").replace(/^[^:\n]*:\s*/,"").split("\n")[0],110):`${e.notes.length} notes · ${ps.slice(0,3).join(", ")}${ps.length>3?` +${ps.length-3}`:""}`;
+  return `<button class="nrow" data-topic="${esc(e.tag)}"><span class="kd" style="background:var(--accent)"></span><span class="nb"><b>${esc(topicName(e.tag))}</b><span>${esc(line)}</span></span></button>`}
+function topicPage(k){const d=topicData(k);let h="";
+  h+=`<div class="head"><div><h1>${esc(topicName(k))}</h1><div class="sub"><button class="crumb" data-go="topics">Topics</button> · ${d.notes.length} note${d.notes.length===1?"":"s"} across ${esc(d.projs.map(p=>p.name).join(", ")||"your notes")}</div></div></div>`;
+  h+=d.brief?`<section class="brief"><div class="md">${md(d.brief.body)}</div><div class="pk-src" style="margin-top:8px">Brief updated ${esc(ago(d.brief.updatedAt))} by the hourly agent</div></section>`:`<div class="empty" style="margin-bottom:24px">No brief yet. The hourly agent writes one on its next run (6–11 PM IST).</div>`;
+  if(d.decisions.length)h+=`<section><div class="sh"><h2>Decisions</h2><span class="n">${d.decisions.length}</span></div>${d.decisions.map(noteRow).join("")}</section>`;
+  h+=sec("Open tasks about it",d.tasks);
+  if(d.other.length)h+=`<section><div class="sh"><h2>Notes</h2><span class="n">${d.other.length}</span></div>${d.other.map(noteRow).join("")}</section>`;
+  if(d.calls.length)h+=`<section><div class="sh"><h2>Calls that touched it</h2><span class="n">${d.calls.length}</span></div><ul class="pk-list">${d.calls.map(s=>`<li>${/^https?:/.test(s.url||"")?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(callTitle(s))}</a>`:esc(callTitle(s))}<span class="when">${esc(istFmt(s.occurredAt,{day:"numeric",month:"short"}))}${s.summary?` · ${esc(trunc(s.summary,140))}`:""}</span></li>`).join("")}</ul></section>`;
+  return h}
 function renderView(){
   const v=document.getElementById("view");const t=T();let h="";
   if(S.view==="today"){
@@ -1341,7 +1368,7 @@ function renderView(){
   else if(S.view==="notes"){
     const ks=[["","All"],["idea","Ideas"],["decision","Decisions"],["fact","About"],["person","People"],["link","Links"],["note","Notes"]];
     const list=S.notes.filter(n=>!S.nk||n.kind===S.nk).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
-    h+=`<div class="head"><div><h1>Notes</h1><div class="sub">Everything you keep that isn't a task: ideas, decisions, people, links and facts</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="people">People</button><button class="btn" data-go="brain">Mind map</button><button class="btn primary" data-capture>Capture</button></div></div>`;
+    h+=`<div class="head"><div><h1>Notes</h1><div class="sub">Everything you keep that isn't a task: ideas, decisions, people, links and facts</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="people">People</button><button class="btn" data-go="topics">Topics</button><button class="btn" data-go="brain">Mind map</button><button class="btn primary" data-capture>Capture</button></div></div>`;
     h+=feedsHtml();
     h+=`<div class="filters one"><div class="chips">${ks.map(([k,l])=>`<button class="chip" data-nk="${k}" aria-pressed="${(S.nk||"")===k}">${l} <span>${k?S.notes.filter(n=>n.kind===k).length:S.notes.length}</span></button>`).join("")}</div></div>`;
     const inbox=list.filter(n=>!proj(n.projectId));
@@ -1358,6 +1385,11 @@ function renderView(){
     if(!ps.length)h+=`<div class="empty">No people saved yet. Capture one as a Person, e.g. “Sam Ghosh: marketing lead”.</div>`;
   }
   else if(S.view==="person"){const n=S.notes.find(x=>x.id===S.person);h+=n?personPage(n):`<div class="empty">That person isn't in your notes any more. <button class="act" data-go="people">See everyone</button></div>`}
+  else if(S.view==="topics"){const ts=topics();
+    h+=`<div class="head"><div><h1>Topics</h1><div class="sub">Subjects that run across your projects, each with a brief the hourly agent keeps current</div></div><div class="right"><button class="btn" data-go="notes">Notes</button></div></div>`;
+    h+=ts.length?`<section>${ts.map(topicRow).join("")}</section>`:`<div class="empty">No topics yet. A tag becomes a topic once 3 notes in 2 different projects use it.</div>`;
+    if(ts.length)h+=`<p class="pk-src">A tag becomes a topic once 3 notes in 2 different projects use it. The hourly agent tags what it files.</p>`}
+  else if(S.view==="topic")h+=topicPage(S.topic);
   else if(S.view==="projects"){
     h+=`<div class="head"><div><h1>Projects</h1></div><div class="right"><button class="btn" data-newproj>New project</button></div></div>`;
     for(const a of AREAS){const ps=tops(a);if(!ps.length)continue;
@@ -1623,6 +1655,7 @@ document.addEventListener("click",async e=>{
     try{await navigator.clipboard.writeText(data);toast("Prep copied. Paste it into your notes or the meeting chat.",false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
   if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.person){S.view="person";S.person=b.dataset.person;S.pid=null;S.day=null;setPeek(null);const fd=document.getElementById("findDlg");if(fd.open)fd.close();render();document.querySelector("main").scrollTo(0,0);return}
+  if(b.dataset.topic){S.view="topic";S.topic=b.dataset.topic;S.pid=null;S.day=null;setPeek(null);const fd=document.getElementById("findDlg");if(fd.open)fd.close();render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.proj){S.view="project";S.pid=b.dataset.proj;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if("themeToggle" in b.dataset){const d=document.documentElement,dark=d.dataset.theme!=="dark";if(dark)d.dataset.theme="dark";else delete d.dataset.theme;try{localStorage.setItem("hub-theme",dark?"dark":"light")}catch{}document.querySelector('meta[name="theme-color"]').content=dark?"#121418":"#FFFFFF";renderSide();return}
   if("signout" in b.dataset){try{localStorage.removeItem(CACHE)}catch{}await sb.auth.signOut();location.reload();return}
@@ -2099,13 +2132,15 @@ async function doRefresh(){
     sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
   // feed freshness and themes are optional: if they can't load, nothing else waits on them
   const themes=(async()=>{try{return await sb.from("focus_themes").select("*").gte("day",addDays(T(),-14))}catch{return{error:1}}})();
+  const tbriefs=(async()=>{try{return await sb.from("topic_briefs").select("tag,body,updated_at")}catch{return{error:1}}})();
   const feeds=(async()=>{try{return await sb.from("sync_state").select("source,last_run_at,note")}catch{return{error:1}}})();
   const[p,t]=await core;
   if(p.error||t.error){if(!S.ready.t)document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
   // a save started or finished while we were fetching: this snapshot may be stale, so fetch again shortly
   const fresh=W.n===0&&W.seq===seq0;
   if(fresh){S.projects=p.data.map(fromRow);S.tasks=t.data.map(fromRow).filter(x=>!x.supersededBy);S.ready.p=S.ready.t=true;render()}
-  const[n,b,g,so,c,ii,iu]=await rest,ss=await feeds,fo=await themes;
+  const[n,b,g,so,c,ii,iu]=await rest,ss=await feeds,fo=await themes,tb=await tbriefs;
+  if(!tb.error&&Array.isArray(tb.data))S.topicBriefs=Object.fromEntries(tb.data.map(x=>[String(x.tag).toLowerCase(),fromRow(x)]));
   if(!fo.error&&Array.isArray(fo.data)&&W.n===0&&W.seq===seq0)S.focus_themes=fo.data.map(fromRow);
   if(!ss.error&&Array.isArray(ss.data))S.feeds=ss.data.map(x=>({l:{wispr:"Calls",gmail:"Gmail",linear:"Linear"}[x.source]||x.source,at:x.last_run_at,note:x.note})).sort((a,b)=>a.l.localeCompare(b.l));
   if(!ii.error)S.inputs=ii.data.map(fromRow);
@@ -2130,9 +2165,9 @@ async function doRefresh(){
 }
 // last good snapshot, so the app paints at once on the next open and fills in fresh data after
 const CACHE="ambalam.cache.v1";
-function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes}))}catch{}}
+function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,tbriefs:S.topicBriefs}))}catch{}}
 function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE)||"null");if(!c||!Array.isArray(c.tasks)||Date.now()-c.at>14*864e5)return false;
-  Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[]});S.ready.p=S.ready.t=true;return true}catch{return false}}
+  Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[],topicBriefs:c.tbriefs||{}});S.ready.p=S.ready.t=true;return true}catch{return false}}
 let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,250)}
 let lt;function later(){clearTimeout(lt);lt=setTimeout(refresh,2500)}
 // redraw once, right after the current handler finishes (before the next frame), however many rows it changed
