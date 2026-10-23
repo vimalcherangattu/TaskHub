@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 23 Oct 2026. The 23 Oct work is on branch `claude/focused-mayer-x7h8co`; it goes live on https://task-hub-one-delta.vercel.app/ once merged to `main`.
+**Last updated:** 23 Oct 2026, evening (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Today:** the redesign from the design canvas is live:
@@ -31,9 +31,8 @@
 - Nothing mid-change.
 
 ## Next step
-1. Merge `claude/focused-mayer-x7h8co` into `main` to deploy. Confirm with `curl -s https://task-hub-one-delta.vercel.app/ | grep -c fromNotesCard`.
-2. Check the first agent runs that file inbox captures (`select * from processing_log where external_id like 'inbox:%'`).
-3. Next in `docs/second-brain.md`: Topics (#4), then Ask Ambalam (#5).
+1. Check the first agent runs that file inbox captures (`select * from processing_log where external_id like 'inbox:%'`).
+2. Next in `docs/second-brain.md`: Topics (#4), then Ask Ambalam (#5).
 
 ## Known issues
 - **Hourly agent connectors (needs Vimal):** its scheduled task (`trig_01VKWQV67JJLvzwVZB7HjokL`) has only Supabase and Wispr Flow attached, so Gmail, Linear and session sync are skipped every run. Attach Gmail, Linear, Supabase_Connector and Claude_Code_Remote to it. Claude was not allowed to grant connectors itself. Until then the Notes banner stays red for Gmail and Linear, with that reason.
