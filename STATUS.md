@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 24 Oct 2026, 12:50 IST (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 24 Oct 2026, 13:15 IST (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
 - **Hard deadlines (24 Oct):** new columns `tasks.due_firm` (the date can't move) and `tasks.due_time` (due by a time, IST; implies firm). Task sheet: "Due by (time)" field and a "Hard deadline" pill. Today opens with a red "Can't slip" band (hard ones due today or missed, earliest first, minute-by-minute countdown); a missed time counts as overdue; other rows show "Hard deadline" and the time in the due column; Push-after asks before moving one. `hub_merge_tasks` and the app's merge keep the winning date's hard flag and time. Skill, `reference/queries.md` (plate query has a "0 can't slip" bucket) and the agent (`agent_config` row `meeting-agent-9e-hard-deadlines`) set them only when told and never move them. Test: `hard.mjs`. The 9 AM lead (STEP 1, read only) now opens its push with a "Can't slip" line (today's, missed and tomorrow's hard deadlines) and flags a hard time that falls inside a meeting. Calendar stays read-only for agents; a calendar reminder is added only when Vimal asks for one in a chat (decided 24 Oct).
@@ -51,7 +51,8 @@
 
 ## Next step
 0. Vimal: paste the owner rule into the 4 session-bound production runs (This Weigh, So Anyway Why ×2, Romantasy). Their prompts can only be edited from their own sessions; the exact text is in Task Hub task "Paste the owner rule into the 4 production-run sessions" (due 26 Oct).
-1. Vimal: replace the claude.ai task-hub skill again with `skills/task-hub/SKILL.md` (now has week focus and `hub_merge_tasks`).
+1. Skill re-uploaded by Vimal on 24 Oct (zip with `reference/`, which the old copy lacked). Confirm in a new chat that it mentions `due_firm`.
+1b. Vimal: mark the few current hard-deadline tasks (suggested task); then check the next 9 AM push opens with the "Can't slip" line.
 2. After 24 Oct 9 AM: check the routine's high-impact picks; after the hourly runs: `select tag, updated_at from topic_briefs;` and the agent's "tidy" line.
 3. Mon 26 Oct: check the routine's week focus and that the 4 pre-set themes show on the Week view.
 4. Next in `docs/second-brain.md`: More ways in (#6) or Safety (#7). Ask Ambalam (#5) is skipped.
