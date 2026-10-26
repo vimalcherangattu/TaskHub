@@ -194,6 +194,22 @@ Only for dismissed suggestions, tasks he says are no longer relevant, or true du
 - **Same thing exists?** Update it instead of adding another. For a **reversed decision**, insert the new decision and set the old note's `superseded_by` to the new id. That keeps history, and search ignores superseded notes.
 - Don't save passing remarks, moods, or your own suggestions unless he agreed with them.
 
+### People and links (26 Oct 2026)
+
+People have their own records: `people(id, name, aliases, emails, org, role, circles, note_id, cadence_days, last_contact_at, birthday, how_met, status, private)`. `circles` holds `work`, `family`, `friends`, `network`; `status` is `active`, `suggested` (an agent found them; Vimal confirms in the app) or `archived`. The person note (`note_id`) stays as the profile text.
+
+- **Find someone:** `select * from person_match('<name, nickname or email>');` One row = that person. Two or more = ask which one; never guess between people with the same first name.
+- **New person (he mentions someone new who matters):** insert into `people` (`circles` set, `status` 'active'), and a person note only if there is something worth writing about them; set `note_id` to it.
+- **"Talked to X" / "met X":** `update people set last_contact_at = now() where id = '<id>';`
+- **Keep in touch:** `cadence_days` (7, 14, 30, 90) makes the app nudge when the last contact is older; `birthday` shows a week ahead.
+- **Links** live in `links(from_type, from_id, to_type, to_id, kind, note, created_by)`. Types: note, task, person, source, project, goal, area, habit, record, topic. Kinds: `member` (person in a project; `note` = their role), `mentions` (a `[[...]]` in a note or task body), `related`, `about`, `part_of`, `spawned`. Insert with `on conflict do nothing`.
+  - X joins or works on a project: a `member` link from the person to the project, with the role in `note`.
+  - A note or task about someone: a `mentions` or `about` link to the person.
+- **Never delete a person**; set `status = 'archived'`. A link that is wrong can be removed in the app (the × on the person page); don't delete links from chat.
+- **Private:** `private = true` on notes, tasks and people means it never goes into pushes, digests or Zen.
+- **Archive:** a finished project has `projects.archived_at` set (the app's Archive). Don't file new work into an archived project; ask first.
+- **Email captures:** Vimal can forward any email to `vimalcherangattu+ambalam@gmail.com`; the hourly agent files it into the Notes inbox.
+
 ### Calls, segments and briefs
 
 - `sources`: one row per call (`kind='meeting'`), with the full transcript in `content`, `external_id` (`wispr:<id>`, `granola:<id>`; unique), `project_id` (primary) and `related_projects`.

@@ -294,11 +294,21 @@ Each phase ships on its own, with tests, and is usable the day it lands.
 
 **Tests:** one new test file per feature in `tests/` (people, links, offline, goals, habits, log, reviews, records), all against the in-memory mock, plus updates to `ui.mjs` for the new navigation. All must print `errors []`.
 
-# Decisions Vimal needs to make
+# Decisions (Vimal, 26 Oct 2026)
 
-1. **Life areas:** are these eight right (Work, Products, Health, Money, Family & home, Friends & people, Growth, Rest & fun)?
-2. **Journal privacy:** may agents read the evening check-in to write better summaries and reviews, or only write the factual summary?
-3. **Weekly review day:** Sunday evening for life, with the Friday work review kept? Or merge them into one?
-4. **Vault:** OK to create a private repo `ambalam-vault` for the nightly Markdown copy?
-5. **Telegram bot:** yes or no? (WhatsApp would cost money, so it isn't planned.)
-6. **Phone tabs:** Today · Week · Life · Notes · More. OK?
+1. **Life areas:** start with the eight above (Work, Products, Health, Money, Family & home, Friends & people, Growth, Rest & fun).
+2. **Journal privacy:** agents may read the evening check-ins (to write summaries and review drafts).
+3. **Reviews:** keep them separate: Sunday evening for life, the Friday work review stays.
+4. **Vault:** yes, a private repo `ambalam-vault` for the nightly Markdown copy.
+5. **Outside capture:** Telegram (easiest interface). WhatsApp isn't planned (paid API).
+6. **Phone tabs:** Today · Week · Life · Notes · More.
+7. **Look:** the live colour scheme (white, slate ink, navy accent) replaces Cream; the canvas was recoloured to match.
+
+# Build log
+
+**Phase 1, 26 Oct 2026 (built):**
+- `people` and `links` tables, `projects.archived_at`, `tasks.chat_url`, and the `person_match()` RPC. Small changes from the spec: a person's state is `people.status` (`active` | `suggested` | `archived`) instead of `archived_at`, and ids are `p-<uuid>` (agents find people by name through `person_match`, so slugs weren't needed). `hub_delete` was not extended (the change needed an approval prompt that never appeared): people are archived, never deleted, and the app removes links itself.
+- Backfill: 32 people from the person notes and call attendees, with member links (from each person's note and the main project of calls they joined; other projects their calls touched are weaker `related` links, "Also came up in"). Skipped on purpose: Cabo (dog) and "Card-game group" (still person notes, shown in People until tidied). Not merged, to check: DJ, Daranjee and Dhananjay may be one person.
+- App: People list (circles filter, they owe me, haven't spoken in a while, "New from calls"), people map, person page (projects with roles, works with, keep in touch, birthday, linked here), person editor, People strip on project pages, Keep in touch card on Today; `[[` links in notes and task notes with "Linked here" and "Might be related"; Archive; offline outbox; Export everything; dictation in Capture; private lock on notes and tasks; a task remembers its Claude chat.
+- Agent: `agent_config` row `meeting-agent-9f-people-links` (person matching and last contact, suggested people, member links, email captures to `+ambalam`, note links, private rows).
+- Still to do from Part A: Telegram bot and the nightly vault (phase 4).

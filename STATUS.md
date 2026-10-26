@@ -1,8 +1,10 @@
 # Status
 
-**Last updated:** 24 Oct 2026, 13:15 IST (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 26 Oct 2026 (Life OS phase 1) (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
+- **Life OS plan (25–26 Oct):** spec in `docs/life-os-spec.md`; 15 screens on the design canvas (page "Life OS + second brain", recoloured to the live scheme). Vimal's decisions are recorded in the spec. Build is in 4 phases.
+- **Phase 1, second brain complete (26 Oct):** new tables `people` and `links`, `projects.archived_at`, `tasks.chat_url`, RPC `person_match()`. 32 people backfilled from person notes and call attendees, with project links. App: People list (filters, map, "New from calls"), person page (projects with roles, works with, keep in touch, birthday, linked here), person editor, People strip on project pages, Keep in touch card on Today; `[[` links in notes and task notes with "Linked here" and "Might be related"; Archive; offline outbox (`ambalam.outbox.v1`); Export everything (JSON + Markdown); dictation in Capture; private lock on notes and tasks; a task remembers its Claude chat. Agent addendum `meeting-agent-9f-people-links` (people matching, last contact, suggested people, email captures to `vimalcherangattu+ambalam@gmail.com`, note links). Skill updated (People and links section): re-upload it to claude.ai. Tests: `peoplerec.mjs`, `links.mjs`, `phase1.mjs`.
 - **Hard deadlines (24 Oct):** new columns `tasks.due_firm` (the date can't move) and `tasks.due_time` (due by a time, IST; implies firm). Task sheet: "Due by (time)" field and a "Hard deadline" pill. Today opens with a red "Can't slip" band (hard ones due today or missed, earliest first, minute-by-minute countdown); a missed time counts as overdue; other rows show "Hard deadline" and the time in the due column; Push-after asks before moving one. `hub_merge_tasks` and the app's merge keep the winning date's hard flag and time. Skill, `reference/queries.md` (plate query has a "0 can't slip" bucket) and the agent (`agent_config` row `meeting-agent-9e-hard-deadlines`) set them only when told and never move them. Test: `hard.mjs`. The 9 AM lead (STEP 1, read only) now opens its push with a "Can't slip" line (today's, missed and tomorrow's hard deadlines) and flags a hard time that falls inside a meeting. Calendar stays read-only for agents; a calendar reminder is added only when Vimal asks for one in a chat (decided 24 Oct).
 - **Agent work split from Vimal's (24 Oct):** new column `tasks.owner` ('me' default, 'agent'). Agent tasks (scheduled production runs) are off Today and This week and live in a "Run by agents" view (sidebar, phone tab, a one-line hint at the bottom of Today); overdue ones still count in Needs attention. Quick look has an "Agent's job" toggle. Backfilled: saw002 build and ep5 Gold build. The plate query in the skill filters to owner='me'.
 - **Agents consolidated (24 Oct):**
@@ -50,6 +52,10 @@
 - Nothing mid-change.
 
 ## Next step
+- Vimal: re-upload the task-hub skill (People and links section added 26 Oct).
+- Vimal: check People › person pages; DJ, Daranjee and Dhananjay may be one person (merge by editing one and archiving the others); Cabo and "Card-game group" are person notes, not people.
+- Build phase 2 of `docs/life-os-spec.md`: life areas, goals, habits, evening check-in and log, Life view, Do / Know / Live navigation and the 5-tab phone bar.
+- Phase 4 needs Vimal: create a Telegram bot (BotFather) and paste its key; create the private repo `ambalam-vault` and give Claude access.
 0. Vimal: paste the owner rule into the 4 session-bound production runs (This Weigh, So Anyway Why ×2, Romantasy). Their prompts can only be edited from their own sessions; the exact text is in Task Hub task "Paste the owner rule into the 4 production-run sessions" (due 26 Oct).
 1. Skill re-uploaded by Vimal on 24 Oct (zip with `reference/`, which the old copy lacked). Confirm in a new chat that it mentions `due_firm`.
 1b. Vimal: mark the few current hard-deadline tasks (suggested task); then check the next 9 AM push opens with the "Can't slip" line.
@@ -60,9 +66,8 @@
 ## Known issues
 - **Hourly agent session sync:** Claude_Code_Remote isn't attached to the hourly scheduled task, so the topic-session push happens once a day in the 9 AM lead. Gmail, Linear and Supabase_Connector were attached on 23 Oct.
 - **Share target:** not tested on a real Android phone (no installability check run). iOS has no share target; use a Shortcut or the bookmarklet with `?url=`.
-- **No offline queue:** captures made while offline fail with a toast instead of waiting to save.
 - **Tap targets:** the step checkboxes in the editor draw at 22px. On phone their tap area is extended to 44px with an invisible overlay, so the drawn box still reports as small.
-- **People matching:** it uses first names, so two people with the same first name share loops. Calls only match if `sources.attendees` or the title has the name.
-- **Work with Claude:** it starts a new chat each time; the task doesn't remember a chat link yet.
+- **People matching:** full name, nickname or email first; a bare first name only counts when nobody else shares it (`person_match()` in SQL, `pKeys()` in the app). Calls only match if `sources.attendees` or the title has the name.
+- **hub_delete** wasn't extended to people and links (the approval prompt for that change never appeared). People are archived instead; the app removes links itself.
 - **Tests:** they need network access for the jsdelivr scripts. Where the CDN is blocked, run them on a copy of `index.html` pointing at a local `supabase.js` (`npm pack @supabase/supabase-js@2.45.4`).
 - **Stray file:** `Test` at the repo root holds "Hello World". It looks like a leftover but I haven't removed it without asking.
