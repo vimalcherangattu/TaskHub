@@ -50,12 +50,13 @@
 - **Tests:** all 15 pass (`tests/*.mjs`; `owner.mjs` added 24 Oct). `focus.mjs` covers high impact, themes, merging and done-here; `topics.mjs` covers Topics.
 
 ## In progress
-- Nothing mid-change.
+- Nothing mid-change. Handoff note: "Handoff: Ambalam Life OS" (resume with "continue ambalam life-os").
 
 ## Next step
-- Vimal: re-upload the task-hub skill (People and links, and Life OS sections added 26 Oct).
+- Skill re-uploaded by Vimal on 26 Oct. Confirm the uploaded zip has the "Life OS" section (the second zip sent); if not, upload it again.
 - Vimal: Cabo and "Card-game group" are person notes, not people (change their type in Notes if you like). Dhananjay (DJ) is merged.
-- Vimal: write each area's standard (Life › an area › Edit), set 3–5 goals for Q4, add 2–3 habits, and check in tonight after 6 PM.
+- Vimal (task, due 2 Nov, "at some point"): write each area's standard (Life › an area › Edit), set 3–5 goals for Q4, add 2–3 habits, start the evening check-in.
+- Suggested to Vimal: export 2–3 WhatsApp chats (Export Chat › Without Media) for people and open-loop extraction; not the whole iCloud backup.
 - Build phase 3: guided reviews (Sunday life review, monthly, quarterly, yearly), life admin with renewal tasks, area metrics, and the agent changes (nightly daily_log.summary, review drafts, renewals, area-status suggestions, stalled goals).
 - Phase 4 needs Vimal: create a Telegram bot (BotFather) and paste its key; create the private repo `ambalam-vault` and give Claude access.
 0. Vimal: paste the owner rule into the 4 session-bound production runs (This Weigh, So Anyway Why ×2, Romantasy). Their prompts can only be edited from their own sessions; the exact text is in Task Hub task "Paste the owner rule into the 4 production-run sessions" (due 26 Oct).
