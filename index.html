@@ -807,6 +807,27 @@ dialog.find:not([open]){display:none}
 .logd h2{margin:0;font-family:var(--display);font-size:24px}.logd .quote{font-size:16px;background:var(--bg);border-radius:12px;padding:12px 14px;margin:0;color:var(--muted)}
 .logf{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px}.logf dt{color:var(--faint)}.logf dd{margin:0}
 .logs{border-top:1px solid var(--line);padding-top:10px}
+.mrow,.rec{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto auto;align-items:center;gap:14px;min-height:56px;padding:6px 4px;border-top:1px solid var(--line)}
+.rec{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto}.mrow.sm{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto}
+.mrow .lk,.rec .lk{flex-direction:column;align-items:flex-start;gap:0;min-width:0}.mrow .lk span,.rec .lk span{font-weight:400;font-size:12px;color:var(--faint)}
+.mv{display:flex;flex-direction:column}.mv b{font-family:var(--mono);font-size:15px}.mv small{font-size:11px;color:var(--faint);font-weight:400}.mv>span{font-size:12px;color:var(--faint)}
+.mv .ok{color:var(--ok)}.mv .warn,.rv-card .warn,.rv-area .warn{color:var(--warn)}.rec .when.due{color:var(--danger);font-weight:600}
+.spark{display:block}.spark polyline{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.spark .sp-t{stroke:var(--line-strong);stroke-dasharray:3 3}
+.mlog{margin:0;flex-wrap:nowrap}.mlog input{width:90px}
+a.tool{display:inline-flex;align-items:center;text-decoration:none}
+.rv-ready{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-radius:var(--radius-m);background:var(--accent-soft);color:var(--ink);margin:0 0 20px}
+.rv-ready div{display:flex;flex-direction:column}.rv-ready span{font-size:13px;color:var(--muted)}
+.rv-steps{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.rv-steps button{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:0;border-radius:999px;background:var(--sunken);color:var(--muted);font-size:13px}
+.rv-steps button span{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;box-shadow:inset 0 0 0 1.5px var(--control);font-family:var(--mono);font-size:11px}
+.rv-steps button.seen span{background:var(--ok);color:var(--on-strong);box-shadow:none}.rv-steps button[aria-current="step"]{background:var(--ink);color:var(--bg);font-weight:600}
+.rv-card h2{margin:4px 0 12px;font-family:var(--display);font-size:22px}.rv-card h4{margin:14px 0 4px;font-size:13px;color:var(--muted)}
+.rv-num{font-size:15px}.rv-num b{font-family:var(--mono)}
+.rv-draft{background:var(--sunken);border-radius:12px;padding:10px 14px;margin:0 0 12px}
+.rv-note{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}.rv-note label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}.rv-note textarea{min-height:72px;width:100%}.rv-note .foot{display:flex;align-items:center;gap:8px;margin-top:12px}.rv-note .spacer{flex:1}
+.rv-area{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.rv-area>div:first-child{display:flex;flex-direction:column;min-width:0}.rv-area span{font-size:13px;color:var(--muted)}
+.rv-g{border-top:1px solid var(--line);padding-bottom:8px}.rv-g .gl{border-top:0}.rv-g .hacts{padding:0 18px}
+@media (max-width:820px){.mrow{grid-template-columns:minmax(0,1fr) auto}.mrow .spark{display:none}.mrow .mlog{grid-column:1/-1}.rec{grid-template-columns:minmax(0,1fr) auto}.rec .hacts{grid-column:1/-1}.rv-area{flex-direction:column;align-items:stretch}.rv-ready{flex-direction:column;align-items:stretch}}
 .more-sheet{margin:auto 0 0;width:100%;max-width:100%;border:0;border-radius:24px 24px 0 0;padding:0;background:var(--surface);color:var(--ink)}
 .ms{padding:10px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;max-height:80vh;overflow:auto}
 .ms-grab{align-self:center;width:40px;height:4px;border-radius:999px;background:var(--line-strong);margin-bottom:6px}
@@ -980,6 +1001,7 @@ dialog.find:not([open]){display:none}
     <label>Target<input name="target" type="number" step="any"></label>
     <label>Unit<input name="unit" autocomplete="off" placeholder="e.g. chapters, ₹ lakh"></label>
   </div>
+  <label id="goalMet">Follows a tracked number<select name="metricId"></select></label>
   <div class="foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">Save goal</button></div>
 </form></dialog>
 <dialog id="habitDlg"><form class="dlg" id="habitForm" method="dialog">
@@ -1021,6 +1043,39 @@ dialog.find:not([open]){display:none}
   <label>More (optional)<textarea name="body" data-wiki></textarea></label>
   <div class="foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">Save</button></div>
 </form></dialog>
+<dialog id="recDlg"><form class="dlg" id="recForm" method="dialog">
+  <h3 id="recDlgTitle">Life admin</h3>
+  <label>What<input name="title" required autocomplete="off" placeholder="e.g. Passport, car insurance, iCloud"></label>
+  <div class="row">
+    <label>Kind<select name="kind"><option value="document">Document</option><option value="policy">Policy</option><option value="subscription">Subscription</option><option value="id">ID</option><option value="account">Account</option><option value="warranty">Warranty</option><option value="other">Other</option></select></label>
+    <label>Area<select name="areaId"></select></label>
+  </div>
+  <div class="row">
+    <label>Renews or expires on<input name="renewsOn" type="date"></label>
+    <label>Repeats<select name="everyMonths"><option value="">Doesn't repeat</option><option value="1">Every month</option><option value="3">Every 3 months</option><option value="6">Every 6 months</option><option value="12">Every year</option><option value="24">Every 2 years</option><option value="60">Every 5 years</option><option value="120">Every 10 years</option></select></label>
+  </div>
+  <div class="row">
+    <label>Amount<input name="amount" type="number" step="any" inputmode="decimal"></label>
+    <label>Currency<input name="currency" autocomplete="off" placeholder="INR"></label>
+    <label>Remind me (days before)<input name="remindDays" type="number" min="0" step="1" placeholder="30"></label>
+  </div>
+  <label>Where the file lives (link)<input name="url" type="url" autocomplete="off" placeholder="https://drive.google.com/…"></label>
+  <label>Notes<textarea name="notes" placeholder="Who to call, how to renew. No passport or account numbers."></textarea></label>
+  <div class="foot"><button type="button" class="btn danger" id="archRec">Archive</button><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">Save</button></div>
+</form></dialog>
+<dialog id="metricDlg"><form class="dlg" id="metricForm" method="dialog">
+  <h3 id="metricDlgTitle">Number</h3>
+  <label>What you're tracking<input name="name" required autocomplete="off" placeholder="e.g. Weight, savings, words written"></label>
+  <div class="row">
+    <label>Unit<input name="unit" autocomplete="off" placeholder="e.g. kg, ₹ lakh, hours"></label>
+    <label>Aim<input name="target" type="number" step="any" inputmode="decimal"></label>
+  </div>
+  <div class="row">
+    <label>Better when it goes<select name="better"><option value="up">Up</option><option value="down">Down</option></select></label>
+    <label>Area<select name="areaId"></select></label>
+  </div>
+  <div class="foot"><button type="button" class="btn danger" id="stopMetric">Stop tracking</button><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">Save</button></div>
+</form></dialog>
 <dialog id="moreDlg" class="more-sheet" aria-label="More"><div class="ms"><span class="ms-grab" aria-hidden="true"></span><div id="moreBody"></div><button class="btn" data-close>Close</button></div></dialog>
 <dialog id="capDlg"><form class="dlg" id="capForm" method="dialog">
   <div class="ts-top"><span class="eyebrow">Capture</span><button type="button" class="ts-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
@@ -1042,7 +1097,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
 let _ac=[];try{_ac=JSON.parse(localStorage.getItem("hub-areas")||"[]")}catch{}
-const S={focus_themes:[],people:[],links:[],life_areas:[],goals:[],habits:[],habit_logs:[],daily_log:[],compass:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={focus_themes:[],people:[],links:[],life_areas:[],goals:[],habits:[],habit_logs:[],daily_log:[],compass:[],reviews:[],records:[],metrics:[],metric_logs:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -1155,7 +1210,7 @@ function attentionLine(){
 function renderSide(){
   const nav=[["today","Today",S.tasks.filter(x=>onToday(x)&&!bot(x)).length],["week","This week",S.tasks.filter(x=>onWeek(x)&&!bot(x)).length],["calls","Call prep",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["followups","Waiting on others",S.tasks.filter(fuDue).length+S.inputs.filter(i=>i.status==="pending").length],["attention","Needs attention",attentionCount()],["suggested","Suggested by Claude",S.tasks.filter(sugg).length],["agents","Run by agents",S.tasks.filter(x=>open(x)&&bot(x)).length],["notes","Notes",S.notes.filter(n=>!proj(n.projectId)).length],["people","People",""],["topics","Topics",""],["brain","Mind map",""],...(S.projects.some(p=>p.archivedAt)?[["archive","Archive",""]]:[]),["all","All tasks",S.tasks.filter(open).length]];
   const grp={today:"Do",brain:"Know",notes:"Know",people:"Know",topics:"Know",archive:"Know"},ORDER=["today","week","calls","followups","attention","suggested","agents","all","notes","people","topics","brain","archive"];
-  nav.sort((a,b)=>ORDER.indexOf(a[0])-ORDER.indexOf(b[0]));nav.push(["life","Life",""],["goals","Goals",""],["habits","Habits",(()=>{const hs=habitsOn().filter(x=>hDue(x,T()));return hs.length?`${hs.filter(x=>hLog(x,T())?.done).length}/${hs.length}`:""})()],["log","Log",""]);
+  nav.sort((a,b)=>ORDER.indexOf(a[0])-ORDER.indexOf(b[0]));nav.push(["life","Life",""],["goals","Goals",""],["habits","Habits",(()=>{const hs=habitsOn().filter(x=>hDue(x,T()));return hs.length?`${hs.filter(x=>hLog(x,T())?.done).length}/${hs.length}`:""})()],["log","Log",""],["reviews","Reviews",rvDue().length||""],["admin","Life admin",recLive().filter(r=>recDue(r)&&!(recTask(r)&&recTask(r).status!=="done")).length||""]);
   let h=`<div class="brand">Ambalam<small>${esc(new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}))}</small></div><div class="side-acts"><button class="side-act" data-find><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Search<kbd>${/Mac|iP/.test(navigator.platform)?"⌘K":"Ctrl K"}</kbd></button><button class="side-act" data-capture><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Capture<kbd>C</kbd></button></div><div class="nav">`;
   for(const[v,l,c] of nav){const gl=v==="today"?"Do":v==="notes"?"Know":v==="life"?"Live":"";if(gl)h+=`${v==="today"?"":`</div><div class="nav">`}<div class="nav-g">${gl}</div>`;
     h+=`<button data-go="${v}" aria-current="${S.view===v||(v==="people"&&S.view==="person")||(v==="topics"&&S.view==="topic")||(v==="life"&&S.view==="area")||(v==="goals"&&S.view==="goal")}">${l}<span class="count ${v==="attention"&&c?"hot":(v==="suggested"||v==="followups"||v==="calls")&&c?"new":""}">${c||""}</span></button>`}
@@ -1175,8 +1230,8 @@ function renderSide(){
   if(inbox)h+=`<div class="nav"><button data-proj="__inbox" aria-current="${S.pid==="__inbox"}"><span class="dot" style="background:var(--faint)"></span>Unsorted<span class="count">${inbox}</span></button></div>`;
   h+=`<button class="side-add" data-newproj>+ New project</button><button class="side-theme" data-theme-toggle>${document.documentElement.dataset.theme==="dark"?'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Light mode':'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>Dark mode'}</button><button class="side-theme" data-export><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Export everything</button><button class="side-out" data-signout>Sign out</button>`;
   document.getElementById("side").innerHTML=h;
-  const tabs=[["today","Today"],["week","Week"],["life","Life"],["notes","Notes"],["more","More"]],inMore=!["today","week","life","area","goal","goals","habits","log","notes"].includes(S.view);
-  document.getElementById("tabs").innerHTML=tabs.map(([v,l])=>`<button ${v==="more"?"data-more":`data-go="${v}"`} aria-current="${v==="more"?inMore:S.view===v||(v==="life"&&["area","goal","goals","habits","log"].includes(S.view))}">${ICON[v]}${l}${v==="more"&&attentionCount()?` (${attentionCount()})`:""}${v==="attention"&&attentionCount()?` (${attentionCount()})`:""}${v==="suggested"&&S.tasks.filter(sugg).length?` (${S.tasks.filter(sugg).length})`:""}</button>`).join("");
+  const tabs=[["today","Today"],["week","Week"],["life","Life"],["notes","Notes"],["more","More"]],inMore=!["today","week","life","area","goal","goals","habits","log","reviews","review","admin","notes"].includes(S.view);
+  document.getElementById("tabs").innerHTML=tabs.map(([v,l])=>`<button ${v==="more"?"data-more":`data-go="${v}"`} aria-current="${v==="more"?inMore:S.view===v||(v==="life"&&["area","goal","goals","habits","log","reviews","review","admin"].includes(S.view))}">${ICON[v]}${l}${v==="more"&&attentionCount()?` (${attentionCount()})`:""}${v==="attention"&&attentionCount()?` (${attentionCount()})`:""}${v==="suggested"&&S.tasks.filter(sugg).length?` (${S.tasks.filter(sugg).length})`:""}</button>`).join("");
 }
 
 function strip(){
@@ -1615,7 +1670,7 @@ const liveGoals=()=>(S.goals||[]).filter(g=>g.status==="active"||g.status==="pau
 const kidGoals=g=>(S.goals||[]).filter(x=>x.parentId===g.id&&x.status!=="dropped");
 const goalItems=g=>(S.links||[]).filter(l=>l.toType==="goal"&&l.toId===g.id&&l.kind==="part_of");
 function goalProgress(g){if(g.status==="done")return 1;
-  if(g.measure==="number")return g.target>0?Math.max(0,Math.min(1,(+g.current||0)/g.target)):0;
+  if(g.measure==="number"){const m=g.metricId&&(S.metrics||[]).find(x=>x.id===g.metricId),cur=m&&mLast(m)?+mLast(m).value:+g.current||0;if(m&&m.better==="down")return cur>0&&g.target>0?Math.min(1,g.target/cur):0;return g.target>0?Math.max(0,Math.min(1,cur/g.target)):0}
   if(g.measure==="done")return 0;
   const ks=kidGoals(g);let parts=ks.map(goalProgress);
   for(const l of goalItems(g)){if(l.fromType==="task"){const t=S.tasks.find(x=>x.id===l.fromId);if(t)parts.push(t.status==="done"?1:0)}
@@ -1627,6 +1682,7 @@ function goalMoved(g){let m=g.updatedAt||g.createdAt||null;const up=x=>{if(x&&(!
     else if(l.fromType==="project"){const ids=fam(l.fromId);for(const t of S.tasks)if(ids.includes(t.projectId)){up(t.doneAt);up(t.updatedAt)}}}
   for(const k of kidGoals(g))up(goalMoved(k));
   for(const h of (S.habits||[]).filter(h=>h.goalId===g.id))for(const x of S.habit_logs||[])if(x.habitId===h.id&&x.done)up(x.day+"T12:00:00");
+  if(g.metricId)for(const x of S.metric_logs||[])if(x.metricId===g.metricId)up(x.createdAt||x.day+"T12:00:00");
   return m}
 const gStalled=g=>{if(g.status!=="active")return false;const m=goalMoved(g),c=g.createdAt;return !!m&&Date.now()-new Date(m)>21*864e5&&(!c||Date.now()-new Date(c)>21*864e5)};
 const pctTxt=p=>Math.round(p*100)+"%";
@@ -1669,14 +1725,15 @@ function checkinCard(){const t=T(),l=logOf(t),ev=S.forceEvening??istHour()>=18;i
 async function saveLog(d,data){const l=logOf(d);if(l)await S.db.doc("daily_log/"+l.id).update(data);else await S.db.collection("daily_log").add({day:d,...data})}
 function areaCard(a){const st=AST[a.status]||AST.good,ps=S.projects.filter(p=>p.lifeArea===a.id&&!p.archivedAt),hs=habitsOn().filter(h=>h.areaId===a.id),gs=liveGoals().filter(g=>g.areaId===a.id);
   const open_=S.tasks.filter(t=>ps.some(p=>fam(p.id).includes(t.projectId))&&open(t)),late=open_.filter(overdue).length;
-  const ev=[gs.length?`${gs.length} goal${gs.length===1?"":"s"}`:"",hs.length?`habits ${hs.reduce((n,h)=>n+hWeek(h),0)} this week`:"",ps.length?`${open_.length} open${late?` · ${late} late`:""}`:""].filter(Boolean).join(" · ");
+  const ev=[gs.length?`${gs.length} goal${gs.length===1?"":"s"}`:"",hs.length?`habits ${hs.reduce((n,h)=>n+hWeek(h),0)} this week`:"",ps.length?`${open_.length} open${late?` · ${late} late`:""}`:"",...metricsOf(a.id).slice(0,1).map(m=>{const tr=mTrend(m),l=mLast(m);return l?`${m.name.toLowerCase()} ${numTxt(l.value)}${tr?" "+tr.a:""}`:""})].filter(Boolean).join(" · ");
   return `<button class="ac" data-area-go="${esc(a.id)}"><span class="ac-h"><b>${esc(a.name)}</b><span class="ast ${st.c}"><i aria-hidden="true"></i>${st.l}</span></span><span class="ac-s">${esc(a.standard||"")}</span>${a.statusNote?`<span class="ac-n">${esc(a.statusNote)}</span>`:""}<span class="ac-e">${esc(ev||"Nothing linked yet")}</span></button>`}
 function energyStrip(days=28){let s="",n=0,sum=0;for(let i=days-1;i>=0;i--){const d=addDays(T(),-i),e=logOf(d)?.energy;if(e){n++;sum+=e}s+=`<span class="es${e?" e"+e:""}" style="height:${e?e*18:6}px" title="${esc(nice(d))}: ${e?"energy "+e:"no check-in"}"></span>`}
   return{html:s,avg:n?Math.round(sum/n*10)/10:null,n}}
 function lifeView(){const t=T(),q=qStart(),y=yStart(),A=areaList(),off=A.filter(a=>a.status==="off"),watch=A.filter(a=>a.status==="watch");
   const qg=liveGoals().filter(g=>g.horizon==="quarter"&&g.periodStart===q),yg=liveGoals().filter(g=>g.horizon==="year"&&g.periodStart===y);
   const line=off.length?`${off.map(a=>a.name).join(" and ")} need${off.length===1?"s":""} a look.`:watch.length?`Keep an eye on ${watch.map(a=>a.name).join(" and ")}.`:"All areas are fine.";
-  let h=`<div class="head"><div><div class="eyebrow">${esc(qName(q).toUpperCase())}</div><h1>Life</h1><div class="sub">${esc(line)}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="log">Log</button><button class="btn primary" data-newgoal="quarter">+ Goal</button></div></div>`;
+  let h=`<div class="head"><div><div class="eyebrow">${esc(qName(q).toUpperCase())}</div><h1>Life</h1><div class="sub">${esc(line)}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="log">Log</button><button class="btn" data-go="admin">Life admin</button><button class="btn primary" data-newgoal="quarter">+ Goal</button></div></div>`;
+  for(const d of rvDue())h+=`<section class="rv-ready"><div><b>${esc(d.row?.status==="in_progress"?`Carry on with your ${RV[d.kind].l.toLowerCase()}`:`Your ${RV[d.kind].l.toLowerCase()} is ready`)}</b><span>${esc(rvName(d.kind,d.start))} · ${esc(RV[d.kind].m)}</span></div><button class="btn primary" data-rvstart="${d.kind}" data-s="${esc(d.start)}">${d.row?.status==="in_progress"?"Carry on":"Start"}</button></section>`;
   h+=`<section><div class="sh"><h2>This quarter</h2><span class="n">${qg.length}</span><button class="act" data-go="goals">All goals</button></div>${qg.length?`<div class="gls">${qg.map(goalLine).join("")}</div>`:`<div class="empty">No goals for ${esc(qName(q))} yet. Three to five is plenty. <button class="act" data-newgoal="quarter">Set one</button></div>`}${yg.length?`<p class="pk-src">This year: ${yg.map(g=>`<button class="lk" data-goal="${esc(g.id)}">${esc(g.title)}</button> ${pctTxt(goalProgress(g))}`).join(" · ")}</p>`:""}</section>`;
   h+=`<section><div class="sh"><h2>Areas</h2><span class="n">${A.filter(a=>a.status==="good").length} good · ${watch.length} watch · ${off.length} off</span></div><div class="acs">${A.map(areaCard).join("")}</div></section>`;
   const hs=habitsOn(),m=monOf(t);
@@ -1684,6 +1741,8 @@ function lifeView(){const t=T(),q=qStart(),y=yStart(),A=areaList(),off=A.filter(
   const es=energyStrip();h+=`<section class="card"><div class="card-h"><h2>Energy, 4 weeks</h2><button class="more" data-go="log">Log</button></div><div class="esr" role="img" aria-label="Energy over the last 28 days${es.avg?`, average ${es.avg} of 5`:", no check-ins yet"}">${es.html}</div><div class="note">${es.avg?`Average ${es.avg} of 5 over ${es.n} check-in${es.n===1?"":"s"}.`:"Check in each evening on Today to see this fill in."}</div></section></div>`;
   const up=[];for(const r of persons()){const bd=pBirthday(r);if(bd)up.push({at:bd.at,what:`${r.name}'s birthday`,k:"People",id:r.id})}
   for(const g of qg)if(gStalled(g))up.push({at:t,what:`${g.title}: no movement in 3 weeks`,k:"Goal"});
+  for(const r of recLive())if(r.renewsOn&&recLeft(r)<=30)up.push({at:r.renewsOn<t?t:r.renewsOn,what:`${r.title}${recLeft(r)<0?` (${recWhen(r)})`:""}`,k:"Renewal"});
+  {const x=parse(t),nm=addDays(t,(7-x.getDay())%7);if(!rvDue().some(d=>d.kind==="weekly"))up.push({at:nm,what:"Weekly review",k:"Review"})}
   if(up.length)h+=`<section><div class="sh"><h2>Coming up</h2></div><ul class="pk-list">${up.sort((a,b)=>a.at.localeCompare(b.at)).map(u=>`<li>${esc(u.what)}<span class="when">${esc(nice(u.at))} · ${esc(u.k)}</span></li>`).join("")}</ul></section>`;
   const c=(S.compass||[])[0]||{},vals=Array.isArray(c.values)?c.values:[];
   h+=`<details class="cmp"><summary>Compass · vision, values, not doing</summary><div class="cmp-b">${c.vision?`<p class="cmp-v">${esc(c.vision)}</p>`:`<p class="note">Write where life is heading in 3–5 years, a few values, and what you've decided not to do. The quarterly and yearly reviews use it.</p>`}${vals.length?`<div class="chips">${vals.map(v=>`<span class="chip" title="${esc(v.why||"")}">${esc(v.name||v)}</span>`).join("")}</div>`:""}${(c.notDoing||[]).length?`<p class="note">Not doing: ${esc(c.notDoing.join("; "))}</p>`:""}<button class="btn" data-editcompass>Edit compass</button></div></details>`;
@@ -1694,6 +1753,9 @@ function areaView(id){const a=areaOf(id);if(!a)return `<div class="empty">That a
   h+=`<div class="p-stats"><div style="grid-column:span 2"><span>What "fine" looks like</span><b class="serif">${esc(a.standard||"Not written yet")}</b></div><div style="grid-column:span 2"><span>Why this status${a.statusSetBy?` · set by ${esc(a.statusSetBy)}`:""}${a.reviewedAt?`, ${esc(nice(iso(new Date(a.reviewedAt))))}`:""}</span><b>${esc(a.statusNote||"—")}</b></div></div><p style="margin:-16px 0 24px"><button class="btn" data-editarea="${esc(a.id)}">Edit standard and note</button></p>`;
   h+=`<section><div class="sh"><h2>Goals</h2><span class="n">${gs.length}</span><button class="act" data-newgoal="quarter" data-garea="${esc(a.id)}">+ Goal</button></div>${gs.length?`<div class="gls">${gs.map(goalLine).join("")}</div>`:`<div class="empty">No goals in ${esc(a.name)}.</div>`}</section>`;
   h+=`<section><div class="sh"><h2>Habits</h2><span class="n">${hs.length}</span><button class="act" data-newhabit="${esc(a.id)}">+ Habit</button></div>${hs.map(x=>`<div class="hrow"><button class="lk" data-edithabit="${esc(x.id)}"><b>${esc(x.title)}</b><span>${esc(hCad(x))}</span></button><span class="hds" aria-hidden="true">${hDots(x)}</span><span class="hs">${esc(hStreakTxt(x))}</span></div>`).join("")||`<div class="empty">No habits in ${esc(a.name)}.</div>`}</section>`;
+  const ms=metricsOf(a.id),rs=recLive().filter(r=>r.areaId===a.id).sort((x,y)=>String(x.renewsOn||"9999").localeCompare(String(y.renewsOn||"9999")));
+  h+=`<section><div class="sh"><h2>Numbers</h2><span class="n">${ms.length}</span><button class="act" data-newmetric="${esc(a.id)}">+ Number</button></div>${ms.map(metricRow).join("")||`<div class="empty">No numbers for ${esc(a.name)}. Track one or two worth watching (weight, savings, words written).</div>`}</section>`;
+  if(rs.length)h+=`<section><div class="sh"><h2>Life admin</h2><span class="n">${rs.length}</span><button class="act" data-newrec="${esc(a.id)}">+ Item</button></div>${rs.map(recRow).join("")}</section>`;
   h+=`<section><div class="sh"><h2>Projects</h2><span class="n">${ps.length}</span></div>${ps.map(p=>{const n=S.tasks.filter(t=>fam(p.id).includes(t.projectId)&&open(t)).length;return `<button class="nrow" data-proj="${esc(p.id)}"><span class="dot" style="background:${esc(p.color||COLORS[7])};margin-top:8px"></span><span class="nb"><b>${esc(fullName(p))}</b><span>${n} open</span></span></button>`}).join("")||`<div class="empty">No projects in ${esc(a.name)}. Set a project's life area in Edit project.</div>`}</section>`;
   const dec=S.notes.filter(n=>ids.includes(n.projectId)&&(n.kind==="decision"||n.kind==="fact")).sort((x,y)=>String(y.createdAt||"").localeCompare(String(x.createdAt||""))).slice(0,6);
   if(dec.length)h+=`<section><div class="sh"><h2>Recent decisions and facts</h2></div>${dec.map(noteRow).join("")}</section>`;
@@ -1744,6 +1806,127 @@ function logView(){const t=T(),mo=S.logMonth||t.slice(0,7),[yy,mm]=mo.split("-")
   const facts=[[`Done`,f.done.map(x=>x.title)],[`Calls`,f.calls.map(callTitle)],[`Decided`,f.dec.map(x=>x.title)],[`Notes`,f.notes.filter(n=>n.kind!=="decision").map(x=>x.title)],[`Habits`,f.hb.map(x=>x.title)]].filter(x=>x[1].length);
   h+=facts.length?`<dl class="logf">${facts.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v.slice(0,6).join(" · "))}${v.length>6?` and ${v.length-6} more`:""}</dd>`).join("")}</dl>`:"";
   h+=`<button class="btn" data-logedit="${sel}">${l?"Edit this day":"Write about this day"}</button></article></div>`;
+  return h}
+/* ---------- Life OS rhythm: area numbers (metrics), life admin (records with renewals) and guided reviews ---------- */
+const metricsOf=a=>(S.metrics||[]).filter(m=>m.active!==false&&(!a||m.areaId===a)).sort((x,y)=>(x.order??99)-(y.order??99));
+const mLogs=m=>(S.metric_logs||[]).filter(x=>x.metricId===m.id).sort((a,b)=>a.day.localeCompare(b.day));
+const mLast=m=>{const l=mLogs(m);return l.length?l[l.length-1]:null};
+const numTxt=v=>v==null?"—":String(Math.round(+v*100)/100);
+// which way it went over the last 30 days, in words and an arrow; "better" says whether up is good
+function mTrend(m){const l=mLogs(m);if(l.length<2)return null;const last=l[l.length-1],from=l.find(x=>x.day>=addDays(last.day,-30))||l[0];if(from===last)return null;
+  const d=+last.value-+from.value;if(!d)return{a:"→",w:"steady",good:true};const up=d>0;return{a:up?"↑":"↓",w:up?"up":"down",good:up===(m.better!=="down")}}
+function spark(m,w=160,h=36){const l=mLogs(m).filter(x=>x.day>=addDays(T(),-90));if(l.length<2)return "";const vs=l.map(x=>+x.value),lo=Math.min(...vs,m.target??Infinity),hi=Math.max(...vs,m.target??-Infinity),r=hi-lo||1;
+  const t0=parse(l[0].day).getTime(),t1=parse(l[l.length-1].day).getTime()||t0+1,X=d=>((parse(d).getTime()-t0)/((t1-t0)||1))*(w-4)+2,Y=v=>h-2-((v-lo)/r)*(h-4);
+  const tg=m.target!=null?`<line x1="0" x2="${w}" y1="${Y(m.target)}" y2="${Y(m.target)}" class="sp-t"/>`:"";
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${tg}<polyline points="${l.map(x=>`${X(x.day).toFixed(1)},${Y(+x.value).toFixed(1)}`).join(" ")}"/></svg>`}
+function metricRow(m){const l=mLast(m),tr=mTrend(m);
+  return `<div class="mrow"><button class="lk" data-editmetric="${esc(m.id)}"><b>${esc(m.name)}</b><span>${esc([m.target!=null?`aim ${numTxt(m.target)}${m.unit?" "+m.unit:""}`:"",m.better==="down"?"lower is better":""].filter(Boolean).join(" · ")||"Edit")}</span></button>
+    <span class="mv"><b>${esc(numTxt(l?.value))}${l&&m.unit?` <small>${esc(m.unit)}</small>`:""}</b><span>${l?esc(nice(l.day)):"Not logged yet"}${tr?` · <span class="${tr.good?"ok":"warn"}">${tr.a} ${tr.w}</span>`:""}</span></span>${spark(m)}
+    <form class="p-add mlog" data-mlog="${esc(m.id)}"><label class="sr" for="ml-${esc(m.id)}">${esc(m.name)} today</label><input id="ml-${esc(m.id)}" name="v" type="number" step="any" inputmode="decimal" placeholder="Today" value="${esc(mLogs(m).find(x=>x.day===T())?.value??"")}"><button class="btn" type="submit">Log</button></form></div>`}
+async function logMetric(id,v,d=T()){const m=(S.metrics||[]).find(x=>x.id===id);if(!m)return;const l=(S.metric_logs||[]).find(x=>x.metricId===id&&x.day===d);
+  if(v===""||v==null){if(l)await S.db.doc("metric_logs/"+l.id).delete();return}
+  if(l)await S.db.doc("metric_logs/"+l.id).update({value:+v});else await S.db.collection("metric_logs").add({metricId:id,day:d,value:+v});
+  // a number goal that follows this metric moves with it
+  for(const g of (S.goals||[]).filter(g=>g.metricId===id&&g.status==="active"))if(+g.current!==+v)await S.db.doc("goals/"+g.id).update({current:+v})}
+/* life admin */
+const RK={document:"Document",policy:"Policy",subscription:"Subscription",id:"ID",account:"Account",warranty:"Warranty",other:"Other"};
+const recLive=()=>(S.records||[]).filter(r=>!r.archivedAt);
+const recLeft=r=>r.renewsOn?Math.round((parse(r.renewsOn)-parse(T()))/864e5):null;
+const recDue=r=>r.renewsOn&&recLeft(r)<=(r.remindDays??30);
+const recTask=r=>r.taskId?S.tasks.find(t=>t.id===r.taskId)||null:null;
+const addMonths=(s,k)=>{const d=parse(s),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+k);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return iso(d)};
+function recWhen(r){const k=recLeft(r);if(k==null)return "No date";return k<0?`${-k} day${k===-1?"":"s"} late`:k===0?"Today":k<=60?`in ${k} day${k===1?"":"s"}`:parse(r.renewsOn).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+// the project a renewal task goes to: an admin project in the record's area, else Admin & finance
+function recProj(r){const ps=S.projects.filter(p=>p.lifeArea===r.areaId&&!p.archivedAt);return(ps.find(p=>/admin/i.test(p.name))||ps[0]||proj("admin-finance")||null)?.id||null}
+async function renewTask(r){const t=await S.db.collection("tasks").add({title:`Renew ${r.title}`,projectId:recProj(r),due:r.renewsOn,status:"todo",priority:"med",source:"hub",steps:[],blockedBy:[],createdAt:now(),
+    notes:[r.url?`File: ${r.url}`:"",r.amount!=null?`Last time: ${r.currency||"INR"} ${r.amount}`:"",r.everyMonths?`Repeats every ${r.everyMonths} months; done rolls the date forward.`:""].filter(Boolean).join("\n")||null,activity:[{at:now(),by:"you",text:`Made from Life admin: ${r.title}`}]});
+  if(t)await S.db.doc("records/"+r.id).update({taskId:t.id});return t}
+// a renewal task that's done moves the record to its next date; runs after each sync and each "done"
+let rolling=false;
+async function rollRenewals(){if(rolling)return;rolling=true;try{for(const r of recLive()){const t=recTask(r);if(!t||t.status!=="done")continue;
+    let next=r.renewsOn;if(r.everyMonths&&next){next=addMonths(next,r.everyMonths);while(next<T())next=addMonths(next,r.everyMonths)}
+    await S.db.doc("records/"+r.id).update({renewsOn:next,taskId:null})}}catch{}finally{rolling=false}}
+function recRow(r){const a=areaOf(r.areaId),t=recTask(r),k=recLeft(r),late=k!=null&&k<0;
+  return `<div class="rec"><button class="lk" data-editrec="${esc(r.id)}"><b>${esc(r.title)}</b><span>${esc([RK[r.kind]||"Other",a?.name,r.amount!=null?`${r.currency||"INR"} ${numTxt(r.amount)}`:"",r.everyMonths?`every ${r.everyMonths===12?"year":r.everyMonths+" months"}`:""].filter(Boolean).join(" · "))}</span></button>
+    <span class="when${late?" due":""}">${esc(recWhen(r))}${r.renewsOn&&(k>60||k<-60)?"":r.renewsOn?` · ${esc(nice(r.renewsOn))}`:""}</span>
+    <span class="hacts">${r.url?`<a class="tool" href="${esc(r.url)}" target="_blank" rel="noopener">Open file</a>`:""}${t&&t.status!=="done"?`<button class="tool" data-peek="${esc(t.id)}">Renewal task</button>`:r.renewsOn&&recDue(r)?`<button class="tool" data-rectask="${esc(r.id)}">Make renewal task</button>`:""}</span></div>`}
+function adminView(){const rs=recLive().sort((a,b)=>String(a.renewsOn||"9999").localeCompare(String(b.renewsOn||"9999"))),due=rs.filter(recDue);
+  let h=`<div class="head"><div><div class="eyebrow">LIVE</div><h1>Life admin</h1><div class="sub">Renewals, documents and subscriptions. A renewal task appears ${esc("30 days")} before each date (you can change that per item).</div></div><div class="right"><button class="btn primary" data-newrec>+ Item</button></div></div>`;
+  if(!rs.length)return h+`<div class="empty">Nothing tracked yet. Start with the passport, insurance and the subscriptions that renew themselves. Keep numbers out of here: link to where the file lives instead.</div>`;
+  if(due.length)h+=`<section><div class="sh"><h2>Due soon or late</h2><span class="n">${due.length}</span></div>${due.map(recRow).join("")}</section>`;
+  for(const a of [...areaList(),{id:null,name:"No area"}]){const xs=rs.filter(r=>!due.includes(r)&&(r.areaId||null)===a.id);if(xs.length)h+=`<section><div class="sh"><h2>${esc(a.name)}</h2><span class="n">${xs.length}</span></div>${xs.map(recRow).join("")}</section>`}
+  return h+`<p class="pk-src">Don't type passport, policy or account numbers here. Link to where the document lives (Drive, a folder) instead.</p>`}
+/* reviews: one row per kind and period; the 9 AM lead may pre-write draft text, the numbers here are always live */
+const RV={weekly:{l:"Weekly review",m:"about 10 minutes",steps:[["wins","Wins and what got done"],["energy","Energy and habits"],["goals","Goals: moved or stalled"],["areas","Areas: still fine?"],["inbox","Inbox to zero"],["focus","Next week's focus"]]},
+  monthly:{l:"Monthly review",m:"about 15 minutes",steps:[["numbers","The month in numbers"],["goals","Goals progress"],["areas","Area statuses"],["admin","Life admin next month"],["change","One change for next month"]]},
+  quarterly:{l:"Quarterly review",m:"about 30 minutes",steps:[["qgoals","Quarter goals: done, carry or drop"],["compass","Compass check"],["nextq","Next quarter's goals"],["archive","Archive finished projects"]]},
+  yearly:{l:"Yearly review",m:"about an hour",steps:[["year","The year in review"],["compass","Rewrite the compass"],["ygoals","Next year's goals"],["standards","Areas: new standards"]]}};
+// the period each kind looks back on, and whether it's open for review today
+function rvPeriod(kind,d=T()){const x=parse(d),y=x.getFullYear(),mo=x.getMonth();
+  if(kind==="weekly"){const m=monOf(d);return x.getDay()===0?m:addDays(m,-7)}
+  if(kind==="monthly")return iso(new Date(y,mo-1,1));
+  if(kind==="quarterly")return qStart(iso(new Date(y,mo-3,1)));
+  return mo===11&&x.getDate()>=24?`${y}-01-01`:`${y-1}-01-01`}
+function rvEnd(kind,s){const x=parse(s);if(kind==="weekly")return addDays(s,6);if(kind==="monthly")return iso(new Date(x.getFullYear(),x.getMonth()+1,0));if(kind==="quarterly")return iso(new Date(x.getFullYear(),x.getMonth()+3,0));return `${x.getFullYear()}-12-31`}
+// when the review shows up as "ready": weekly Sunday to Tuesday, monthly the 1st to the 7th, quarterly in the quarter's first 2 weeks, yearly from 24 Dec to 14 Jan
+function rvOpen(kind,d=T()){const x=parse(d),mo=x.getMonth(),dd=x.getDate();if(kind==="weekly")return [0,1,2].includes(x.getDay());if(kind==="monthly")return dd<=7;if(kind==="quarterly")return mo%3===0&&dd<=14;return(mo===11&&dd>=24)||(mo===0&&dd<=14)}
+const rvRow=(kind,s)=>(S.reviews||[]).find(r=>r.kind===kind&&r.periodStart===s)||null;
+const rvName=(kind,s)=>kind==="weekly"?`Week of ${parse(s).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:kind==="monthly"?parse(s).toLocaleDateString("en-GB",{month:"long",year:"numeric"}):kind==="quarterly"?qName(s):s.slice(0,4);
+function rvDue(){const out=[];for(const k of Object.keys(RV)){if(!rvOpen(k))continue;const s=rvPeriod(k),r=rvRow(k,s);if(!r||r.status==="draft"||r.status==="in_progress")out.push({kind:k,start:s,row:r})}
+  return out}
+// an older review nobody finished is marked skipped once a newer one of its kind is due
+let rvTidying=false;
+async function tidyReviews(){if(rvTidying)return;rvTidying=true;try{for(const r of (S.reviews||[]))if((r.status==="draft"||r.status==="in_progress")&&r.periodStart<rvPeriod(r.kind)&&rvOpen(r.kind))await S.db.doc("reviews/"+r.id).update({status:"skipped"})}catch{}finally{rvTidying=false}}
+async function rvStart(kind,s){let r=rvRow(kind,s);if(!r)r=await S.db.collection("reviews").add({kind,periodStart:s,draft:{},answers:{},status:"in_progress",step:0,draftedBy:"app"});
+  else if(r.status==="draft"||r.status==="skipped")await S.db.doc("reviews/"+r.id).update({status:"in_progress"});
+  if(r){S.view="review";S.review=r.id;render();document.querySelector("main").scrollTo(0,0)}}
+const inRange=(at,a,b)=>{if(!at)return false;const d=String(at).length>10?iso(new Date(at)):at;return d>=a&&d<=b};
+// area flags from the spec: habits under half for two weeks, a stalled goal, or a renewal that's late
+function areaFlags(a){const why=[],hs=habitsOn().filter(h=>h.areaId===a.id);
+  if(hs.length){let due=0,dn=0;for(let i=1;i<=14;i++){const d=addDays(T(),-i);for(const h of hs){if(h.cadence==="weekly"){if(parse(d).getDay()===0){due+=h.perWeek||1;dn+=Math.min(h.perWeek||1,hWeek(h,d))}}else if(hDue(h,d)){due++;if(hLog(h,d)?.done)dn++}}}if(due&&dn/due<.5)why.push(`habits ${Math.round(dn/due*100)}% for two weeks`)}
+  for(const g of liveGoals().filter(g=>g.areaId===a.id&&gStalled(g)))why.push(`“${g.title}” hasn't moved in 3 weeks`);
+  for(const r of recLive().filter(r=>r.areaId===a.id&&recLeft(r)!=null&&recLeft(r)<0))why.push(`${r.title} is late`);
+  return why}
+function rvAreas(){return `<div class="rv-areas">${areaList().map(a=>{const f=areaFlags(a);return `<div class="rv-area"><div><b>${esc(a.name)}</b><span>${esc(a.standard&&!/^\[/.test(a.standard)?a.standard:"No standard written yet")}</span>${f.length?`<span class="warn">Maybe Watch: ${esc(f.join("; "))}</span>`:""}</div><div class="seg2" role="radiogroup" aria-label="${esc(a.name)}">${Object.entries(AST).map(([k,v])=>`<button role="radio" aria-checked="${a.status===k}" data-astatus="${k}" data-aid="${esc(a.id)}" class="as-${v.c}">${v.l}</button>`).join("")}</div></div>`}).join("")}</div>`}
+const rvList=(xs,f,empty="Nothing here.")=>xs.length?`<ul class="pk-list">${xs.slice(0,12).map(f).join("")}${xs.length>12?`<li class="note">and ${xs.length-12} more</li>`:""}</ul>`:`<p class="note">${empty}</p>`;
+const rvGoals=gs=>gs.length?`<div class="gls">${gs.map(goalLine).join("")}</div>`:`<p class="note">No goals for this period. <button class="act" data-newgoal="quarter">Set one</button></p>`;
+function rvStepBody(r,key){const a=r.periodStart,b=rvEnd(r.kind,a),done=S.tasks.filter(t=>t.status==="done"&&inRange(t.doneAt,a,b)),logs=(S.daily_log||[]).filter(l=>inRange(l.day,a,b)),hs=habitsOn();
+  const es=logs.filter(l=>l.energy),avg=es.length?Math.round(es.reduce((n,l)=>n+l.energy,0)/es.length*10)/10:null;
+  const hPct=()=>{let due=0,dn=0;for(let d=a;d<=b&&d<=T();d=addDays(d,1))for(const h of hs){if(h.cadence==="weekly"){if(parse(d).getDay()===0||d===b){due+=h.perWeek||1;dn+=Math.min(h.perWeek||1,hWeek(h,d))}}else if(hDue(h,d)){due++;if(hLog(h,d)?.done)dn++}}return due?Math.round(dn/due*100):null};
+  const nq=qStart(addDays(rvEnd("quarterly",r.kind==="quarterly"?a:qStart(T())),1));
+  switch(key){
+  case "wins":{const wins=logs.filter(l=>l.win);return `<p class="rv-num"><b>${done.length}</b> task${done.length===1?"":"s"} done</p>${wins.length?`<h4>Wins you wrote down</h4>${rvList(wins,l=>`<li>${esc(l.win)}<span class="when">${esc(nice(l.day))}</span></li>`)}`:""}<h4>Done</h4>${rvList(done.sort((x,y)=>String(y.doneAt).localeCompare(String(x.doneAt))),t=>`<li><button class="lk" data-peek="${esc(t.id)}">${esc(t.title)}</button><span class="when">${esc(fullName(proj(t.projectId))||"")}</span></li>`,"Nothing marked done.")}`}
+  case "energy":return `<p class="rv-num">${avg?`Energy averaged <b>${avg}</b> of 5 over ${es.length} check-in${es.length===1?"":"s"}`:"No check-ins this week"}${hPct()!=null?` · habits <b>${hPct()}%</b>`:""}</p><div class="hw-wrap">${hs.map(h=>`<div class="hw"><span>${esc(h.title)}</span><span class="hw-d" role="img" aria-label="${esc(h.title)}">${[0,1,2,3,4,5,6].map(i=>{const d=addDays(a,i),l=hLog(h,d);return `<i class="${l?.done?"on":l?.skipped?"sk":d>T()?"fut":!hDue(h,d)?"off":""}"></i>`}).join("")}</span></div>`).join("")||`<p class="note">No habits yet.</p>`}</div>`;
+  case "goals":{const gs=liveGoals().filter(g=>g.horizon==="quarter"&&g.periodStart===qStart(b>T()?T():b)),st=gs.filter(gStalled);return `${st.length?`<p class="warn">${st.length} stalled: ${esc(st.map(g=>g.title).join(", "))}. Link a task to each, or pause it.</p>`:""}${rvGoals(gs)}`}
+  case "areas":return rvAreas();
+  case "inbox":{const ni=S.notes.filter(n=>!n.projectId&&!n.supersededBy).length,sg=S.tasks.filter(sugg).length;return `<p class="rv-num"><b>${ni}</b> unfiled note${ni===1?"":"s"} · <b>${sg}</b> suggested task${sg===1?"":"s"}</p><p><button class="btn" data-go="notes">Open the Notes inbox</button> <button class="btn" data-go="suggested">Go through Suggested</button></p><p class="note">Come back here when they're at zero, or note what's left.</p>`}
+  case "focus":{const nm=addDays(monOf(b),7),th=(S.focus_themes||[]).filter(f=>f.span==="week"&&f.day===nm);
+    return `<p class="note">3–5 themes for the week of ${esc(parse(nm).toLocaleDateString("en-GB",{day:"numeric",month:"short"}))}, each serving a goal. They show on the Week view.</p>${rvList(th,f=>`<li>${esc(f.title)}${f.goalId&&goalById(f.goalId)?` <span class="gtag">${esc(goalById(f.goalId).title)}</span>`:""}</li>`,"No themes yet for next week.")}
+      <form class="p-add" data-rvtheme="${esc(nm)}"><label class="sr" for="rvth">Theme</label><input id="rvth" name="t" placeholder="e.g. Close the HLTH campaign" autocomplete="off"><label class="sr" for="rvtg">Serves goal</label><select id="rvtg" name="g">${goalOpts(null)}</select><button class="btn" type="submit">Add theme</button></form>`}
+  case "numbers":{const ms=metricsOf();return `<p class="rv-num"><b>${done.length}</b> done${hPct()!=null?` · habits <b>${hPct()}%</b>`:""}${avg?` · energy <b>${avg}</b>`:""}</p>${ms.length?ms.map(m=>{const l=mLogs(m).filter(x=>x.day<=b),last=l[l.length-1],first=l.find(x=>x.day>=a);return `<div class="mrow sm"><span><b>${esc(m.name)}</b></span><span class="mv"><b>${esc(numTxt(last?.value))}${m.unit?` <small>${esc(m.unit)}</small>`:""}</b><span>${first&&last&&first!==last?`from ${esc(numTxt(first.value))}`:""}</span></span>${spark(m)}</div>`}).join(""):`<p class="note">No numbers tracked. Add one on an area page.</p>`}`}
+  case "admin":{const nx=iso(new Date(parse(b).getFullYear(),parse(b).getMonth()+2,0)),rs=recLive().filter(r=>r.renewsOn&&r.renewsOn<=nx).sort((x,y)=>x.renewsOn.localeCompare(y.renewsOn));return rvList(rs,r=>`<li>${esc(r.title)}<span class="when">${esc(recWhen(r))}</span></li>`,"Nothing renews before the end of next month.")+`<p><button class="btn" data-go="admin">Life admin</button></p>`}
+  case "change":return `<p class="note">One thing to do differently next month. Write it below; it stays with this review.</p>`;
+  case "qgoals":{const gs=(S.goals||[]).filter(g=>g.horizon==="quarter"&&g.periodStart===a&&g.status!=="dropped");return gs.length?gs.map(g=>`<div class="rv-g">${goalLine(g)}<div class="hacts">${g.status==="done"?`<span class="note">Achieved</span>`:`<button class="tool" data-gstatus="done" data-gid="${esc(g.id)}">Done</button><button class="tool" data-gcarry="${esc(g.id)}" data-q="${esc(nq)}">Carry to ${esc(qName(nq))}</button><button class="tool" data-gstatus="dropped" data-gid="${esc(g.id)}">Drop</button>`}</div></div>`).join(""):`<p class="note">No goals were set for ${esc(qName(a))}.</p>`}
+  case "compass":{const c=(S.compass||[])[0]||{},vals=Array.isArray(c.values)?c.values:[];return `${c.vision?`<p class="serif">${esc(c.vision)}</p>`:`<p class="note">No vision written yet.</p>`}${vals.length?`<div class="chips">${vals.map(v=>`<span class="chip">${esc(v.name||v)}</span>`).join("")}</div>`:""}${(c.notDoing||[]).length?`<p class="note">Not doing: ${esc(c.notDoing.join("; "))}</p>`:""}<p><button class="btn" data-editcompass>Edit compass</button></p>`}
+  case "nextq":{const ys=liveGoals().filter(g=>g.horizon==="year"),gs=(S.goals||[]).filter(g=>g.horizon==="quarter"&&g.periodStart===nq&&g.status!=="dropped");return `${ys.length?`<p class="note">Under this year's goals: ${esc(ys.map(g=>g.title).join(", "))}</p>`:""}${gs.length?`<div class="gls">${gs.map(goalLine).join("")}</div>`:`<p class="note">None yet for ${esc(qName(nq))}.</p>`}<p><button class="btn" data-newgoal="quarter" data-gperiod="${esc(nq)}">+ Goal for ${esc(qName(nq))}</button></p>`}
+  case "archive":{const ps=S.projects.filter(p=>!p.archivedAt&&!isWs(p)&&S.tasks.some(t=>t.projectId===p.id)&&!S.tasks.some(t=>t.projectId===p.id&&open(t)));return rvList(ps,p=>`<li><button class="lk" data-proj="${esc(p.id)}">${esc(fullName(p))}</button><span class="when"><button class="tool" data-rvarch="${esc(p.id)}">Archive</button></span></li>`,"No finished projects to archive.")}
+  case "year":{const wins=logs.filter(l=>l.win),gs=(S.goals||[]).filter(g=>g.horizon==="year"&&g.periodStart===a);return `<p class="rv-num"><b>${done.length}</b> done${avg?` · energy <b>${avg}</b> on average`:""}</p>${rvGoals(gs)}${wins.length?`<h4>Wins</h4>${rvList(wins,l=>`<li>${esc(l.win)}<span class="when">${esc(nice(l.day))}</span></li>`)}`:""}`}
+  case "ygoals":{const ny=(+a.slice(0,4)+1)+"-01-01",gs=(S.goals||[]).filter(g=>g.horizon==="year"&&g.periodStart===ny&&g.status!=="dropped");return `${gs.length?`<div class="gls">${gs.map(goalLine).join("")}</div>`:`<p class="note">None yet for ${ny.slice(0,4)}. Three to five is plenty.</p>`}<p><button class="btn" data-newgoal="year" data-gperiod="${esc(ny)}">+ Goal for ${ny.slice(0,4)}</button></p>`}
+  case "standards":return areaList().map(x=>`<div class="rec"><span class="lk"><b>${esc(x.name)}</b><span>${esc(x.standard&&!/^\[/.test(x.standard)?x.standard:"Not written yet")}</span></span><span></span><span class="hacts"><button class="tool" data-editarea="${esc(x.id)}">Edit</button></span></div>`).join("")}
+  return ""}
+function reviewPage(id){const r=(S.reviews||[]).find(x=>x.id===id);if(!r)return `<div class="empty">That review isn't there any more. <button class="act" data-go="reviews">All reviews</button></div>`;
+  const K=RV[r.kind],n=K.steps.length,i=Math.max(0,Math.min(n-1,r.step||0)),[key,title]=K.steps[i],ans=(r.answers||{})[key]||{},dr=(r.draft||{})[key],dt=typeof dr==="string"?dr:dr?.text;
+  let h=`<div class="head"><div><div class="sub"><button class="crumb" data-go="reviews">Reviews</button> · ${esc(rvName(r.kind,r.periodStart))}${r.status==="done"?" · Done":r.status==="skipped"?" · Skipped":""}</div><h1>${esc(K.l)}</h1></div><div class="right"><span class="note">${esc(K.m)}</span></div></div>`;
+  h+=`<ol class="rv-steps" aria-label="Steps">${K.steps.map(([k,t],j)=>`<li><button data-rvstep="${j}" aria-current="${j===i?"step":"false"}" class="${(r.answers||{})[k]?.seen?"seen":""}"><span>${j+1}</span>${esc(t)}</button></li>`).join("")}</ol>`;
+  h+=`<section class="card rv-card"><div class="eyebrow">STEP ${i+1} OF ${n}</div><h2>${esc(title)}</h2>${dt?`<div class="rv-draft"><div class="eyebrow">DRAFT${r.draftedBy&&r.draftedBy!=="app"?" · "+esc(String(r.draftedBy).replace(/^routine:|^agent:/,"")):""}</div><div class="md">${md(dt)}</div></div>`:""}${rvStepBody(r,key)}
+    <form class="rv-note" data-rvnote="${esc(r.id)}" data-key="${esc(key)}"><label>${key==="change"?"The one change":"Your notes"}<textarea name="note" placeholder="${key==="change"?"e.g. No calls before 11 on Fridays":"Optional"}">${esc(ans.note||"")}</textarea></label>
+    <div class="foot">${i>0?`<button type="submit" class="btn" name="go" value="${i-1}">Back</button>`:""}<span class="spacer"></span>${i<n-1?`<button type="submit" class="btn primary" name="go" value="${i+1}">Next</button>`:`<button type="submit" class="btn primary" name="go" value="finish">${r.status==="done"?"Save":"Finish review"}</button>`}</div></form></section>`;
+  return h}
+function reviewsView(){const due=rvDue(),past=(S.reviews||[]).filter(r=>!due.some(d=>d.row?.id===r.id)).sort((a,b)=>String(b.periodStart).localeCompare(String(a.periodStart))||a.kind.localeCompare(b.kind));
+  let h=`<div class="head"><div><div class="eyebrow">LIVE</div><h1>Reviews</h1><div class="sub">Sunday for the week, the 1st for the month, the first fortnight of a quarter, and the last week of December. The Friday work review stays separate.</div></div></div>`;
+  h+=due.length?`<section><div class="sh"><h2>Ready now</h2></div>${due.map(d=>`<div class="rec"><span class="lk"><b>${esc(RV[d.kind].l)}</b><span>${esc(rvName(d.kind,d.start))} · ${esc(RV[d.kind].m)}${d.row?.status==="in_progress"?" · started":d.row?" · draft ready":""}</span></span><span></span><span class="hacts"><button class="btn primary" data-rvstart="${d.kind}" data-s="${esc(d.start)}">${d.row?.status==="in_progress"?"Carry on":"Start"}</button></span></div>`).join("")}</section>`:`<div class="empty">Nothing due right now. The weekly review opens on Sunday.</div>`;
+  h+=`<section><div class="sh"><h2>Start one now</h2></div><div class="p-projs">${Object.entries(RV).map(([k,v])=>`<button class="lk tag" data-rvstart="${k}" data-s="${esc(rvPeriod(k))}"><i>${esc(v.l)}</i>${esc(rvName(k,rvPeriod(k)))}</button>`).join("")}</div></section>`;
+  if(past.length)h+=`<section><div class="sh"><h2>Past reviews</h2><span class="n">${past.length}</span></div>${past.map(r=>`<button class="nrow" data-review="${esc(r.id)}"><span class="nb"><b>${esc(RV[r.kind].l)} · ${esc(rvName(r.kind,r.periodStart))}</b><span>${esc(r.status==="done"?"Done"+(r.doneAt?" "+nice(iso(new Date(r.doneAt))):""):r.status==="skipped"?"Skipped":"Started")}${(r.answers||{}).change?.note?` · Change: ${esc(r.answers.change.note)}`:""}</span></span></button>`).join("")}</section>`;
   return h}
 /* ---------- topics: note tags that cut across projects (3+ notes in 2+ top-level projects, same rule as topics_due()); the hourly agent writes topic_briefs ---------- */
 const TOPIC_SKIP=new Set("handoff decision process schedule topics idea note notes usage todo person link fact overview family friends".split(" "));
@@ -1910,6 +2093,9 @@ function renderView(){
   else if(S.view==="goal")h+=goalPage(S.goal);
   else if(S.view==="habits")h+=habitsView();
   else if(S.view==="log")h+=logView();
+  else if(S.view==="reviews")h+=reviewsView();
+  else if(S.view==="review")h+=reviewPage(S.review);
+  else if(S.view==="admin")h+=adminView();
   else if(S.view==="archive"){const ar=S.projects.filter(p=>p.archivedAt).sort((a,b)=>String(b.archivedAt).localeCompare(String(a.archivedAt)));
     h+=`<div class="head"><div><h1>Archive</h1><div class="sub">Finished projects. Their briefs, notes, calls and done tasks are kept, and search still finds them.</div></div></div>`;
     h+=ar.length?`<section>${ar.map(p=>{const ids=fam(p.id),done=S.tasks.filter(t=>ids.includes(t.projectId)&&t.status==="done").length,nn=S.notes.filter(n=>ids.includes(n.projectId)).length;
@@ -2181,7 +2367,17 @@ document.addEventListener("click",async e=>{
   if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.areaGo){S.view="area";S.area=b.dataset.areaGo;S.pid=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.goal){S.view="goal";S.goal=b.dataset.goal;S.pid=null;setPeek(null);render();document.querySelector("main").scrollTo(0,0);return}
-  if(b.dataset.newgoal){openGoal(null,{horizon:b.dataset.newgoal,area:b.dataset.garea,parent:b.dataset.parent});return}
+  if(b.dataset.newgoal){openGoal(null,{horizon:b.dataset.newgoal,area:b.dataset.garea,parent:b.dataset.parent,period:b.dataset.gperiod});return}
+  if(b.dataset.rvstart){try{await rvStart(b.dataset.rvstart,b.dataset.s)}catch{toast("Couldn't start that review.")}return}
+  if(b.dataset.review){S.view="review";S.review=b.dataset.review;render();document.querySelector("main").scrollTo(0,0);return}
+  if(b.dataset.rvstep){const r=(S.reviews||[]).find(x=>x.id===S.review);if(r)try{await S.db.doc("reviews/"+r.id).update({step:+b.dataset.rvstep})}catch{toast("Couldn't save that.")}return}
+  if(b.dataset.gcarry){try{await S.db.doc("goals/"+b.dataset.gcarry).update({periodStart:b.dataset.q});toast(`Carried to ${qName(b.dataset.q)}`)}catch{toast("Couldn't save that.")}return}
+  if(b.dataset.rvarch){const p=proj(b.dataset.rvarch);if(p)try{await S.db.doc("projects/"+p.id).update({archivedAt:now()});toast(`${p.name} archived`)}catch{toast("Couldn't archive that.")}return}
+  if("newrec" in b.dataset){openRec(null,b.dataset.newrec||null);return}
+  if(b.dataset.editrec){openRec(recLive().find(r=>r.id===b.dataset.editrec));return}
+  if(b.dataset.rectask){const r=recLive().find(x=>x.id===b.dataset.rectask);if(r)try{const t=await renewTask(r);if(t)toast(`Task added: ${t.title}`)}catch{toast("Couldn't add that task.")}return}
+  if("newmetric" in b.dataset){openMetric(null,b.dataset.newmetric||null);return}
+  if(b.dataset.editmetric){openMetric((S.metrics||[]).find(m=>m.id===b.dataset.editmetric));return}
   if(b.dataset.editgoal){openGoal(goalById(b.dataset.editgoal));return}
   if(b.dataset.gstatus){const st=b.dataset.gstatus;try{await S.db.doc("goals/"+b.dataset.gid).update({status:st,doneAt:st==="done"?now():null});toast(st==="done"?"Goal achieved":st==="dropped"?"Goal dropped. It stays in history.":st==="paused"?"Goal paused":"Goal active again")}catch{toast("Couldn't save that.")}return}
   if("gshow" in b.dataset){S.gShowAll=!S.gShowAll;render();return}
@@ -2562,17 +2758,19 @@ async function exportAll(){toast("Preparing your export…",false);const out={ex
   download(`ambalam-${day}.json`,JSON.stringify(out,null,1),"application/json");setTimeout(()=>download(`ambalam-${day}.md`,m,"text/markdown"),400);
   toast("Exported: one JSON file with everything, one Markdown file to read",false)}
 /* Life OS editors */
-let editingG=null,editingH=null,editingA=null,logD=null;
+let editingG=null,editingH=null,editingA=null,logD=null,goalPer=null,editingRec=null,editingM=null;
 const areaOpts=sel=>`<option value="">No area</option>`+areaList().map(a=>`<option value="${esc(a.id)}" ${a.id===sel?"selected":""}>${esc(a.name)}</option>`).join("");
 const goalOpts=(sel,f=()=>true)=>`<option value="">None</option>`+liveGoals().filter(f).map(g=>`<option value="${esc(g.id)}" ${g.id===sel?"selected":""}>${esc(g.title)}${g.horizon==="year"?" (year)":""}</option>`).join("");
-function openGoal(g,o={}){editingG=g;const f=document.getElementById("goalForm").elements;document.getElementById("goalDlgTitle").textContent=g?"Edit goal":o.horizon==="year"?"New year goal":"New quarter goal";
+function openGoal(g,o={}){editingG=g;goalPer=g?null:o.period||null;const f=document.getElementById("goalForm").elements;document.getElementById("goalDlgTitle").textContent=g?"Edit goal":goalPer?`New goal for ${o.horizon==="year"?goalPer.slice(0,4):qName(goalPer)}`:o.horizon==="year"?"New year goal":"New quarter goal";
+  f.metricId.innerHTML=`<option value="">None, I'll update it by hand</option>`+metricsOf().map(m=>`<option value="${esc(m.id)}" ${m.id===g?.metricId?"selected":""}>${esc(m.name)}${m.unit?` (${esc(m.unit)})`:""}</option>`).join("");f.horizon.disabled=!!goalPer;
   f.title.value=g?.title||"";f.why.value=g?.why||"";f.horizon.value=g?.horizon||o.horizon||"quarter";f.areaId.innerHTML=areaOpts(g?.areaId||o.area||goalById(o.parent)?.areaId);
   f.parentId.innerHTML=goalOpts(g?.parentId||o.parent,x=>x.horizon==="year"&&x.id!==g?.id);f.measure.value=g?.measure||"milestones";f.target.value=g?.target??"";f.unit.value=g?.unit||"";gSync();document.getElementById("goalDlg").showModal()}
-function gSync(){const f=document.getElementById("goalForm").elements;document.getElementById("goalNum").hidden=f.measure.value!=="number";f.parentId.closest("label").hidden=f.horizon.value==="year"}
+function gSync(){const f=document.getElementById("goalForm").elements;const num=f.measure.value==="number";document.getElementById("goalNum").hidden=!num;document.getElementById("goalMet").hidden=!num||!metricsOf().length;f.parentId.closest("label").hidden=f.horizon.value==="year"}
 document.getElementById("goalForm").addEventListener("change",gSync);
 document.getElementById("goalForm").addEventListener("submit",async e=>{const f=e.target.elements,title=f.title.value.trim();if(!title)return;const hz=f.horizon.value;
-  const data={title,why:f.why.value.trim()||null,horizon:hz,areaId:f.areaId.value||null,parentId:hz==="quarter"?f.parentId.value||null:null,measure:f.measure.value,target:f.measure.value==="number"&&f.target.value!==""?+f.target.value:null,unit:f.unit.value.trim()||null};
-  try{if(editingG)await S.db.doc("goals/"+editingG.id).update(data);else{const row=await S.db.collection("goals").add({...data,periodStart:hz==="year"?yStart():qStart(),status:"active"});if(row){S.view="goal";S.goal=row.id;render()}}toast("Goal saved")}catch{toast("Couldn't save that goal. Try again.")}});
+  const data={title,why:f.why.value.trim()||null,horizon:hz,areaId:f.areaId.value||null,parentId:hz==="quarter"?f.parentId.value||null:null,measure:f.measure.value,target:f.measure.value==="number"&&f.target.value!==""?+f.target.value:null,unit:f.unit.value.trim()||null,metricId:f.measure.value==="number"?f.metricId.value||null:null};
+  const m=data.metricId&&metricsOf().find(x=>x.id===data.metricId);if(m&&mLast(m))data.current=+mLast(m).value;
+  try{if(editingG)await S.db.doc("goals/"+editingG.id).update(data);else{const row=await S.db.collection("goals").add({...data,periodStart:goalPer||(hz==="year"?yStart():qStart()),status:"active"});if(row){S.view="goal";S.goal=row.id;render()}}toast("Goal saved")}catch{toast("Couldn't save that goal. Try again.")}});
 function openHabit(h,area){editingH=h;const f=document.getElementById("habitForm").elements;document.getElementById("habitDlgTitle").textContent=h?"Edit habit":"New habit";
   f.title.value=h?.title||"";f.cadence.value=h?.cadence||"daily";f.perWeek.value=String(h?.perWeek||3);f.partOfDay.value=h?.partOfDay||"day";f.areaId.innerHTML=areaOpts(h?.areaId||area);f.goalId.innerHTML=goalOpts(h?.goalId);
   const st=document.getElementById("stopHabit");st.hidden=!h;st.textContent=h?.active===false?"Start again":"Stop this habit";hSync();document.getElementById("habitDlg").showModal()}
@@ -2584,6 +2782,20 @@ document.getElementById("habitForm").addEventListener("submit",async e=>{const f
 document.getElementById("stopHabit").addEventListener("click",async()=>{if(!editingH)return;const on=editingH.active===false;try{await S.db.doc("habits/"+editingH.id).update({active:on});toast(on?"Habit restarted":"Habit stopped. Its history stays.")}catch{toast("Couldn't save that.")}document.getElementById("habitDlg").close()});
 function openArea(a){editingA=a;const f=document.getElementById("areaForm").elements;document.getElementById("areaDlgTitle").textContent=a.name;f.standard.value=a.standard&&!/^\[/.test(a.standard)?a.standard:"";f.statusNote.value=a.statusNote||"";document.getElementById("areaDlg").showModal()}
 document.getElementById("areaForm").addEventListener("submit",async e=>{if(!editingA)return;const f=e.target.elements;try{await S.db.doc("life_areas/"+editingA.id).update({standard:f.standard.value.trim()||null,statusNote:f.statusNote.value.trim()||null,reviewedAt:now()});toast("Saved")}catch{toast("Couldn't save that.")}});
+function openRec(r,area){editingRec=r;const f=document.getElementById("recForm").elements;document.getElementById("recDlgTitle").textContent=r?r.title:"New life admin item";
+  f.title.value=r?.title||"";f.kind.value=r?.kind||"document";f.areaId.innerHTML=areaOpts(r?.areaId||area);f.renewsOn.value=r?.renewsOn||"";f.everyMonths.value=r?.everyMonths?String(r.everyMonths):"";
+  if(r?.everyMonths&&f.everyMonths.value!==String(r.everyMonths)){f.everyMonths.insertAdjacentHTML("beforeend",`<option value="${+r.everyMonths}">Every ${+r.everyMonths} months</option>`);f.everyMonths.value=String(r.everyMonths)}
+  f.amount.value=r?.amount??"";f.currency.value=r?.currency||"INR";f.remindDays.value=r?.remindDays??30;f.url.value=r?.url||"";f.notes.value=r?.notes||"";document.getElementById("archRec").hidden=!r;document.getElementById("recDlg").showModal()}
+document.getElementById("recForm").addEventListener("submit",async e=>{const f=e.target.elements,title=f.title.value.trim();if(!title)return;
+  const data={title,kind:f.kind.value,areaId:f.areaId.value||null,renewsOn:f.renewsOn.value||null,everyMonths:f.everyMonths.value?+f.everyMonths.value:null,amount:f.amount.value===""?null:+f.amount.value,currency:f.currency.value.trim()||"INR",remindDays:f.remindDays.value===""?30:Math.max(0,+f.remindDays.value),url:f.url.value.trim()||null,notes:f.notes.value.trim()||null};
+  try{if(editingRec){await S.db.doc("records/"+editingRec.id).update(data);const t=recTask(editingRec);if(t&&open(t)&&data.renewsOn&&t.due!==data.renewsOn)await upd(t.id,{due:data.renewsOn})}else await S.db.collection("records").add(data);toast("Saved")}catch{toast("Couldn't save that.")}});
+document.getElementById("archRec").addEventListener("click",async()=>{if(!editingRec)return;try{await S.db.doc("records/"+editingRec.id).update({archivedAt:now()});toast("Archived. It stays in the export.")}catch{toast("Couldn't archive that.")}document.getElementById("recDlg").close()});
+function openMetric(m,area){editingM=m;const f=document.getElementById("metricForm").elements;document.getElementById("metricDlgTitle").textContent=m?m.name:"Track a number";
+  f.name.value=m?.name||"";f.unit.value=m?.unit||"";f.target.value=m?.target??"";f.better.value=m?.better||"up";f.areaId.innerHTML=areaOpts(m?.areaId||area);document.getElementById("stopMetric").hidden=!m;document.getElementById("metricDlg").showModal()}
+document.getElementById("metricForm").addEventListener("submit",async e=>{const f=e.target.elements,name=f.name.value.trim();if(!name)return;
+  const data={name,unit:f.unit.value.trim()||null,target:f.target.value===""?null:+f.target.value,better:f.better.value,areaId:f.areaId.value||null};
+  try{if(editingM)await S.db.doc("metrics/"+editingM.id).update(data);else await S.db.collection("metrics").add({...data,active:true});toast("Saved")}catch{toast("Couldn't save that.")}});
+document.getElementById("stopMetric").addEventListener("click",async()=>{if(!editingM)return;try{await S.db.doc("metrics/"+editingM.id).update({active:false});toast("Stopped. Its history stays.")}catch{toast("Couldn't save that.")}document.getElementById("metricDlg").close()});
 function openCompass(){const c=(S.compass||[])[0]||{},f=document.getElementById("compassForm").elements;f.vision.value=c.vision||"";f.values.value=(Array.isArray(c.values)?c.values:[]).map(v=>v.why?`${v.name}: ${v.why}`:v.name||v).join("\n");f.notDoing.value=(c.notDoing||[]).join("\n");document.getElementById("compassDlg").showModal()}
 document.getElementById("compassForm").addEventListener("submit",async e=>{const f=e.target.elements,lines=v=>v.split("\n").map(x=>x.trim()).filter(Boolean);
   const data={vision:f.vision.value.trim()||null,values:lines(f.values.value).map(l=>{const i=l.indexOf(":");return i>0?{name:l.slice(0,i).trim(),why:l.slice(i+1).trim()}:{name:l}}),notDoing:lines(f.notDoing.value)};
@@ -2595,6 +2807,13 @@ document.getElementById("logForm").addEventListener("submit",async e=>{if(!logD)
 document.addEventListener("submit",async e=>{
   if(e.target.id==="ciForm"){e.preventDefault();const f=e.target.elements,c=S.ci||{},l=logOf(T());
     try{await saveLog(T(),{energy:c.energy??l?.energy??null,mood:c.mood??l?.mood??null,line:f.line.value.trim()||null,win:f.win.value.trim()||null});S.ci=null;S.ciEdit=false;render();toast("Today is saved in your Log")}catch{toast("Couldn't save that.")}return}
+  if(e.target.dataset.mlog){e.preventDefault();try{await logMetric(e.target.dataset.mlog,e.target.elements.v.value);toast("Logged")}catch{toast("Couldn't save that.")}return}
+  if(e.target.dataset.rvnote){e.preventDefault();const r=(S.reviews||[]).find(x=>x.id===e.target.dataset.rvnote);if(!r)return;const k=e.target.dataset.key,go=e.submitter?.value,note=e.target.elements.note.value.trim();
+    const answers={...(r.answers||{}),[k]:{...((r.answers||{})[k]||{}),note:note||null,seen:true}},fin=go==="finish";
+    try{await S.db.doc("reviews/"+r.id).update(fin?{answers,status:"done",doneAt:r.doneAt||now()}:{answers,step:+go,status:r.status==="done"?"done":"in_progress"});
+      if(fin){toast(`${RV[r.kind].l} done`);S.view="life";render()}else document.querySelector("main").scrollTo(0,0)}catch{toast("Couldn't save that step.")}return}
+  if(e.target.dataset.rvtheme){e.preventDefault();const f=e.target.elements,title=f.t.value.trim();if(!title)return;
+    try{await S.db.collection("focus_themes").add({day:e.target.dataset.rvtheme,span:"week",title,taskIds:[],goalId:f.g.value||null});toast("Theme added for next week")}catch{toast("Couldn't add that theme.")}return}
   if(e.target.dataset.gnum){e.preventDefault();const v=e.target.elements.v.value;try{await S.db.doc("goals/"+e.target.dataset.gnum).update({current:v===""?null:+v});toast("Updated")}catch{toast("Couldn't save that.")}return}
   if(e.target.dataset.glink){e.preventDefault();const v=e.target.elements.x.value;if(!v)return;const[ty,id]=[v.slice(0,v.indexOf(":")),v.slice(v.indexOf(":")+1)],g=e.target.dataset.glink;
     if((S.links||[]).some(l=>l.fromType===ty&&l.fromId===id&&l.toType==="goal"&&l.toId===g)){toast("Already linked",false);return}
@@ -2602,7 +2821,7 @@ document.addEventListener("submit",async e=>{
 // the phone's More sheet: everything the five tabs leave out
 function openMore(){const g=(l,items)=>`<section><div class="sh"><h2>${l}</h2></div><div class="ms-g">${items.map(([v,t,c])=>`<button data-go="${v}">${t}${c?`<span class="count${v==="attention"?" hot":""}">${c}</span>`:""}</button>`).join("")}</div></section>`;
   document.getElementById("moreBody").innerHTML=g("Do",[["calls","Call prep"],["followups","Waiting on others",S.tasks.filter(fuDue).length||""],["attention","Needs attention",attentionCount()||""],["suggested","Suggested",S.tasks.filter(sugg).length||""],["agents","Run by agents",S.tasks.filter(x=>open(x)&&bot(x)).length||""],["projects","Projects"],["all","All tasks"]])
-    +g("Know",[["people","People"],["topics","Topics"],["brain","Mind map"],["archive","Archive"]])+g("Live",[["goals","Goals"],["habits","Habits"],["log","Log"]])
+    +g("Know",[["people","People"],["topics","Topics"],["brain","Mind map"],["archive","Archive"]])+g("Live",[["goals","Goals"],["habits","Habits"],["log","Log"],["reviews","Reviews",rvDue().length||""],["admin","Life admin"]])
     +`<div class="ms-g"><button data-capture>Capture</button><button data-find>Search</button><button data-theme-toggle>${document.documentElement.dataset.theme==="dark"?"Light mode":"Dark mode"}</button><button data-export>Export everything</button></div>`;
   document.getElementById("moreDlg").showModal()}
 document.getElementById("moreBody").addEventListener("click",e=>{if(e.target.closest("button"))document.getElementById("moreDlg").close()});
@@ -2740,7 +2959,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -2764,7 +2983,7 @@ const RAW={
   update:async(t,id,d)=>viaOutbox({op:"update",t,id,row:toRow(d)},async()=>ok(await sb.from(t).update(toRow(d)).eq("id",id))),
   upsert:async(t,row)=>viaOutbox({op:"upsert",t,row:toRow(row)},async()=>ok(await sb.from(t).upsert(toRow(row)))),
   del:async(t,id)=>viaOutbox({op:"del",t,id},async()=>ok(await sb.from(t).delete().eq("id",id)))};
-const PFX={tasks:"t-",notes:"n-",people:"p-",links:"l-",focus_themes:"f-",inputs:"i-",goals:"g-",habits:"h-",habit_logs:"hl-",daily_log:"d-"};
+const PFX={tasks:"t-",notes:"n-",people:"p-",links:"l-",focus_themes:"f-",inputs:"i-",goals:"g-",habits:"h-",habit_logs:"hl-",daily_log:"d-",reviews:"r-",records:"rec-",metrics:"m-",metric_logs:"ml-"};
 addEventListener("online",()=>{paintOutbox();OB.flush()});addEventListener("offline",paintOutbox);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const rowOf=(t,id)=>(S[t]||[]).find(x=>x.id===id);
@@ -2779,7 +2998,8 @@ S.db={
   doc(path){const[t,id]=path.split("/");return{
     update:async d=>{const cur=rowOf(t,id);const before=prevVals(cur,d);localPatch(t,id,d);paint();
       await saving(async()=>{try{await RAW.update(t,id,d)}catch(e){localPatch(t,id,before);paint();throw e}});
-      HIST.rec({t,id,kind:"update",before,after:d})},
+      HIST.rec({t,id,kind:"update",before,after:d});
+      if(t==="tasks"&&d.status==="done"&&(S.records||[]).some(r=>r.taskId===id))queueMicrotask(rollRenewals)},
     set:async d=>{const cur=rowOf(t,id);const before=cur?prevVals(cur,d):null;
       if(cur)localPatch(t,id,d);else (S[t]||(S[t]=[])).push({id,...d});paint();
       await saving(async()=>{try{await viaOutbox({op:"upsert",t,row:{id,...toRow(d)}},async()=>ok(await sb.from(t).upsert({id,...toRow(d)})))}catch(e){if(cur)localPatch(t,id,before);else localDrop(t,id);paint();throw e}});
@@ -2875,7 +3095,7 @@ async function doRefresh(){
   const tbriefs=(async()=>{try{return await sb.from("topic_briefs").select("tag,body,updated_at")}catch{return{error:1}}})();
   const ppl=(async()=>{try{return await sb.from("people").select("*")}catch{return{error:1}}})();
   const lnk=(async()=>{try{return await sb.from("links").select("*")}catch{return{error:1}}})();
-  const LIFE=[["life_areas",q=>q],["goals",q=>q],["habits",q=>q],["habit_logs",q=>q.gte("day",addDays(T(),-400))],["daily_log",q=>q.gte("day",addDays(T(),-400))],["compass",q=>q]];
+  const LIFE=[["life_areas",q=>q],["goals",q=>q],["habits",q=>q],["habit_logs",q=>q.gte("day",addDays(T(),-400))],["daily_log",q=>q.gte("day",addDays(T(),-400))],["compass",q=>q],["reviews",q=>q.gte("period_start",addDays(T(),-400))],["records",q=>q],["metrics",q=>q],["metric_logs",q=>q.gte("day",addDays(T(),-400))]];
   const life=Promise.all(LIFE.map(async([t,f])=>{try{return await f(sb.from(t).select("*"))}catch{return{error:1}}}));
   const feeds=(async()=>{try{return await sb.from("sync_state").select("source,last_run_at,note")}catch{return{error:1}}})();
   const[p,t]=await core;
@@ -2889,6 +3109,7 @@ async function doRefresh(){
   if(!pp.error&&Array.isArray(pp.data)&&W.n===0&&W.seq===seq0)S.people=pp.data.map(fromRow);
   if(!ll.error&&Array.isArray(ll.data)&&W.n===0&&W.seq===seq0)S.links=ll.data.map(fromRow);
   const lf=await life;LIFE.forEach(([t],i)=>{const r=lf[i];if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S[t]=r.data.map(fromRow)});
+  queueMicrotask(()=>{rollRenewals();tidyReviews()});
   if(!tb.error&&Array.isArray(tb.data))S.topicBriefs=Object.fromEntries(tb.data.map(x=>[String(x.tag).toLowerCase(),fromRow(x)]));
   if(!fo.error&&Array.isArray(fo.data)&&W.n===0&&W.seq===seq0)S.focus_themes=fo.data.map(fromRow);
   if(!ss.error&&Array.isArray(ss.data))S.feeds=ss.data.map(x=>({l:{wispr:"Calls",gmail:"Gmail",linear:"Linear"}[x.source]||x.source,at:x.last_run_at,note:x.note})).sort((a,b)=>a.l.localeCompare(b.l));
@@ -2914,7 +3135,7 @@ async function doRefresh(){
 }
 // last good snapshot, so the app paints at once on the next open and fills in fresh data after
 const CACHE="ambalam.cache.v1";
-function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,tbriefs:S.topicBriefs,people:S.people,links:S.links,life:{life_areas:S.life_areas,goals:S.goals,habits:S.habits,habit_logs:S.habit_logs,daily_log:S.daily_log,compass:S.compass}}))}catch{}}
+function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,tbriefs:S.topicBriefs,people:S.people,links:S.links,life:{life_areas:S.life_areas,goals:S.goals,habits:S.habits,habit_logs:S.habit_logs,daily_log:S.daily_log,compass:S.compass,reviews:S.reviews,records:S.records,metrics:S.metrics,metric_logs:S.metric_logs}}))}catch{}}
 function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE)||"null");if(!c||!Array.isArray(c.tasks)||Date.now()-c.at>14*864e5)return false;
   Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[],topicBriefs:c.tbriefs||{},people:c.people||[],links:c.links||[],...(c.life||{})});S.ready.p=S.ready.t=true;return true}catch{return false}}
 let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,250)}
