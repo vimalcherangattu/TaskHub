@@ -1,8 +1,9 @@
 # Status
 
-**Last updated:** 26 Oct 2026 (Life OS phase 1) (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 26 Oct 2026 (Life OS phase 2) (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
+- **Phase 2, Life OS core (26 Oct):** tables life_areas, goals, habits, habit_logs, daily_log, compass; `projects.life_area`, `focus_themes.goal_id`. App: Do / Know / Live sidebar, 5-tab phone bar with a More sheet, habits and the evening check-in on Today, Life, Area, Goals, Habits and Log pages, themes that serve a goal, a project's life area. Skill has a "Life OS" section. Test: `life.mjs`. Area standards are placeholders in brackets for Vimal to write.
 - **Life OS plan (25–26 Oct):** spec in `docs/life-os-spec.md`; 15 screens on the design canvas (page "Life OS + second brain", recoloured to the live scheme). Vimal's decisions are recorded in the spec. Build is in 4 phases.
 - **Phase 1, second brain complete (26 Oct):** new tables `people` and `links`, `projects.archived_at`, `tasks.chat_url`, RPC `person_match()`. 32 people backfilled from person notes and call attendees, with project links. App: People list (filters, map, "New from calls"), person page (projects with roles, works with, keep in touch, birthday, linked here), person editor, People strip on project pages, Keep in touch card on Today; `[[` links in notes and task notes with "Linked here" and "Might be related"; Archive; offline outbox (`ambalam.outbox.v1`); Export everything (JSON + Markdown); dictation in Capture; private lock on notes and tasks; a task remembers its Claude chat. Agent addendum `meeting-agent-9f-people-links` (people matching, last contact, suggested people, email captures to `vimalcherangattu+ambalam@gmail.com`, note links). Skill updated (People and links section): re-upload it to claude.ai. Tests: `peoplerec.mjs`, `links.mjs`, `phase1.mjs`.
 - **Hard deadlines (24 Oct):** new columns `tasks.due_firm` (the date can't move) and `tasks.due_time` (due by a time, IST; implies firm). Task sheet: "Due by (time)" field and a "Hard deadline" pill. Today opens with a red "Can't slip" band (hard ones due today or missed, earliest first, minute-by-minute countdown); a missed time counts as overdue; other rows show "Hard deadline" and the time in the due column; Push-after asks before moving one. `hub_merge_tasks` and the app's merge keep the winning date's hard flag and time. Skill, `reference/queries.md` (plate query has a "0 can't slip" bucket) and the agent (`agent_config` row `meeting-agent-9e-hard-deadlines`) set them only when told and never move them. Test: `hard.mjs`. The 9 AM lead (STEP 1, read only) now opens its push with a "Can't slip" line (today's, missed and tomorrow's hard deadlines) and flags a hard time that falls inside a meeting. Calendar stays read-only for agents; a calendar reminder is added only when Vimal asks for one in a chat (decided 24 Oct).
@@ -52,9 +53,10 @@
 - Nothing mid-change.
 
 ## Next step
-- Vimal: re-upload the task-hub skill (People and links section added 26 Oct).
-- Vimal: check People › person pages; DJ, Daranjee and Dhananjay may be one person (merge by editing one and archiving the others); Cabo and "Card-game group" are person notes, not people.
-- Build phase 2 of `docs/life-os-spec.md`: life areas, goals, habits, evening check-in and log, Life view, Do / Know / Live navigation and the 5-tab phone bar.
+- Vimal: re-upload the task-hub skill (People and links, and Life OS sections added 26 Oct).
+- Vimal: Cabo and "Card-game group" are person notes, not people (change their type in Notes if you like). Dhananjay (DJ) is merged.
+- Vimal: write each area's standard (Life › an area › Edit), set 3–5 goals for Q4, add 2–3 habits, and check in tonight after 6 PM.
+- Build phase 3: guided reviews (Sunday life review, monthly, quarterly, yearly), life admin with renewal tasks, area metrics, and the agent changes (nightly daily_log.summary, review drafts, renewals, area-status suggestions, stalled goals).
 - Phase 4 needs Vimal: create a Telegram bot (BotFather) and paste its key; create the private repo `ambalam-vault` and give Claude access.
 0. Vimal: paste the owner rule into the 4 session-bound production runs (This Weigh, So Anyway Why ×2, Romantasy). Their prompts can only be edited from their own sessions; the exact text is in Task Hub task "Paste the owner rule into the 4 production-run sessions" (due 26 Oct).
 1. Skill re-uploaded by Vimal on 24 Oct (zip with `reference/`, which the old copy lacked). Confirm in a new chat that it mentions `due_firm`.

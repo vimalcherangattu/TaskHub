@@ -210,6 +210,20 @@ People have their own records: `people(id, name, aliases, emails, org, role, cir
 - **Archive:** a finished project has `projects.archived_at` set (the app's Archive). Don't file new work into an archived project; ask first.
 - **Email captures:** Vimal can forward any email to `vimalcherangattu+ambalam@gmail.com`; the hourly agent files it into the Notes inbox.
 
+## Life OS: areas, goals, habits and the daily log (26 Oct 2026)
+
+The app's Live space (Life, Goals, Habits, Log) sits on these tables. Act directly, as with tasks; confirm each change in one line.
+
+- **Areas** `life_areas(id, name, standard, status, status_note, status_set_by, reviewed_at)`: ids `work`, `products`, `health`, `money`, `family-home`, `friends-people`, `growth`, `rest-fun`. `status` is `good` | `watch` | `off`. Agents may suggest `watch` (set `status_set_by = 'claude'` and a `status_note`); only Vimal sets `off`. Each project has `projects.life_area`.
+- **Goals** `goals(title, why, horizon, period_start, area_id, parent_id, measure, target, current, unit, status)`: `horizon` `year` (period_start = 1 Jan) or `quarter` (period_start = first day of the quarter); a quarter goal's `parent_id` is its year goal. `measure`: `milestones` (progress = linked tasks and projects done), `number` (`current` of `target` `unit`), `done`. `status`: `active` | `paused` | `done` (set `done_at`) | `dropped`. Keep it to 3–5 a quarter.
+  - Link what moves a goal: `insert into links (from_type, from_id, to_type, to_id, kind) values ('task' or 'project', '<id>', 'goal', '<goal id>', 'part_of') on conflict do nothing;`
+  - A week or day theme can serve a goal: `focus_themes.goal_id`.
+- **Habits** `habits(title, area_id, goal_id, cadence, per_week, part_of_day, active)`: `cadence` `daily` | `weekdays` | `weekly` (with `per_week`); `part_of_day` `morning` | `day` | `evening`. Stop a habit with `active = false` (history stays). Habits are not tasks; never add them as tasks.
+  - "I meditated today": `insert into habit_logs (habit_id, day, done) values ('<id>', (now() at time zone 'Asia/Kolkata')::date, true) on conflict (habit_id, day) do update set done = true, skipped = false;` A sick or travel day: `skipped = true, done = false` (keeps the streak).
+- **Daily log** `daily_log(day, energy, mood, line, win, lesson, body, summary)`: one row per day (`day` unique), energy and mood 1–5. **"Log today" / "today was…":** upsert today's row (`on conflict (day) do update`). `summary` is the agent-written facts of the day; Vimal's own words go in `line`, `win`, `lesson`, `body`. Agents may read check-ins (decided 26 Oct) but the rows are private: never put them into pushes, digests or Zen.
+- **Compass** `compass` (one row, id 1): `vision`, `values` (JSON list of `{name, why}`), `not_doing` (text list).
+- **"How's my life?"**: areas with status and note, this quarter's goals with progress and anything with no movement in 3 weeks, habits this week, and the energy average from `daily_log` for the last 28 days. Keep it to a few lines.
+
 ### Calls, segments and briefs
 
 - `sources`: one row per call (`kind='meeting'`), with the full transcript in `content`, `external_id` (`wispr:<id>`, `granola:<id>`; unique), `project_id` (primary) and `related_projects`.
