@@ -59,6 +59,6 @@ console.log('toggle back to me:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='
 await p.click('#peek [data-own="t1"]'); await p.waitForTimeout(300);
 console.log('toggle to agent:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t1').owner));
 const m=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); m.on('pageerror',e=>errs.push(e.message));
-await setup(m); console.log('phone tab:', await m.evaluate(()=>!!document.querySelector('#tabs [data-go="agents"]')));
+await setup(m); console.log('phone: Run by agents in More, with its count:', await m.evaluate(()=>{openMore();const b=document.querySelector('#moreBody [data-go="agents"]');document.getElementById('moreDlg').close();return b?b.textContent:false}));
 console.log('errors', errs);
 await b.close();
