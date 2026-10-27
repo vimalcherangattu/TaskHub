@@ -34,6 +34,7 @@ o as (
 select case
     when (o.due_firm or o.due_time is not null) and o.due <= d.today then '0 can''t slip'  -- hard deadline today or missed; lead with these, earliest time first
     when o.status = 'doing' then '1 on it now'
+    when o.quick and o.status = 'todo' and not o.blocked then '1b quick (2 min)'  -- any date, oldest first: say "n quick ones waiting, oldest <age>"
     when o.status = 'waiting' then '2 follow up today'
     when o.blocked and (o.today_date = d.today or o.due <= d.today or o.start_by <= d.today) then '5 cannot start yet'
     when o.due < d.today then '3 overdue'
@@ -84,6 +85,11 @@ update tasks set today_date = null where id = '<id>';
 update tasks set week_of = (now() at time zone 'Asia/Kolkata')::date
   - (extract(isodow from (now() at time zone 'Asia/Kolkata'))::int - 1)
 where id = '<id>';
+
+-- 2-minute task: he says "quick"/"2 min", or it's plainly one small step. false = he said it takes longer (never flip back)
+update tasks set quick = true where id = '<id>';
+-- Quick ones still open, oldest first
+select id, title, created_at::date added from tasks where quick and status in ('todo','doing') and owner = 'me' and superseded_by is null order by created_at;
 
 -- Hard deadline: "has to be done today/Friday" → due_firm only; "by 3pm (Friday)" → due_time too (a time alone means today)
 update tasks set due = '<date>', due_firm = true, due_time = '<HH:MM or null>' where id = '<id>';

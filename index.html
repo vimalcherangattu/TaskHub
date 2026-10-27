@@ -533,6 +533,25 @@ button.group-h[aria-expanded="false"] svg{transform:rotate(-90deg)}
 .hi .sh h2{color:var(--accent)}
 .hi-empty,.hi-carry{margin:0 8px 8px;font-size:14px;color:var(--muted)}
 .hi-carry .act{border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:2px 0;margin-left:4px}
+/* knock these out: 2-minute tasks, and the 10-minute run through them */
+.qk{margin-bottom:28px;background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--radius-l);padding:12px 8px 6px}
+.qk .sh{padding:0 8px 2px}
+.qk-sub{margin:0 8px 6px;font-size:13px;color:var(--muted)}
+.qk-more{border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:4px 8px 8px}
+.qk-sug{border-top:1px solid var(--line);margin-top:6px;padding:10px 8px 4px}
+.qk-sug h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted)}
+.qk-s{display:flex;align-items:center;gap:10px;padding:6px 0}
+.qk-s>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow-wrap:anywhere}
+.qk-s b{font-weight:500;font-size:14.5px}
+.qk-s span{font-size:12.5px;color:var(--faint)}
+.qk-sa{display:flex;gap:4px;flex:none}
+.meta .qtag{font-family:var(--mono);font-size:11.5px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 5px;flex:none}
+.sprint{min-width:min(460px,86vw)}
+.sp-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sp-clock{font-family:var(--mono);font-size:14px;color:var(--accent);font-weight:500}
+.sprint .dlg-sub .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.sp-note{margin:0;font-size:14px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+.sprint h3{overflow-wrap:anywhere}
 .theme{border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
 .theme:first-of-type{border-top:0}
 .theme-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 8px 4px}
@@ -556,7 +575,9 @@ button.group-h[aria-expanded="false"] svg{transform:rotate(-90deg)}
 .pick-list .pick-gh:first-child{border-top:0}
 .pick-list .empty{border:0}
 @media (max-width:820px){
-  .theme-t,.pk-more,.hi .sh .act,.hi-carry .act{min-height:44px}
+  .theme-t,.pk-more,.hi .sh .act,.hi-carry .act,.qk .sh .act,.qk-more{min-height:44px}
+  .qk-sa .tool,.sprint .btn{min-height:44px}
+  .qk-s{flex-wrap:wrap}
   .sib-acts .tool{min-height:44px;padding:0 12px}
   .dlg .pick-list label{min-height:44px}
 }
@@ -864,9 +885,10 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
     <button type="button" class="pill" data-ck="onToday" aria-pressed="false">On today</button>
     <button type="button" class="pill" data-ck="onWeek" aria-pressed="false">This week</button>
     <button type="button" class="pill" data-ck="onHi" aria-pressed="false" title="One of the few things that would make today count">★ High impact</button>
+    <button type="button" class="pill" data-ck="onQuick" aria-pressed="false" title="Takes about 2 minutes. It waits in “Knock these out” on Today until it's done.">2-min</button>
     <button type="button" class="pill" id="tsFirm" aria-pressed="false" title="The deadline can't move. It shows in “Can't slip” on its day.">Hard deadline</button>
     <input type="checkbox" name="dueFirm" hidden aria-label="Hard deadline">
-    <input type="checkbox" name="onToday" hidden aria-label="On today's list"><input type="checkbox" name="onWeek" hidden aria-label="Finish this week"><input type="checkbox" name="onHi" hidden aria-label="High impact today">
+    <input type="checkbox" name="onToday" hidden aria-label="On today's list"><input type="checkbox" name="onWeek" hidden aria-label="Finish this week"><input type="checkbox" name="onHi" hidden aria-label="High impact today"><input type="checkbox" name="onQuick" hidden aria-label="2-minute task">
   </div>
   <details class="ts-more" id="tsMore"><summary>More details <small id="tsMoreHint"></small></summary><div class="ts-body">
     <label class="lock-l"><input type="checkbox" name="private">Private: blurred in lists and left out of agent messages</label>
@@ -925,6 +947,7 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
   <label>Where are you leaving it? What's the very next step?<textarea name="rn" placeholder="e.g. Alternatives section done, unique value next"></textarea></label>
   <div class="foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="resumeSave">Save note</button></div>
 </form></dialog>
+<dialog id="sprintDlg" aria-labelledby="spH"><div class="dlg sprint" id="sprintBody"></div></dialog>
 <dialog id="themeDlg"><form class="dlg" id="themeForm" method="dialog">
   <h3 id="themeDlgTitle">High-impact theme</h3>
   <label>What would make today count?<input name="title" required autocomplete="off" placeholder="e.g. Close all the automation tasks"></label>
@@ -1134,6 +1157,14 @@ const doing=t=>t.status==="doing";
 const waiting=t=>t.status==="waiting";
 /* owner: "me" (default) or "agent" = a scheduled Claude run does it; agent tasks stay off Today/Week but still count in Needs attention */
 const bot=t=>t.owner==="agent";
+/* 2-minute tasks: tasks.quick true = quick, false = "not quick" (no more asking), null = not decided. Quick ones show in "Knock these out" whatever their date */
+const quickT=t=>t.quick===true&&open(t)&&!doing(t)&&!waiting(t)&&!bot(t)&&!blocked(t);
+const qAge=t=>t.createdAt?Math.max(0,Math.floor((Date.now()-new Date(t.createdAt))/864e5)):0;
+const QRE=/^(review|reply|respond|send|forward|approve|confirm|share|sign|pay|rsvp|ping|text|email|message|book|accept|upload|remind|call back|look at|check (?:in|with|on))\b/i;
+const looksQuick=t=>t.quick==null&&open(t)&&!doing(t)&&!waiting(t)&&!bot(t)&&!(t.effortDays>0)&&(Array.isArray(t.steps)?t.steps:[]).length<2&&QRE.test(String(t.title||"").trim());
+// "Reply to Asha 2m", "… (2 min)", "… #quick" or "… (quick)" at the end of a typed title marks it quick
+const QTAG=/\s+(?:\(?2\s?m(?:ins?)?\)?|#quick|\(quick\))\s*$/i;
+const quickParse=s=>{const t=s.replace(QTAG,"").trim();return t&&t!==s?{title:t,quick:true}:{title:s}};
 const nextWork=(iso,n=1)=>{let d=parse(iso);while(n>0){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)n--}return iso2(d)};
 const iso2=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const fuDue=t=>waiting(t)&&(t.followUpOn||T())<=T();
@@ -1272,6 +1303,7 @@ function row(t){
   const p=proj(t.projectId);const bits=[];
   if(!(S.view==="project"&&(S.pid===t.projectId||p?.parentId===S.pid)))bits.push(`<span class="proj"><span class="dot" style="background:${esc(p?.color||"var(--faint)")}"></span>${esc(p?.name||"Unsorted")}</span>`);
   if(bot(t)&&S.view!=="agents")bits.push(`<span class="stepn" title="A scheduled Claude run does this">Agent</span>`);
+  if(quickT(t)){bits.push(`<span class="qtag" title="A 2-minute task">2 min</span>`);if(qAge(t)>2)bits.push(`<span class="soon">${qAge(t)} days old</span>`)}
   const sbit=statusBit(t);if(sbit)bits.push(sbit);
   if(decide(t)&&open(t))bits.push(`<span class="late">Pushed ×${t.carryCount}</span>`);
   const st=Array.isArray(t.steps)?t.steps:[],sd=st.filter(x=>x.done).length;
@@ -1297,6 +1329,7 @@ function peekHtml(t){
   if(t.weekOf===week()[0]&&open(t))facts.push(`<span class="acc">This week</span>`);
   {const sb=startBy(t);if(sb&&open(t)&&!doing(t))facts.push(`<span class="${sb<T()?"late":""}">Start by ${esc(nice(sb))}</span>`)}
   if(t.effortDays>0)facts.push(`<span>~${t.effortDays} day${t.effortDays===1?"":"s"} of work</span>`);
+  if(t.quick===true&&open(t))facts.push(`<span class="acc">2-minute task${qAge(t)>2?` · ${qAge(t)} days old`:""}</span>`);
   if(doing(t))facts.push(`<span class="${stalled(t)?"late":"acc"}">${stalled(t)?"Stalled · started ":"Started "}${esc(ago(t.startedAt||t.updatedAt))}</span>`);
   if(waiting(t)){facts.push(`<span class="acc">Waiting on ${esc(t.waitingOn||"someone")}${t.waitingSince?` since ${esc(nice(iso2(new Date(t.waitingSince))))}`:""}</span>`);
     if(t.followUps)facts.push(`<span class="${chase(t)?"late":""}">Chased ×${t.followUps}</span>`);
@@ -1312,7 +1345,7 @@ function peekHtml(t){
   else if(doing(t))acts=b(`data-done="${id}"`,"Done","primary")+b(`data-park="${id}"`,"Park","","Pause and note where you left it")+b(`data-rnote="${id}"`,"Note","","Where you left it");
   else acts=b(`data-done="${id}"`,"Start","primary")+b(`data-quickdone="${id}"`,"Done","","Mark done without starting");
   if(open(t)&&!sugg(t)){
-    acts+=`<button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}">Week</button><button class="tool" data-hi="${id}" aria-pressed="${hiTask(t)}" title="One of the few things that would make today count">★ High impact</button><button class="tool" data-hiw="${id}" aria-pressed="${wkTask(t)}" title="One of the few things that have to move this week">★ Week focus</button><button class="tool" data-own="${id}" aria-pressed="${bot(t)}" title="A scheduled Claude run does this, so keep it off Today and This week">Agent's job</button>`;
+    acts+=`<button class="tool" data-tog="today" data-id="${id}" aria-pressed="${t.todayDate===T()}">Today</button><button class="tool" data-tog="week" data-id="${id}" aria-pressed="${t.weekOf===week()[0]}">Week</button><button class="tool" data-hi="${id}" aria-pressed="${hiTask(t)}" title="One of the few things that would make today count">★ High impact</button><button class="tool" data-hiw="${id}" aria-pressed="${wkTask(t)}" title="One of the few things that have to move this week">★ Week focus</button><button class="tool" data-qk="${id}" aria-pressed="${t.quick===true}" title="Takes about 2 minutes, so it waits in “Knock these out” until it's done">2-min</button><button class="tool" data-own="${id}" aria-pressed="${bot(t)}" title="A scheduled Claude run does this, so keep it off Today and This week">Agent's job</button>`;
     if(blocked(t))acts+=b(`data-pushafter="${id}"`,"Move after","","Plan this after what it waits on");
     if(!waiting(t))acts+=b(`data-handoff="${id}"`,"Hand off","","Sent to someone, now waiting on them");}
   if(t.status!=="done")acts+=b(`data-claude="${id}"`,t.chatUrl?"Continue in Claude":"Work with Claude","",t.chatUrl?"Reopen this task's Claude chat":"Open a Claude chat with this task's context");
@@ -1393,6 +1426,18 @@ function hiBlock(sp="day"){
     h+=`</div>${[...sortT(l.filter(open)),...l.filter(x=>x.status==="done")].map(row).join("")}</div>`}
   if(sp==="week"){const nx=addDays(k,7),nl=[...themesOn(nx,"week").map(f=>f.title),...S.tasks.filter(x=>open(x)&&x.highlightWeek===nx).map(x=>x.title)];
     if(nl.length)h+=`<p class="hi-carry">Lined up for next week: ${esc(nl.slice(0,4).map(x=>trunc(x,48)).join("; "))}${nl.length>4?` and ${nl.length-4} more`:""}.</p>`}
+  return h+`</section>`}
+// knock these out: every open 2-minute task, whatever its date, oldest first; plus up to 3 that look quick, to confirm
+const byAge=(a,b)=>String(a.createdAt||"").localeCompare(String(b.createdAt||""));
+const quickList=(hide=new Set())=>S.tasks.filter(x=>quickT(x)&&!hide.has(x.id)&&!slip(x)&&tfilter(x)).sort(byAge);
+function quickBlock(hide){
+  const all=quickList(hide),sug=S.tasks.filter(x=>looksQuick(x)&&tfilter(x)).sort(byAge).slice(0,3);
+  if(!all.length&&!sug.length)return"";
+  const show=S.quickAll?all:all.slice(0,5);
+  let h=`<section class="qk" aria-label="Knock these out"><div class="sh"><h2>Knock these out</h2><span class="n">${all.length||""}</span>${all.length?`<button class="act" data-sprint>I have 10 minutes</button>`:""}</div>`;
+  if(all.length)h+=`<p class="qk-sub">2-minute tasks, oldest first. They stay here until they're done.</p>`+show.map(row).join("");
+  if(all.length>5)h+=`<button class="act qk-more" data-quickall>${S.quickAll?"Show fewer":`All ${all.length}`}</button>`;
+  if(sug.length)h+=`<div class="qk-sug"><h3>Do these take 2 minutes?</h3>${sug.map(x=>{const id=esc(x.id);return `<div class="qk-s"><div><b>${esc(x.title)}</b><span>${esc(fullName(proj(x.projectId)))} · added ${esc(ago(x.createdAt||now()))}</span></div><span class="qk-sa"><button class="tool" data-qkyes="${id}" aria-label="Yes, 2 minutes: ${esc(x.title)}">Yes, 2-min</button><button class="tool" data-qkno="${id}" aria-label="No, longer: ${esc(x.title)}">No</button></span></div>`}).join("")}</div>`;
   return h+`</section>`}
 function progress(done,total,label){const pct=total?Math.round(done/total*100):0;return `<div class="right"><div class="meter">${done}<span> of ${total} ${label}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`}
 
@@ -1966,14 +2011,16 @@ function renderView(){
     const hiIds=focusIds("day");
     // hard deadlines due today (or missed) go above everything, earliest time first, and don't repeat below
     const slipA=S.tasks.filter(x=>slip(x)&&!bot(x)).sort((a,b)=>dueMs(a)-dueMs(b));
-    const pool=[...new Set([...slipA,...fuA,...motionA,...startA,...listA,...leftA,...S.tasks.filter(x=>hiIds.has(x.id)&&open(x))])].filter(x=>!bot(x));
-    const nh=a=>a.filter(x=>tfilter(x)&&!hiIds.has(x.id)&&!slip(x)&&!bot(x));
+    // 2-minute tasks show once, in "Knock these out", whatever their date
+    const qIds=new Set(S.tasks.filter(x=>quickT(x)&&!hiIds.has(x.id)&&!slip(x)).map(x=>x.id));
+    const pool=[...new Set([...slipA,...fuA,...motionA,...startA,...listA,...leftA,...S.tasks.filter(x=>(hiIds.has(x.id)||qIds.has(x.id))&&open(x))])].filter(x=>!bot(x));
+    const nh=a=>a.filter(x=>tfilter(x)&&!hiIds.has(x.id)&&!qIds.has(x.id)&&!slip(x)&&!bot(x));
     const held=nh(heldA),fus=nh(fuA),motion=nh(motionA),starts=nh(startA),list=nh(listA),left=nh(leftA),doneT=nh(doneA);
     h+=todayHead(pool.filter(tfilter).length,doneA.filter(tfilter).length);
     h+=`<div class="today-grid"><div class="today-main">`;
     h+=sec("Can't slip",slipA.filter(tfilter),{cls:"danger slip"});
     h+=checkinCard()+habitRow();
-    h+=hiBlock()+strip()+quick("Add something for today");
+    h+=hiBlock()+quickBlock(hiIds)+strip()+quick("Add something for today");
     h+=todayFilters(pool);
     if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
     const motionShow=S.focusAll?motion:tsortList(motion).slice(0,3);
@@ -2421,6 +2468,11 @@ document.addEventListener("click",async e=>{
   if("tgroup" in b.dataset){S.tgroup=!S.tgroup;saveTF();render();return}
   if(b.dataset.fs){S.fs=b.dataset.fs;render();return}
   if(b.dataset.day){S.day=S.day===b.dataset.day?null:b.dataset.day;render();return}
+  if(b.dataset.qk){const t=S.tasks.find(x=>x.id===b.dataset.qk);if(!t)return;const on=t.quick!==true;await upd(t.id,{quick:on});toast(on?"Marked as a 2-minute task. It waits in “Knock these out” on Today.":"No longer a 2-minute task");return}
+  if(b.dataset.qkyes||b.dataset.qkno){const on=!!b.dataset.qkyes;await upd(b.dataset.qkyes||b.dataset.qkno,{quick:on});toast(on?"Added to “Knock these out”":"Got it, it takes longer");return}
+  if("quickall" in b.dataset){S.quickAll=!S.quickAll;render();return}
+  if("sprint" in b.dataset){sprintOpen();return}
+  if(b.dataset.sp){sprintAct(b.dataset.sp);return}
   if(b.dataset.own){const t=S.tasks.find(x=>x.id===b.dataset.own);if(!t)return;const ag=!bot(t);await upd(t.id,{owner:ag?"agent":"me"});toast(ag?"Moved to Run by agents":"Back on your list");return}
   if(b.dataset.hi){const t=S.tasks.find(x=>x.id===b.dataset.hi);if(!t)return;const on=!hiTask(t);await upd(t.id,{highlightDay:on?T():null});
     toast(!on?"No longer high impact":hiCount()>3?"Marked high impact. That's more than three today; keep the few that matter most.":"Marked high impact for today");return}
@@ -2489,11 +2541,11 @@ document.addEventListener("submit",async e=>{
     if(!error&&f.doc.value.trim())await sb.from("input_uses").insert({input_id:data.id,doc:f.doc.value.trim(),project_id:pid});
     toast(error?"Couldn't track that.":`Tracking it. Mark the spot in the doc with [[NEEDS:${key}]]`,false);e.target.reset();soon();return}
   if(e.target.id!=="quick")return;e.preventDefault();
-  const f=e.target;const title=f.q.value.trim();if(!title)return;
-  const data={title,projectId:f.p.value||null};
+  const f=e.target;const raw=f.q.value.trim();if(!raw)return;
+  const data={...quickParse(raw),projectId:f.p.value||null};
   if(S.view==="today")data.todayDate=S.day&&S.day!==T()?S.day:T();
   if(S.view==="week"){data.weekOf=week()[0];if(S.day)data.due=S.day}
-  f.q.value="";await addTask(data);toast("Task added");f.q.focus();
+  f.q.value="";await addTask(data);toast(data.quick?"Added as a 2-minute task":"Task added");f.q.focus();
 });
 
 document.addEventListener("input",e=>{if(e.target.id==="bsearch"){S.bq=e.target.value;drawBrain();return}if(e.target.id==="search"){S.q=e.target.value;document.getElementById("allList").innerHTML=allList()}});
@@ -2507,7 +2559,7 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");f.elements.private.checked=!!t?.private;
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.onQuick.checked=t?.quick===true;f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   dSteps=clone(Array.isArray(t?.steps)?t.steps:[]);drawSteps();dDeps=(Array.isArray(t?.blockedBy)?t.blockedBy:[]).filter(id=>S.tasks.some(x=>x.id===id));drawDeps();document.getElementById("stepNew").value="";
   const act=(Array.isArray(t?.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-5).reverse();
   document.getElementById("actList").innerHTML=act.length?`<div class="lbl">Recent changes</div>`+act.map(x=>`<div class="act"><b>${x.by==="claude"?"Claude":"You"}</b><span>${esc(x.text)}</span><time>${x.at?esc(ago(x.at)):""}</time></div>`).join(""):"";
@@ -2539,7 +2591,7 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
   const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||(f.dueTime.value?T():null),dueTime:f.dueTime.value||null,dueFirm:f.dueFirm.checked||!!f.dueTime.value,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),
-    highlightDay:f.onHi.checked?T():(editing?.highlightDay===T()?null:editing?.highlightDay||null),notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,private:f.elements.private.checked,
+    highlightDay:f.onHi.checked?T():(editing?.highlightDay===T()?null:editing?.highlightDay||null),quick:f.onQuick.checked?true:editing?.quick===true?false:editing?.quick??null,notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,private:f.elements.private.checked,
     blockedBy:dDeps.slice(),steps:[...dSteps,...(f.elements.stepNew.value.trim()?[{text:f.elements.stepNew.value.trim(),done:false}]:[])].map(x=>({text:String(x.text||"").trim(),done:!!x.done})).filter(x=>x.text)};
   if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
   if(!data.title)return;
@@ -2633,6 +2685,31 @@ async function startTask(t){
   if(m.length>=3&&!confirm(`You already have ${m.length} things in motion:\n\n${m.map(x=>"• "+x.title).join("\n")}\n\nFinish or park one first? Press OK to start this anyway.`))return;
   await upd(t.id,{status:"doing",startedAt:now()});toast("Started. Tap Park when you pause.");
 }
+/* "I have 10 minutes": the 2-minute tasks one at a time, oldest first, with a countdown */
+const SP={ids:[],i:0,done:0,end:0,tick:0};
+function sprintOpen(){SP.ids=quickList(focusIds("day")).map(x=>x.id);if(!SP.ids.length){toast("No 2-minute tasks waiting.");return}
+  SP.i=0;SP.done=0;SP.end=Date.now()+6e5;clearInterval(SP.tick);SP.tick=setInterval(sprintClock,1000);
+  sprintDraw();const d=document.getElementById("sprintDlg");if(!d.open)d.showModal()}
+const spLeft=()=>{const s=Math.max(0,Math.round((SP.end-Date.now())/1000));return s?`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")} left`:"Time's up"};
+function sprintClock(){const el=document.getElementById("spClock");if(el)el.textContent=spLeft();if(!document.getElementById("sprintDlg").open)clearInterval(SP.tick)}
+function sprintDraw(){const el=document.getElementById("sprintBody");
+  // skip anything finished or changed elsewhere since the list was made
+  while(SP.i<SP.ids.length&&!quickT(S.tasks.find(x=>x.id===SP.ids[SP.i])||{}))SP.i++;
+  const t=SP.i<SP.ids.length&&S.tasks.find(x=>x.id===SP.ids[SP.i]);
+  if(!t){const left=quickList().length;clearInterval(SP.tick);
+    el.innerHTML=`<h3 id="spH">${SP.done?`Cleared ${word(SP.done)}.`:"That's the lot."}</h3><p class="dlg-sub">${left?`${cap(word(left))} 2-minute task${left===1?"":"s"} still waiting.`:"No 2-minute tasks left."}</p><div class="foot"><span class="spacer"></span><button class="btn" data-close>Close</button>${left?`<button class="btn primary" data-sp="again">Another 10 minutes</button>`:""}</div>`;return}
+  const p=proj(t.projectId),st=Array.isArray(t.steps)?t.steps:[];
+  el.innerHTML=`<div class="sp-top"><span class="eyebrow">${SP.i+1} of ${SP.ids.length}${SP.done?` · ${SP.done} done`:""}</span><span class="sp-clock" id="spClock" role="timer" aria-live="off">${spLeft()}</span></div>
+    <h3 id="spH">${esc(t.title)}</h3><p class="dlg-sub">${p?`<span class="dot" style="background:${esc(p.color||"var(--faint)")}"></span>`:""}${esc(fullName(p))} · added ${esc(ago(t.createdAt||now()))}</p>
+    ${t.resumeNote?`<p class="sp-note">↳ ${esc(t.resumeNote)}</p>`:""}${t.notes?`<p class="sp-note">${esc(trunc(t.notes,280))}</p>`:""}${st.length?`<p class="sp-note">${st.map(x=>(x.done?"✓ ":"○ ")+esc(x.text)).join("<br>")}</p>`:""}
+    <div class="foot sp-acts"><button class="btn" data-sp="not" title="Takes longer than 2 minutes; take it off this list">Not 2 minutes</button><span class="spacer"></span><button class="btn" data-sp="skip">Skip</button><button class="btn primary" data-sp="done">Done</button></div>`;
+  el.querySelector('[data-sp="done"]').focus()}
+async function sprintAct(a){if(a==="again"){sprintOpen();return}
+  const id=SP.ids[SP.i];if(!id)return;SP.i++;
+  if(a==="done"){SP.done++;sprintDraw();await upd(id,{status:"done",doneAt:now()})}
+  else if(a==="not"){sprintDraw();await upd(id,{quick:false})}
+  else sprintDraw()}
+document.getElementById("sprintDlg").addEventListener("close",()=>{clearInterval(SP.tick);if(SP.done)toast(`Cleared ${word(SP.done)} 2-minute task${SP.done===1?"":"s"}`,false)});
 let resumeT=null,resumeMode="note";
 function openResume(t,mode){if(!t)return;resumeT=t;resumeMode=mode;const f=document.getElementById("resumeForm").elements;
   document.getElementById("resumeTitle").textContent=mode==="park"?"Park: "+t.title:"Where you left it";
@@ -2858,7 +2935,7 @@ document.getElementById("capForm").addEventListener("submit",async e=>{
   const f=e.target.elements;const raw=f.text.value.trim();if(!raw)return;
   const lines=raw.split("\n");let title=lines[0].trim();const body=lines.slice(1).join("\n").trim();
   const k=f.kind.value,pid=f.projectId.value||null;
-  if(k==="task"){await addTask({title,projectId:pid,notes:body,...(S.view==="today"?{todayDate:T()}:{})});toast(S.view==="today"?"Added to today":"Task added");return}
+  if(k==="task"){const q=quickParse(title);await addTask({...q,projectId:pid,notes:body,...(S.view==="today"&&!q.quick?{todayDate:T()}:{})});toast(q.quick?"Added as a 2-minute task":S.view==="today"?"Added to today":"Task added");return}
   let url=null;if(k==="link"){const m=raw.match(/https?:\/\/\S+/);if(m){url=m[0];title=title.replace(url,"").trim()||url.replace(/^https?:\/\/(www\.)?/,"").slice(0,90)}}
   try{await S.db.collection("notes").add({kind:k,projectId:pid,title,body:url?body.replace(url,"").trim():body,url,source:"hub"});toast(`${KIND[k]?.l||"Note"} saved${pid?"":" to your Notes inbox"}`)}catch{toast("Couldn't save that. Try again.",false)}});
 
