@@ -667,7 +667,11 @@ kbd{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid v
 .side-act svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round}
 .side-act kbd{margin-left:auto}
 .mbar{display:none}
-.seg.k6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.seg.k6{grid-template-columns:repeat(6,minmax(0,1fr))}.seg.k7{grid-template-columns:repeat(7,minmax(0,1fr))}
+.cap-read{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:12px;background:var(--sunken)}
+.cap-read p{margin:0;flex:1;min-width:0;font-size:14px;line-height:1.45;color:var(--muted)}.cap-read p b{color:var(--ink);font-weight:600}.cap-read p small{display:block;font-size:13px;margin-top:2px}
+#capMore{display:flex;flex-direction:column;gap:14px}#capMore[hidden]{display:none}
+@media (max-width:820px){.seg.k7{grid-template-columns:repeat(4,minmax(0,1fr))}.seg.k7 button{height:44px}#capChange{min-height:44px}}
 .cap-hint{font-size:12px;color:var(--faint);align-self:center}
 .dlg textarea#capText{min-height:110px;font-size:16px}
 dialog.find{width:min(640px,calc(100vw - 24px));margin-top:12vh;max-height:76vh;display:flex;flex-direction:column;padding:0}
@@ -1103,9 +1107,10 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
 <dialog id="moreDlg" class="more-sheet" aria-label="More"><div class="ms"><span class="ms-grab" aria-hidden="true"></span><div id="moreBody"></div><button class="btn" data-close>Close</button></div></dialog>
 <dialog id="capDlg"><form class="dlg" id="capForm" method="dialog">
   <div class="ts-top"><span class="eyebrow">Capture</span><button type="button" class="ts-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div class="cap-in"><label><span class="sr">What do you want to keep?</span><textarea name="text" id="capText" required placeholder="A task, idea, decision, link or person. The first line is the title."></textarea></label><button type="button" class="mic" id="capMic" aria-pressed="false" aria-label="Dictate" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div><p class="mic-on" id="capMicOn" role="status" hidden>Listening… speak, then tap the mic to stop.</p>
-  <div class="ts-grp"><span id="capKindLbl">Save as</span><div class="seg k6" role="radiogroup" aria-labelledby="capKindLbl" id="capKind"><button type="button" role="radio" data-kind="task">Task</button><button type="button" role="radio" data-kind="idea">Idea</button><button type="button" role="radio" data-kind="note">Note</button><button type="button" role="radio" data-kind="decision">Decision</button><button type="button" role="radio" data-kind="link">Link</button><button type="button" role="radio" data-kind="person">Person</button></div><input type="hidden" name="kind" value="task"></div>
-  <label>Project<select name="projectId"></select></label>
+  <div class="cap-in"><label><span class="sr">What do you want to keep?</span><textarea name="text" id="capText" required placeholder="Anything: a task, an idea, a link, a person, or how you feel. Ambalam sorts it. The first line is the title."></textarea></label><button type="button" class="mic" id="capMic" aria-pressed="false" aria-label="Dictate" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div><p class="mic-on" id="capMicOn" role="status" hidden>Listening… speak, then tap the mic to stop.</p>
+  <div class="cap-read" id="capRead" aria-live="polite"><p id="capSays"></p><button type="button" class="btn" id="capChange" aria-expanded="false" aria-controls="capMore">Change</button></div>
+  <div id="capMore" hidden><div class="ts-grp"><span id="capKindLbl">Save as</span><div class="seg k7" role="radiogroup" aria-labelledby="capKindLbl" id="capKind"><button type="button" role="radio" data-kind="task">Task</button><button type="button" role="radio" data-kind="idea">Idea</button><button type="button" role="radio" data-kind="note">Note</button><button type="button" role="radio" data-kind="decision">Decision</button><button type="button" role="radio" data-kind="link">Link</button><button type="button" role="radio" data-kind="person">Person</button><button type="button" role="radio" data-kind="mood">Mood</button></div><input type="hidden" name="kind" value="task"></div>
+  <label>Project<select name="projectId"></select></label></div>
   <div class="foot"><span class="cap-hint">Ctrl+Enter to save</span><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary">Save</button></div>
 </form></dialog>
 <dialog id="findDlg" class="find" aria-label="Search everything"><div class="find-in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="findQ" type="search" placeholder="Search tasks, notes, calls and briefs" aria-label="Search everything" autocomplete="off" aria-controls="findRes"><kbd>Esc</kbd></div><div id="findRes" class="find-res" role="listbox" aria-label="Results"></div></dialog>
@@ -2949,26 +2954,99 @@ document.getElementById("personForm").addEventListener("submit",async e=>{const 
     toast("Saved")}catch{toast("Couldn't save that person. Try again.")}});
 document.getElementById("archPerson").addEventListener("click",async()=>{if(!editingR||editingR.virtual)return;if(!confirm(`Remove ${editingR.name} from People? Their note, calls and tasks stay.`))return;
   try{await S.db.doc("people/"+editingR.id).update({status:"archived"});toast("Removed from People");S.view="people";render()}catch{toast("Couldn't remove that.")}document.getElementById("personDlg").close()});
-/* capture: one box for a task, idea, note, decision, link or person */
-let capManual=false;
+/* capture: one box. capRead() reads the text on this device (no server, no API cost) and guesses what it is:
+   a mood for today's check-in, a link (spots one already saved), a decision, an idea, a person, a task or a note,
+   plus the project it belongs to and up to 2 notes to link it to. "Change" overrides any guess. */
+let capManual=false,capPManual=false,capPreset=null,capT=0,capG=null;
+const MOODW=[[5,"great|amazing|fantastic|awesome|wonderful|brilliant|excellent|ecstatic|thrilled|elated|joyful|on top of the world"],
+  [1,"rough|awful|terrible|horrible|miserable|depressed|burnt out|burned out|overwhelmed|shit|crap|worst"],
+  [2,"worse|low|sad|down|stressed|anxious|frustrated|annoyed|irritated|lonely|worried|upset|blah|tired|drained|exhausted|meh"],
+  [4,"better|good|happy|positive|content|cheerful|upbeat|nice|pleased|calm|relaxed|grateful|productive|motivated"],
+  [3,"okay|ok|fine|alright|all right|so-so|neutral|average|not bad"]];
+const MOODE=[[5,/[😄😁🤩🥳😍]/u],[4,/[🙂😊😌☺]/u],[3,/😐/u],[2,/[😔😞😟😕🙁😩😢]/u],[1,/[😭😡😫]/u]];
+const TASKV=/^(please\s+)?(call|ring|text|send|email|mail|message|ping|reply|buy|order|pay|book|fix|write|draft|review|read|check|ask|tell|remind|schedule|plan|finish|update|prepare|prep|submit|set up|setup|sign|cancel|renew|follow up|chase|clean|tidy|file|post|share|publish|ship|test|try|get|make|find|call back|look into|sort out|organise|organize|arrange|confirm|invite|meet|visit|pick up|drop off|return|upload|download|install|move|add|remove|create|build|record|edit|research|compare|decide|figure out)\b/i;
+/* a feeling word counts only next to a feeling cue: "I'm / feeling / mood" up to 3 words before it, "day / morning / mood" right after it,
+   or the whole capture is just the feeling ("meh", "😊"). So "good chat with Sam" or "Good morning call" stay what they are. */
+function capMood(t){const s=t.toLowerCase().replace(/[’']/g,"'").replace(/\s+/g," ").trim();let m=null,e=null;
+  const n=s.match(/\bmood\s*(is|was|[:=-])?\s*([1-5])\b/);if(n)m=+n[2];const en=s.match(/\benergy\s*(is|was|[:=-])?\s*([1-5])\b/);if(en)e=+en[2];
+  const bare=s.replace(/\p{Extended_Pictographic}|[\s!.,~]+/gu," ").trim();
+  if(m==null&&(bare.split(" ").filter(Boolean).length<=2||/\b(i'?m|i am|feel|feeling|felt|mood|vibe)\b/.test(s)))for(const[v,re]of MOODE)if(re.test(t)){m=v;break}
+  if(m==null&&!/\bfeel free\b|^good (morning|night|evening)\b/.test(s)){
+    const pre="(i'?m|i am|i feel|i felt|feeling|felt|feel|mood( is| was)?|today (was|is|has been)|today's been)( \\S+){0,3}? ",post=" (day|morning|evening|night|week|mood|vibes?)\\b";
+    for(const[v,w]of MOODW){const W="\\b("+w+")\\b",x=new RegExp(pre+W+(v>=3?"(?! (with|at|to|for|about|by)\\b)":"")).exec(s)||new RegExp(W+post).exec(s)||(new RegExp("^(so |very |really |pretty |quite |feeling |much )?"+W+"( today| now| right now| so far)?[ !.]*$").exec(bare));
+      if(x){const ctx=s.slice(Math.max(0,x.index-14),x.index+x[0].length),neg=/\b(not|isn't|wasn't|ain't|hardly)\b/.test(ctx)&&!/\bnot bad\b/.test(ctx);m=neg?(v>=4?2:v<=2?3:2):v;break}}}
+  if(m!=null&&e==null){if(/\b(exhausted|drained|burnt out|burned out|wiped)\b/.test(s))e=1;else if(/\b(tired|sleepy|low energy)\b/.test(s))e=2;else if(/\b(energi[sz]ed|energetic|full of energy|buzzing|pumped)\b/.test(s))e=5}
+  return m==null?null:{mood:m,energy:e}}
+function capKindOf(raw){const t=raw.trim(),first=t.split("\n")[0].trim(),lo=first.toLowerCase(),words=first.split(/\s+/).filter(Boolean).length;
+  if(!t)return{k:"task"};
+  if(/https?:\/\//.test(t))return{k:"link"};
+  const md=words<=40&&!TASKV.test(first)&&capMood(t);if(md)return{k:"mood",...md};
+  if(/^(decided|decision|we decided|i decided|we('ll| will) go with|going with|agreed|we agreed|final call|settled)\b/.test(lo))return{k:"decision"};
+  if(/^(idea|what if|maybe we|could we|how about|wouldn't it be|it would be (cool|nice|great)|thought:|shower thought)\b/.test(lo)||/\b(app|business|product|podcast|book|video|course) idea\b/.test(lo))return{k:"idea"};
+  if(/^(person|met|contact)\b[:\s]/.test(lo)||/^[A-Z][\p{L}'-]+( [A-Z][\p{L}'-]+){0,2}\s*[:–—-]\s*\S/u.test(first)&&!TASKV.test(first)&&/\b(lead|manager|founder|ceo|cto|head|director|designer|engineer|friend|cousin|uncle|aunt|brother|sister|neighbour|neighbor|doctor|lawyer|accountant|works at|at |from |intro|met)\b/i.test(first))return{k:"person"};
+  if(/^(note|fact|fyi|til|remember that|good to know|for reference)\b[:\s]/.test(lo))return{k:"note"};
+  if(TASKV.test(first)||/\b(need to|have to|must|should|remember to|don't forget|todo|to do|by (mon|tue|wed|thu|fri|sat|sun|tomorrow|today|tonight|eod|end of)|#quick|\b2m\b|every (day|week|month|monday|tuesday|wednesday|thursday|friday))\b/.test(lo))return{k:"task"};
+  if(/\b(is|are|was|were|costs?|means|equals|lives in|works at|=)\b/.test(lo)||t.split("\n").length>2||words>14)return{k:"note"};
+  return{k:"task"}}
+/* project: a project named in the text wins; otherwise the project whose tasks and notes share the rarest words */
+let PG={k:"",df:null,docs:null};
+function capProject(raw){const k=S.tasks.length+":"+S.notes.length+":"+S.projects.length;
+  if(PG.k!==k){const docs=[...S.tasks.filter(x=>x.projectId),...S.notes.filter(x=>x.projectId)].map(x=>({pid:x.projectId,w:kwOf(x.title+" "+(x.body||x.notes||""))})),df=new Map();
+    for(const d of docs)for(const w of d.w)df.set(w,(df.get(w)||0)+1);PG={k,df,docs}}
+  const lo=" "+raw.toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ")+" ",live=S.projects.filter(p=>!p.archivedAt);
+  const named=live.filter(p=>p.name&&p.name.length>=3&&lo.includes(" "+p.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim()+" ")).sort((a,b)=>b.name.length-a.name.length);
+  if(named.length)return{pid:named[0].id,why:"named"};
+  const mine=kwOf(raw);if(!mine.size)return null;const sc=new Map();
+  for(const d of PG.docs){let s=0;for(const w of mine)if(d.w.has(w)){const n=PG.df.get(w);if(n<=25)s+=1/Math.log2(1+n)}if(s)sc.set(d.pid,(sc.get(d.pid)||0)+s)}
+  const r=[...sc].filter(([id])=>proj(id)&&!proj(id).archivedAt).sort((a,b)=>b[1]-a[1]);
+  return r.length&&r[0][1]>=1.5&&(!r[1]||r[0][1]>=1.6*r[1][1])?{pid:r[0][0],why:"words"}:null}
+function capRead(raw){const g=capKindOf(raw),url=(raw.match(/https?:\/\/\S+/)||[])[0]||null;
+  g.dup=url?S.notes.find(n=>n.url&&n.url.replace(/[/#?]+$/,"")===url.replace(/[/#?]+$/,"")):null;
+  g.proj=g.k==="mood"?null:capProject(raw.replace(url||"",""));
+  g.rel=(g.k==="task"||g.k==="mood"||g.dup)?[]:relatedNotes({id:null,title:raw.split("\n")[0],body:raw,tags:[]},2);
+  return g}
+const CAPLBL={task:"a task",idea:"an idea",note:"a note",decision:"a decision",link:"a link",person:"a person",mood:"today's mood"};
+function capSay(){const f=document.getElementById("capForm").elements,raw=f.text.value.trim(),el=document.getElementById("capSays");
+  if(!raw){el.innerHTML="Type or dictate. Ambalam works out whether it's a task, note, link, idea, person or how you're feeling.";return}
+  const k=f.kind.value,g=capG||{},p=proj(f.projectId.value);let h;
+  if(k==="mood"){const m=g.mood;h=`Saving as <b>today's mood${m?`: ${m} · ${esc(WM[m-1])}`:""}</b>${g.energy?`, energy ${g.energy}`:""} in your check-in`+(m?"":`<small>No feeling word found, so it goes in as a line in today's Log.</small>`)}
+  else if(k==="link"&&g.dup){const dp=proj(g.dup.projectId);h=`<b>Already saved</b> as “${esc(trunc(g.dup.title,60))}”${dp?` in ${esc(fullName(dp))}`:""}<small>Your words get added to it instead of a second copy.</small>`}
+  else{h=`Saving as <b>${esc(CAPLBL[k]||"a note")}</b>${p?` in <b>${esc(fullName(p))}</b>`:k==="task"?(S.view==="today"?" for today":""):" in your Notes inbox"}`;
+    if(p&&!capPManual&&!capPreset&&g.proj?.pid===p.id)h+=`<small>${g.proj.why==="named"?"You named this project.":"Matches the words in this project's tasks and notes."}</small>`;
+    if(k!=="task"&&g.rel?.length)h+=`<small>Links it to ${g.rel.map(e=>`“${esc(trunc(e.x.title,40))}”`).join(" and ")}.</small>`}
+  el.innerHTML=h}
+function capGuess(){const f=document.getElementById("capForm").elements;capG=capRead(f.text.value);
+  if(!capManual)capKind(capG.k);
+  if(!capPManual&&!capPreset)f.projectId.value=capG.proj?.pid||"";
+  capSay()}
 function capKind(k){const f=document.getElementById("capForm").elements;f.kind.value=k;
-  document.querySelectorAll("#capKind [data-kind]").forEach(b=>{const on=b.dataset.kind===k;b.setAttribute("aria-checked",on);b.tabIndex=on?0:-1})}
+  document.querySelectorAll("#capKind [data-kind]").forEach(b=>{const on=b.dataset.kind===k;b.setAttribute("aria-checked",on);b.tabIndex=on?0:-1});
+  f.projectId.disabled=k==="mood"}
+function capMore(on){document.getElementById("capMore").hidden=!on;document.getElementById("capChange").setAttribute("aria-expanded",on);document.getElementById("capChange").textContent=on?"Done":"Change"}
 function openCapture(text=""){const f=document.getElementById("capForm").elements;
-  f.text.value=text;capManual=false;capKind(/https?:\/\//.test(text)?"link":"task");
-  f.projectId.innerHTML=projOptions(S.view==="project"&&proj(S.pid)?S.pid:null).replace(">Unsorted<",">No project (inbox)<");
+  f.text.value=text;capManual=false;capPManual=false;capPreset=S.view==="project"&&proj(S.pid)?S.pid:null;capMore(false);
+  f.projectId.innerHTML=projOptions(capPreset).replace(">Unsorted<",">No project (inbox)<");capGuess();
   document.getElementById("capDlg").showModal();setTimeout(()=>{f.text.focus();f.text.setSelectionRange(f.text.value.length,f.text.value.length)},30)}
-document.getElementById("capKind").addEventListener("click",e=>{const b=e.target.closest("[data-kind]");if(!b)return;capManual=true;capKind(b.dataset.kind);b.focus()});
+document.getElementById("capChange").addEventListener("click",()=>capMore(document.getElementById("capMore").hidden));
+document.getElementById("capKind").addEventListener("click",e=>{const b=e.target.closest("[data-kind]");if(!b)return;capManual=true;capKind(b.dataset.kind);capSay();b.focus()});
 document.getElementById("capKind").addEventListener("keydown",e=>{const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(!d)return;e.preventDefault();
-  const o=[...document.querySelectorAll("#capKind [data-kind]")].map(b=>b.dataset.kind),f=document.getElementById("capForm").elements;capManual=true;capKind(o[(o.indexOf(f.kind.value)+d+o.length)%o.length]);document.querySelector(`#capKind [data-kind="${f.kind.value}"]`).focus()});
-document.getElementById("capText").addEventListener("input",e=>{if(!capManual)capKind(/https?:\/\//.test(e.target.value)?"link":"task")});
+  const o=[...document.querySelectorAll("#capKind [data-kind]")].map(b=>b.dataset.kind),f=document.getElementById("capForm").elements;capManual=true;capKind(o[(o.indexOf(f.kind.value)+d+o.length)%o.length]);capSay();document.querySelector(`#capKind [data-kind="${f.kind.value}"]`).focus()});
+document.querySelector('#capForm [name=projectId]').addEventListener("change",()=>{capPManual=true;capSay()});
+document.getElementById("capText").addEventListener("input",()=>{clearTimeout(capT);capT=setTimeout(capGuess,120)});
 document.getElementById("capText").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();document.getElementById("capForm").requestSubmit()}});
 document.getElementById("capForm").addEventListener("submit",async e=>{
-  const f=e.target.elements;const raw=f.text.value.trim();if(!raw)return;
+  const f=e.target.elements;const raw=f.text.value.trim();if(!raw)return;clearTimeout(capT);capGuess();
   const lines=raw.split("\n");let title=lines[0].trim();const body=lines.slice(1).join("\n").trim();
-  const k=f.kind.value,pid=f.projectId.value||null;
+  const k=f.kind.value,pid=f.projectId.value||null,g=capG||{};
   if(k==="task"){const q=tagParse(title);await addTask({...q,projectId:pid,notes:body,...(S.view==="today"&&!q.quick&&!q.repeat?{todayDate:T()}:{})});toast(tagToast(q)||(S.view==="today"?"Added to today":"Task added"));return}
+  if(k==="mood"){const l=logOf(T()),d={};if(g.mood)d.mood=g.mood;if(g.energy)d.energy=g.energy;
+    if(!l?.line)d.line=trunc(raw.replace(/\s+/g," "),140);else d.body=(l.body?l.body+"\n":"")+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+" · "+raw;
+    try{await saveLog(T(),d);S.ci=null;if(S.view==="today"||S.view==="log")render();toast(g.mood?`Mood ${g.mood} · ${WM[g.mood-1]} saved for today`:"Saved in today's Log")}catch{toast("Couldn't save that. Try again.",false)}return}
   let url=null;if(k==="link"){const m=raw.match(/https?:\/\/\S+/);if(m){url=m[0];title=title.replace(url,"").trim()||url.replace(/^https?:\/\/(www\.)?/,"").slice(0,90)}}
-  try{await S.db.collection("notes").add({kind:k,projectId:pid,title,body:url?body.replace(url,"").trim():body,url,source:"hub"});toast(`${KIND[k]?.l||"Note"} saved${pid?"":" to your Notes inbox"}`)}catch{toast("Couldn't save that. Try again.",false)}});
+  if(k==="link"&&g.dup){const extra=raw.replace(url||"","").trim();try{if(extra&&!(g.dup.body||"").includes(extra))await S.db.doc("notes/"+g.dup.id).update({body:((g.dup.body||"")+"\n\n"+extra).trim()});toast("You had this link already. Added your words to it.")}catch{toast("Couldn't save that. Try again.",false)}return}
+  try{const row=await S.db.collection("notes").add({kind:k,projectId:pid,title,body:url?body.replace(url,"").trim():body,url,source:"hub"});
+    let ln=0;if(row?.id)for(const e of g.rel||[]){try{await S.db.collection("links").add({fromType:"note",fromId:row.id,toType:"note",toId:e.x.id,kind:"related"});ln++}catch{}}
+    toast(`${KIND[k]?.l||"Note"} saved${pid?` to ${proj(pid)?.name||"its project"}`:" to your Notes inbox"}${ln?`, linked to ${ln} note${ln>1?"s":""}`:""}`)}catch{toast("Couldn't save that. Try again.",false)}});
 
 /* voice capture: the browser's own dictation (no server); hidden where the browser has none */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;

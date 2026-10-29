@@ -39,7 +39,7 @@ console.log('link kind auto:',await p.evaluate(()=>document.querySelector('#capF
 await p.click('#capForm button[type=submit]');await p.waitForTimeout(300);
 console.log('link saved:',await p.evaluate(()=>JSON.stringify(DB.notes.filter(x=>x.kind==='link').map(x=>[x.title,x.url,x.project_id]))));
 // capture: an idea into a project, picked with the switch
-await p.click('#side [data-capture]');await p.fill('#capText','Podcast with Ravi\nTen episodes, one per ICP');await p.click('#capKind [data-kind="idea"]');await p.selectOption('#capForm [name=projectId]','w');await p.click('#capForm button[type=submit]');await p.waitForTimeout(300);
+await p.click('#side [data-capture]');await p.fill('#capText','Podcast with Ravi\nTen episodes, one per ICP');await p.click('#capChange');await p.click('#capKind [data-kind="idea"]');await p.selectOption('#capForm [name=projectId]','w');await p.click('#capForm button[type=submit]');await p.waitForTimeout(300);
 console.log('idea saved:',await p.evaluate(()=>JSON.stringify(DB.notes.filter(x=>x.kind==='idea').map(x=>[x.title,x.body,x.project_id]))));
 // notes view: inbox first, then projects
 await p.click('#side [data-go="notes"]');await p.waitForTimeout(200);
