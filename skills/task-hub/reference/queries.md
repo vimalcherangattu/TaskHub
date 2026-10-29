@@ -88,6 +88,32 @@ where id = '<id>';
 
 -- 2-minute task: he says "quick"/"2 min", or it's plainly one small step. false = he said it takes longer (never flip back)
 update tasks set quick = true where id = '<id>';
+
+-- Recurring task: weekly LinkedIn post from Monday. Values: daily | weekdays | weekly | fortnightly | monthly
+update tasks set repeat = 'weekly', due = '<first date>' where id = '<id>';
+-- Done on a repeating task: close it, hand the rule to the next copy (skipped if an open copy already exists)
+with o as (select * from tasks where id = '<id>' and repeat is not null),
+d as (
+  update tasks set status = 'done', done_at = now(), repeat = null,
+    activity = coalesce(activity,'[]'::jsonb) || jsonb_build_object('at',now(),'by','claude','text','Done; next one added')
+  where id = (select id from o) returning id
+),
+n as (
+  select o.*, (select min(x)::date from generate_series(coalesce(o.due,current_date)::timestamp, current_date + 400,
+      case o.repeat when 'daily' then interval '1 day' when 'weekdays' then interval '1 day' when 'weekly' then interval '7 days'
+                    when 'fortnightly' then interval '14 days' else interval '1 month' end) x
+    where x::date > coalesce(o.due,current_date) and x::date >= (now() at time zone 'Asia/Kolkata')::date
+      and (o.repeat <> 'weekdays' or extract(isodow from x) < 6)) as next_due
+  from o join d using (id)
+)
+insert into tasks (title, project_id, priority, notes, steps, repeat, due, due_firm, due_time, owner, private, quick, effort_days, source, status, activity)
+select title, project_id, priority, notes,
+  coalesce((select jsonb_agg(jsonb_build_object('text', s->>'text', 'done', false)) from jsonb_array_elements(n.steps) s), '[]'::jsonb),
+  repeat, next_due, due_firm, due_time, owner, private, quick, effort_days, 'chat', 'todo',
+  jsonb_build_array(jsonb_build_object('at',now(),'by','claude','text','Repeats; follows the one just done'))
+from n
+where not exists (select 1 from tasks x where x.title = n.title and x.project_id is not distinct from n.project_id
+  and x.repeat = n.repeat and x.status in ('todo','doing','waiting') and x.id <> n.id);
 -- Quick ones still open, oldest first
 select id, title, created_at::date added from tasks where quick and status in ('todo','doing') and owner = 'me' and superseded_by is null order by created_at;
 

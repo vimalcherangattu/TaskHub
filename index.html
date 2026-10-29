@@ -875,6 +875,7 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
     <label>Project<select name="projectId"></select></label>
     <label>Deadline<span class="ts-box"><input type="date" name="due"><span class="ts-tag" id="dueTag"></span></span></label>
     <label>Due by (time)<input type="time" name="dueTime" title="Optional. A set time makes the deadline hard; with no date it means today."></label>
+    <label>Repeats<select name="repeat" title="Marking it done adds the next one, so only one is ever open"><option value="">Doesn't repeat</option><option value="daily">Every day</option><option value="weekdays">Every weekday</option><option value="weekly">Every week</option><option value="fortnightly">Every 2 weeks</option><option value="monthly">Every month</option></select></label>
     <label>Effort<span class="ts-box ts-eff"><input type="number" name="effortDays" min="0" max="365" step="1" placeholder="Days" aria-label="Work needed in days"><span id="effHint"></span></span></label>
     <div class="ts-grp"><span id="prioLbl">Priority</span><div class="seg" role="radiogroup" aria-labelledby="prioLbl" id="prioSeg"><button type="button" role="radio" data-prio="low">Low</button><button type="button" role="radio" data-prio="med">Med</button><button type="button" role="radio" data-prio="high">High</button></div><input type="hidden" name="priority" value="med"></div>
   </div>
@@ -1165,6 +1166,21 @@ const looksQuick=t=>t.quick==null&&open(t)&&!doing(t)&&!waiting(t)&&!bot(t)&&!(t
 // "Reply to Asha 2m", "… (2 min)", "… #quick" or "… (quick)" at the end of a typed title marks it quick
 const QTAG=/\s+(?:\(?2\s?m(?:ins?)?\)?|#quick|\(quick\))\s*$/i;
 const quickParse=s=>{const t=s.replace(QTAG,"").trim();return t&&t!==s?{title:t,quick:true}:{title:s}};
+/* recurring tasks: tasks.repeat daily|weekdays|weekly|fortnightly|monthly. Only one copy is open at a time; done adds the next and clears repeat on the finished one */
+const REP={daily:"Every day",weekdays:"Every weekday",weekly:"Every week",fortnightly:"Every 2 weeks",monthly:"Every month"};
+const REPS={daily:"daily",weekdays:"weekdays",weekly:"weekly",fortnightly:"2-weekly",monthly:"monthly"};
+const repStep=(s,r)=>r==="daily"?addDays(s,1):r==="weekdays"?nextWork(s,1):r==="weekly"?addDays(s,7):r==="fortnightly"?addDays(s,14):addMonths(s,1);
+// the next date after this one's, never in the past
+const repNext=t=>{let n=repStep(t.due||t.todayDate||T(),t.repeat);while(n<T())n=repStep(n,t.repeat);return n};
+// "LinkedIn post every Monday", "… every week", "… every 2 weeks", "… #monthly" at the end of a typed title makes it repeat
+const RTAG=/\s+(?:every\s+(day|weekday|week|other week|2 weeks|fortnight|month|mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)|[#(](daily|weekdays|weekly|fortnightly|monthly)\)?)\s*$/i;
+const RW={day:"daily",weekday:"weekdays",weekdays:"weekdays",week:"weekly","other week":"fortnightly","2 weeks":"fortnightly",fortnight:"fortnightly",month:"monthly",daily:"daily",weekly:"weekly",fortnightly:"fortnightly",monthly:"monthly"};
+const repParse=s=>{const m=s.match(RTAG),title=m?s.slice(0,m.index).trim():"";if(!title)return{title:s};const w=(m[1]||m[2]).toLowerCase();
+  if(RW[w])return{title,repeat:RW[w]};
+  const k=["sun","mon","tue","wed","thu","fri","sat"].indexOf(w.slice(0,3)),d=new Date();d.setDate(d.getDate()+(k-d.getDay()+7)%7);return{title,repeat:"weekly",due:iso2(d)}};
+// both tags, in either order: "Healio piece every 2 weeks 2m"
+const tagParse=s=>{let o={title:s};for(let i=0;i<2;i++)o={...o,...repParse(o.title),...quickParse(repParse(o.title).title)};return o};
+const tagToast=d=>d.repeat?`Added. It repeats ${REP[d.repeat].toLowerCase()}${d.due?`, next on ${nice(d.due)}`:""}`:d.quick?"Added as a 2-minute task":"";
 const nextWork=(iso,n=1)=>{let d=parse(iso);while(n>0){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)n--}return iso2(d)};
 const iso2=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const fuDue=t=>waiting(t)&&(t.followUpOn||T())<=T();
@@ -1303,6 +1319,7 @@ function row(t){
   const p=proj(t.projectId);const bits=[];
   if(!(S.view==="project"&&(S.pid===t.projectId||p?.parentId===S.pid)))bits.push(`<span class="proj"><span class="dot" style="background:${esc(p?.color||"var(--faint)")}"></span>${esc(p?.name||"Unsorted")}</span>`);
   if(bot(t)&&S.view!=="agents")bits.push(`<span class="stepn" title="A scheduled Claude run does this">Agent</span>`);
+  if(REP[t.repeat]&&open(t))bits.push(`<span class="stepn" title="${esc(REP[t.repeat])}. Marking it done adds the next one.">↻ ${esc(REPS[t.repeat])}</span>`);
   if(quickT(t)){bits.push(`<span class="qtag" title="A 2-minute task">2 min</span>`);if(qAge(t)>2)bits.push(`<span class="soon">${qAge(t)} days old</span>`)}
   const sbit=statusBit(t);if(sbit)bits.push(sbit);
   if(decide(t)&&open(t))bits.push(`<span class="late">Pushed ×${t.carryCount}</span>`);
@@ -1329,6 +1346,7 @@ function peekHtml(t){
   if(t.weekOf===week()[0]&&open(t))facts.push(`<span class="acc">This week</span>`);
   {const sb=startBy(t);if(sb&&open(t)&&!doing(t))facts.push(`<span class="${sb<T()?"late":""}">Start by ${esc(nice(sb))}</span>`)}
   if(t.effortDays>0)facts.push(`<span>~${t.effortDays} day${t.effortDays===1?"":"s"} of work</span>`);
+  if(REP[t.repeat]&&open(t))facts.push(`<span>↻ ${esc(REP[t.repeat])}. Done adds the next one, ${esc(nice(repNext(t)))}</span>`);
   if(t.quick===true&&open(t))facts.push(`<span class="acc">2-minute task${qAge(t)>2?` · ${qAge(t)} days old`:""}</span>`);
   if(doing(t))facts.push(`<span class="${stalled(t)?"late":"acc"}">${stalled(t)?"Stalled · started ":"Started "}${esc(ago(t.startedAt||t.updatedAt))}</span>`);
   if(waiting(t)){facts.push(`<span class="acc">Waiting on ${esc(t.waitingOn||"someone")}${t.waitingSince?` since ${esc(nice(iso2(new Date(t.waitingSince))))}`:""}</span>`);
@@ -1891,6 +1909,19 @@ let rolling=false;
 async function rollRenewals(){if(rolling)return;rolling=true;try{for(const r of recLive()){const t=recTask(r);if(!t||t.status!=="done")continue;
     let next=r.renewsOn;if(r.everyMonths&&next){next=addMonths(next,r.everyMonths);while(next<T())next=addMonths(next,r.everyMonths)}
     await S.db.doc("records/"+r.id).update({renewsOn:next,taskId:null})}}catch{}finally{rolling=false}}
+// a repeating task that's done gets its next copy (steps unticked) and hands the rule on; runs after each "done" and each sync, so done in a chat or by an agent counts too
+let repRolling=false;
+const dShort=s=>parse(s).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+async function rollRepeats(){if(repRolling)return;repRolling=true;try{for(const t of S.tasks.filter(x=>x.status==="done"&&REP[x.repeat])){
+    const rep=t.repeat,next=repNext(t),pid=t.projectId||null;
+    // a chat or another device may have added it already
+    const has=S.tasks.some(x=>x.id!==t.id&&open(x)&&x.repeat===rep&&x.title===t.title&&(x.projectId||null)===pid);
+    await S.db.doc("tasks/"+t.id).update({repeat:null,activity:actLog(t,has?"Done; the next one was already there":`Done; next one ${dShort(next)}`)});
+    if(has)continue;
+    const lead=t.startDate&&t.due?Math.round((parse(t.due)-parse(t.startDate))/864e5):null;
+    await addTask({title:t.title,projectId:pid,priority:t.priority||"med",due:next,dueFirm:!!t.dueFirm,dueTime:t.dueTime||null,startDate:lead>0?addDays(next,-lead):null,effortDays:t.effortDays||null,quick:t.quick??null,owner:t.owner||"me",private:!!t.private,notes:t.notes||null,repeat:rep,
+      steps:(Array.isArray(t.steps)?t.steps:[]).map(x=>({text:x.text,done:false})),blockedBy:[],activity:[{at:now(),by:"you",text:`${REP[rep]}; follows the one done ${dShort(iso2(new Date(t.doneAt||Date.now())))}`}]});toast(`Done. The next one is on ${nice(next)}.`)}}
+  catch{}finally{repRolling=false}}
 function recRow(r){const a=areaOf(r.areaId),t=recTask(r),k=recLeft(r),late=k!=null&&k<0;
   return `<div class="rec"><button class="lk" data-editrec="${esc(r.id)}"><b>${esc(r.title)}</b><span>${esc([RK[r.kind]||"Other",a?.name,r.amount!=null?`${r.currency||"INR"} ${numTxt(r.amount)}`:"",r.everyMonths?`every ${r.everyMonths===12?"year":r.everyMonths+" months"}`:""].filter(Boolean).join(" · "))}</span></button>
     <span class="when${late?" due":""}">${esc(recWhen(r))}${r.renewsOn&&(k>60||k<-60)?"":r.renewsOn?` · ${esc(nice(r.renewsOn))}`:""}</span>
@@ -2542,10 +2573,10 @@ document.addEventListener("submit",async e=>{
     toast(error?"Couldn't track that.":`Tracking it. Mark the spot in the doc with [[NEEDS:${key}]]`,false);e.target.reset();soon();return}
   if(e.target.id!=="quick")return;e.preventDefault();
   const f=e.target;const raw=f.q.value.trim();if(!raw)return;
-  const data={...quickParse(raw),projectId:f.p.value||null};
+  const data={...tagParse(raw),projectId:f.p.value||null};
   if(S.view==="today")data.todayDate=S.day&&S.day!==T()?S.day:T();
-  if(S.view==="week"){data.weekOf=week()[0];if(S.day)data.due=S.day}
-  f.q.value="";await addTask(data);toast(data.quick?"Added as a 2-minute task":"Task added");f.q.focus();
+  if(S.view==="week"){data.weekOf=week()[0];if(S.day&&!data.due)data.due=S.day}
+  f.q.value="";await addTask(data);toast(tagToast(data)||"Task added");f.q.focus();
 });
 
 document.addEventListener("input",e=>{if(e.target.id==="bsearch"){S.bq=e.target.value;drawBrain();return}if(e.target.id==="search"){S.q=e.target.value;document.getElementById("allList").innerHTML=allList()}});
@@ -2559,7 +2590,7 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");f.elements.private.checked=!!t?.private;
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.onQuick.checked=t?.quick===true;f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.onQuick.checked=t?.quick===true;f.elements.repeat.value=REP[t?.repeat]?t.repeat:"";f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   dSteps=clone(Array.isArray(t?.steps)?t.steps:[]);drawSteps();dDeps=(Array.isArray(t?.blockedBy)?t.blockedBy:[]).filter(id=>S.tasks.some(x=>x.id===id));drawDeps();document.getElementById("stepNew").value="";
   const act=(Array.isArray(t?.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-5).reverse();
   document.getElementById("actList").innerHTML=act.length?`<div class="lbl">Recent changes</div>`+act.map(x=>`<div class="act"><b>${x.by==="claude"?"Claude":"You"}</b><span>${esc(x.text)}</span><time>${x.at?esc(ago(x.at)):""}</time></div>`).join(""):"";
@@ -2591,7 +2622,7 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
   const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||(f.dueTime.value?T():null),dueTime:f.dueTime.value||null,dueFirm:f.dueFirm.checked||!!f.dueTime.value,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),
-    highlightDay:f.onHi.checked?T():(editing?.highlightDay===T()?null:editing?.highlightDay||null),quick:f.onQuick.checked?true:editing?.quick===true?false:editing?.quick??null,notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,private:f.elements.private.checked,
+    highlightDay:f.onHi.checked?T():(editing?.highlightDay===T()?null:editing?.highlightDay||null),quick:f.onQuick.checked?true:editing?.quick===true?false:editing?.quick??null,repeat:f.elements.repeat.value||null,notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,private:f.elements.private.checked,
     blockedBy:dDeps.slice(),steps:[...dSteps,...(f.elements.stepNew.value.trim()?[{text:f.elements.stepNew.value.trim(),done:false}]:[])].map(x=>({text:String(x.text||"").trim(),done:!!x.done})).filter(x=>x.text)};
   if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
   if(!data.title)return;
@@ -2935,7 +2966,7 @@ document.getElementById("capForm").addEventListener("submit",async e=>{
   const f=e.target.elements;const raw=f.text.value.trim();if(!raw)return;
   const lines=raw.split("\n");let title=lines[0].trim();const body=lines.slice(1).join("\n").trim();
   const k=f.kind.value,pid=f.projectId.value||null;
-  if(k==="task"){const q=quickParse(title);await addTask({...q,projectId:pid,notes:body,...(S.view==="today"&&!q.quick?{todayDate:T()}:{})});toast(q.quick?"Added as a 2-minute task":S.view==="today"?"Added to today":"Task added");return}
+  if(k==="task"){const q=tagParse(title);await addTask({...q,projectId:pid,notes:body,...(S.view==="today"&&!q.quick&&!q.repeat?{todayDate:T()}:{})});toast(tagToast(q)||(S.view==="today"?"Added to today":"Task added"));return}
   let url=null;if(k==="link"){const m=raw.match(/https?:\/\/\S+/);if(m){url=m[0];title=title.replace(url,"").trim()||url.replace(/^https?:\/\/(www\.)?/,"").slice(0,90)}}
   try{await S.db.collection("notes").add({kind:k,projectId:pid,title,body:url?body.replace(url,"").trim():body,url,source:"hub"});toast(`${KIND[k]?.l||"Note"} saved${pid?"":" to your Notes inbox"}`)}catch{toast("Couldn't save that. Try again.",false)}});
 
@@ -3076,7 +3107,8 @@ S.db={
     update:async d=>{const cur=rowOf(t,id);const before=prevVals(cur,d);localPatch(t,id,d);paint();
       await saving(async()=>{try{await RAW.update(t,id,d)}catch(e){localPatch(t,id,before);paint();throw e}});
       HIST.rec({t,id,kind:"update",before,after:d});
-      if(t==="tasks"&&d.status==="done"&&(S.records||[]).some(r=>r.taskId===id))queueMicrotask(rollRenewals)},
+      if(t==="tasks"&&d.status==="done"&&(S.records||[]).some(r=>r.taskId===id))queueMicrotask(rollRenewals);
+      if(t==="tasks"&&rowOf(t,id)?.status==="done"&&REP[rowOf(t,id)?.repeat])queueMicrotask(rollRepeats)},
     set:async d=>{const cur=rowOf(t,id);const before=cur?prevVals(cur,d):null;
       if(cur)localPatch(t,id,d);else (S[t]||(S[t]=[])).push({id,...d});paint();
       await saving(async()=>{try{await viaOutbox({op:"upsert",t,row:{id,...toRow(d)}},async()=>ok(await sb.from(t).upsert({id,...toRow(d)})))}catch(e){if(cur)localPatch(t,id,before);else localDrop(t,id);paint();throw e}});
@@ -3186,7 +3218,7 @@ async function doRefresh(){
   if(!pp.error&&Array.isArray(pp.data)&&W.n===0&&W.seq===seq0)S.people=pp.data.map(fromRow);
   if(!ll.error&&Array.isArray(ll.data)&&W.n===0&&W.seq===seq0)S.links=ll.data.map(fromRow);
   const lf=await life;LIFE.forEach(([t],i)=>{const r=lf[i];if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S[t]=r.data.map(fromRow)});
-  queueMicrotask(()=>{rollRenewals();tidyReviews()});
+  queueMicrotask(()=>{rollRenewals();tidyReviews();if(S.tasks.some(x=>x.status==="done"&&REP[x.repeat])){HIST.begin();rollRepeats()}});
   if(!tb.error&&Array.isArray(tb.data))S.topicBriefs=Object.fromEntries(tb.data.map(x=>[String(x.tag).toLowerCase(),fromRow(x)]));
   if(!fo.error&&Array.isArray(fo.data)&&W.n===0&&W.seq===seq0)S.focus_themes=fo.data.map(fromRow);
   if(!ss.error&&Array.isArray(ss.data))S.feeds=ss.data.map(x=>({l:{wispr:"Calls",gmail:"Gmail",linear:"Linear"}[x.source]||x.source,at:x.last_run_at,note:x.note})).sort((a,b)=>a.l.localeCompare(b.l));

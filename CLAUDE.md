@@ -43,6 +43,7 @@ At session start, read this file and `STATUS.md`. At every wrap-up, update `STAT
   - `priority`: high, med, low
   - `notes.kind`: fact, person, idea, decision, link, note
   - `tasks.quick`: true (a 2-minute task, kept in "Knock these out" on Today whatever its date), false (Vimal said it takes longer; never suggest again), null (not decided).
+  - `tasks.repeat`: daily, weekdays, weekly, fortnightly, monthly, or null (one-off). One open copy at a time: marking it done adds the next copy and clears `repeat` on the done one (`rollRepeats` in the app, also on sync; the SQL is in the skill's `reference/queries.md`).
   - `tasks.owner`: me (default), agent. `bot(t)` in the app; agent tasks are filtered out of Today/Week and listed in the "Run by agents" view, but still count in Needs attention.
 - **Keep these working:** the quick look (`peekHtml`, `renderPeek`, `setPeek`), the task editor's field names and ids (`#taskForm`, `#depList`, `#depAdd`, `#stepList`, `#stepNew`, `#actList`, `#delTask`) and its submit handler.
 - **`doRefresh`:** keep the staleness check (`W.n`, `W.seq`) so a sync never overwrites a save in flight.
