@@ -1,8 +1,17 @@
 # Status
 
-**Last updated:** 29 Oct 2026 (recurring tasks) (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 9 Nov 2026 (the brief, after Dia) (app changes on branch `vimal/quirky-galileo-ut9ii1`, not yet on `main`; database and agent changes are live)
 
 ## Current state
+- **The brief, after Dia (9 Nov):** researched Dia's Morning Brief, `/weekly` and `/daily-wrap` skills, Better Meetings and Memory, and built the parts that fit:
+  - **Brief at the top of Today** (collapsible, remembered per day): Needs you, Your day, Picked for you, Since yesterday (Since Friday on Mondays, from `changes`), Heads up. **Monday brief** adds Last week (done, slipped) and This week (week focus, hard deadlines, calls, renewals); **Friday wrap** adds Your week (done by project, decisions, follow-ups). The app builds it from local rows, so it works with no agent row.
+  - **New table `day_briefs`** (one row a day: `edition`, `headline`, `items` jsonb, `feedback` jsonb). The 9 AM lead writes it (new STEP 8, `agent_config` row `lead-8-brief`, mirrored in `agents/lead-brief.md`; the trigger prompt now reads it at the start, lists it as write (i), and puts the headline second in the push with a link). Each agent item has Done / Not now / Not useful; "no" teaches the lead what to leave out.
+  - **New column `tasks.owed_to`** (who's waiting on Vimal): "Needs you" in the brief, the quick look, an "Owed to" field in the task sheet (More details), counted on person pages. The hourly agent sets it from email, calls and Linear (`meeting-agent-9h-owed`, mirrored in `agents/meeting-agent.md`).
+  - **Not useful on the lead's picks:** unstars and logs "Routine pick rejected: not useful"; the lead reads these before STEP 5B.
+  - **Looking ahead** (evenings, under the check-in): star up to 3 tasks for the next working day.
+  - **Saved prompts (Dia's Skills):** Plan my day, Daily wrap, Weekly wrap (Friday) in the brief, and "More with Claude" in the quick look (draft the message, break into steps, one-pager, what's blocking it). They open claude.ai pre-filled; no API cost.
+  - **Meeting card:** countdown and top 3 points within the hour; "Add follow-ups" once it has started.
+  - Skill: `owed_to` field rule, "Who's waiting on me?", the brief; plate query returns `owed_to`. Re-upload the skill. Test: `brief.mjs`.
 - **Recurring tasks (29 Oct):** new column `tasks.repeat` (daily / weekdays / weekly / fortnightly / monthly, null = one-off). Only one copy is ever open: marking it done adds the next one (same project, priority, notes, steps unticked, due = the next date that isn't in the past) and clears `repeat` on the finished one; undo takes both back. Set it in the task sheet ("Repeats") or by ending a typed title with "every Monday", "every week", "every 2 weeks", "every month" or "#monthly". Rows show "↻ weekly"; the quick look says when the next one is. A task done in a chat or by an agent rolls on the app's next sync. Skill: field rule and the done-and-roll SQL in `reference/queries.md`; re-uploaded by Vimal on 29 Oct (this session's synced copy predates it, so confirm in a new chat). Agent not changed. Test: `repeat.mjs`.
 - **2-minute tasks (27 Oct):** new column `tasks.quick` (true / false = "not quick, don't ask" / null). Today has "Knock these out" under High impact: every open quick task whatever its date, oldest first, "n days old" after 2 days, plus "Do these take 2 minutes?" (up to 3 likely ones by title verb, Yes / No). "I have 10 minutes" runs through them one at a time with a countdown (Done / Skip / Not 2 minutes). 2-min toggle in the quick look and the task sheet; "2m", "2 min", "#quick" or "(quick)" at the end of a typed title sets it. Agent addendum `meeting-agent-9g-quick` (marks plainly small new tasks); the 9 AM lead has STEP 1B (a "Quick: n waiting, oldest …" line in its push); skill field rule and plate bucket `1b quick (2 min)`. Re-upload the skill. Test: `quick.mjs`.
 - **Phase 2, Life OS core (26 Oct):** tables life_areas, goals, habits, habit_logs, daily_log, compass; `projects.life_area`, `focus_themes.goal_id`. App: Do / Know / Live sidebar, 5-tab phone bar with a More sheet, habits and the evening check-in on Today, Life, Area, Goals, Habits and Log pages, themes that serve a goal, a project's life area. Skill has a "Life OS" section. Test: `life.mjs`. Area standards are placeholders in brackets for Vimal to write.
@@ -55,6 +64,9 @@
 - Nothing mid-change. Handoff note: "Handoff: Ambalam Life OS" (resume with "continue ambalam life-os").
 
 ## Next step
+- Merge `vimal/quirky-galileo-ut9ii1` into `main` to put the brief live. Until then the 9 AM lead writes `day_briefs` rows that the live app doesn't show yet (harmless).
+- Re-upload the task-hub skill (owed_to, the brief).
+- Tue 10 Nov after 9 AM: check `select day, edition, headline, jsonb_array_length(items) from day_briefs;` and that the push opens with the Agents line, then the headline. After the hourly runs: `select title, owed_to from tasks where owed_to is not null;`
 - Vimal: set Repeats on the regular tasks (LinkedIn posts weekly, Healio pieces every 2 weeks); suggested task due 31 Oct. No task uses `repeat` yet. Handoff: "Handoff: Ambalam recurring tasks" (resume with "continue ambalam recurring tasks").
 - Skill re-uploaded by Vimal on 26 Oct. Confirm the uploaded zip has the "Life OS" section (the second zip sent); if not, upload it again.
 - Vimal: Cabo and "Card-game group" are person notes, not people (change their type in Notes if you like). Dhananjay (DJ) is merged.

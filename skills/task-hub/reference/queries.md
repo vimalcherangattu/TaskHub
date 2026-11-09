@@ -41,7 +41,7 @@ select case
     when o.today_date = d.today or o.due = d.today then '4 today'
     when o.start_by <= d.today then '4 start today'
     when o.due <= d.today + 6 then '6 later this week'
-  end as bucket, o.project, o.title, o.priority, o.due, to_char(o.due_time, 'HH24:MI') due_by, o.waiting_on, o.waits_on_titles
+  end as bucket, o.project, o.title, o.priority, o.due, to_char(o.due_time, 'HH24:MI') due_by, o.waiting_on, o.owed_to, o.waits_on_titles  -- owed_to: someone is waiting on him; say "(<name> is waiting)"
 from o, d
 where (o.status <> 'waiting' or coalesce(o.follow_up_on, d.today) <= d.today)
 order by 1 nulls last, o.due, o.due_time nulls last, case o.priority when 'high' then 0 when 'med' then 1 else 2 end, o.due nulls last;

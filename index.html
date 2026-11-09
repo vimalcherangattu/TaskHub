@@ -858,6 +858,48 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
 @media (max-width:820px){.gl{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t t" "p p" "a m";gap:6px 12px;padding:12px 16px}.gl-t{grid-area:t}.gl-t b{white-space:normal}.gl-p{grid-area:p}.gl-a{grid-area:a}.gl-m{grid-area:m}
   .hrow{grid-template-columns:minmax(0,1fr) auto;}.hrow .hds{grid-column:1/-1;order:3}.hacts{grid-column:1/-1;order:4}.hacts .tool{min-height:44px}
   .logw{grid-template-columns:1fr}.lc-d{min-height:52px;padding:6px}.gi .x{width:44px;height:44px}.gk{margin-left:10px}}
+/* the brief (top of Today), looking ahead, saved prompts, meeting countdown */
+.brief{margin:4px 0 24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l)}
+.brief>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:16px 20px;min-height:44px}
+.brief>summary::-webkit-details-marker{display:none}
+.brief>summary b{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.35}
+.brief>summary::after{content:"Show";font-size:12px;color:var(--accent);font-weight:500}
+.brief[open]>summary::after{content:"Hide"}
+.brief-b{padding:0 20px 14px;display:flex;flex-direction:column;gap:14px}
+.bsec h3{margin:0 0 4px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.bsec ul{list-style:none;margin:0;padding:0}
+.bi{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.bi:first-child{border-top:0}
+.bi>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;overflow-wrap:anywhere}
+.bi-t{border:0;background:none;padding:0;text-align:left;font-weight:500;font-size:14.5px;color:var(--ink);text-decoration:none}
+button.bi-t:hover,a.bi-t:hover{text-decoration:underline;text-underline-offset:3px}
+.bi-w{font-size:12.5px;color:var(--muted)}.bi-w a{color:var(--accent)}
+.btag{flex:none;min-width:58px;font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 6px;border-radius:6px;background:var(--sunken);color:var(--muted);text-align:center;margin-top:2px}
+.btag.needs_you{background:var(--danger-soft);color:var(--danger)}
+.btag.awaiting{color:var(--warn)}
+.btag.active{background:var(--accent-soft);color:var(--accent)}
+.bi-a{display:flex;gap:4px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.bi-more{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.bsec .act,.brief-f .act{display:inline-block;border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:4px 0}
+.brief-f{display:flex;gap:18px;flex-wrap:wrap;border-top:1px dashed var(--line-strong);padding-top:8px}
+.ahead{margin-bottom:24px;background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--radius-l);padding:12px 8px 12px}
+.ahead .sh{padding:0 8px 2px}
+.ahead-l{display:flex;flex-wrap:wrap;gap:6px;padding:0 8px}
+.ahead-l .tool{font-size:13px;padding:6px 12px;text-align:left}
+.pk-skills{margin:10px 0 0}
+.pk-skills>summary{cursor:pointer;font-size:13px;font-weight:500;color:var(--accent);min-height:32px;display:flex;align-items:center}
+.pk-skills>div{display:flex;flex-wrap:wrap;gap:6px;padding-top:6px}
+.card.next-call.near{border-width:2px}
+.next-call .cd{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent)}
+.nc-ag{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.nc-ag b{color:var(--ink);font-weight:600}
+.nc-a{display:flex;gap:16px;flex-wrap:wrap}
+@media (max-width:820px){
+  .brief>summary{padding:14px 14px}.brief-b{padding:0 14px 12px}.btag{min-width:52px}
+  .bi{flex-wrap:wrap}.bi-a{flex:1 1 100%;min-width:0;justify-content:flex-start;padding-left:68px}
+  .bi-a .tool,.ahead-l .tool,.pk-skills .tool,.bsec .act,.brief-f .act,.pk-skills>summary,.nc-a .more{min-height:44px}
+  .bi-t{min-height:28px}
+}
 </style>
 </head>
 <body>
@@ -903,6 +945,7 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
       <label>Waiting on<input name="waitingOn" autocomplete="off" placeholder="Only if status is Waiting"></label>
       <label>Next follow-up<input type="date" name="followUpOn"></label>
     </div>
+    <label>Owed to<input name="owedTo" autocomplete="off" placeholder="Who's waiting on you for this (shows in “Needs you”)"></label>
     <div class="deps-ed"><div class="lbl">Waits on (finish these first)</div><div id="depList" class="chips"></div>
       <select id="depAdd" aria-label="Add a task this waits on"></select></div>
     <div class="steps-ed"><div class="lbl">Steps</div><div id="stepList"></div>
@@ -1121,7 +1164,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
 let _ac=[];try{_ac=JSON.parse(localStorage.getItem("hub-areas")||"[]")}catch{}
-const S={focus_themes:[],people:[],links:[],life_areas:[],goals:[],habits:[],habit_logs:[],daily_log:[],compass:[],reviews:[],records:[],metrics:[],metric_logs:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={day_briefs:[],focus_themes:[],people:[],links:[],life_areas:[],goals:[],habits:[],habit_logs:[],daily_log:[],compass:[],reviews:[],records:[],metrics:[],metric_logs:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -1349,6 +1392,8 @@ function peekHtml(t){
   if(REP[t.repeat]&&open(t))facts.push(`<span>↻ ${esc(REP[t.repeat])}. Done adds the next one, ${esc(nice(repNext(t)))}</span>`);
   if(t.quick===true&&open(t))facts.push(`<span class="acc">2-minute task${qAge(t)>2?` · ${qAge(t)} days old`:""}</span>`);
   if(doing(t))facts.push(`<span class="${stalled(t)?"late":"acc"}">${stalled(t)?"Stalled · started ":"Started "}${esc(ago(t.startedAt||t.updatedAt))}</span>`);
+  if(owes(t))facts.push(`<span class="warn">${esc(t.owedTo)} is waiting on you</span>`);
+  if(leadPick(t))facts.push(`<span>Starred by the 9 AM lead${leadWhy(t)?`: ${esc(trunc(leadWhy(t),80))}`:""}</span>`);
   if(waiting(t)){facts.push(`<span class="acc">Waiting on ${esc(t.waitingOn||"someone")}${t.waitingSince?` since ${esc(nice(iso2(new Date(t.waitingSince))))}`:""}</span>`);
     if(t.followUps)facts.push(`<span class="${chase(t)?"late":""}">Chased ×${t.followUps}</span>`);
     if(t.followUpOn)facts.push(`<span class="${t.followUpOn<=T()?"warn":""}">Follow up ${esc(nice(t.followUpOn))}</span>`)}
@@ -1371,6 +1416,7 @@ function peekHtml(t){
   if(open(t))acts+=b(`data-drop="${id}"`,"Delete","quiet","Delete this task");
   let h=`<div class="pk-top"><span>${p?`<span class="dot" style="background:${esc(p.color||"var(--faint)")}"></span>${esc(fullName(p))}`:"Unsorted"}</span><button class="pk-x" data-peekclose aria-label="Close quick look" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
   h+=`<h2 class="pk-title">${esc(t.title)}</h2><div class="pk-facts">${facts.join("")}</div><div class="pk-acts">${acts}</div>`;
+  if(t.status!=="done"&&!sugg(t))h+=`<details class="pk-skills"><summary>More with Claude</summary><div>${Object.entries(TSKILL).map(([k,[l]])=>`<button class="tool" data-tskill="${k}" data-id="${id}">${l}</button>`).join("")}</div></details>`;
   if(t.resumeNote&&open(t))h+=`<div class="pk-sec"><h3>Next</h3><div class="pk-next">↳ ${esc(t.resumeNote)}</div></div>`;
   const st=Array.isArray(t.steps)?t.steps:[];
   if(st.length)h+=`<div class="pk-sec"><h3><span>Steps</span><span>${st.filter(x=>x.done).length} of ${st.length}</span></h3><div class="steps">${st.map((x,i)=>`<button class="step ${x.done?"on":""}" data-step="${id}" data-i="${i}" aria-pressed="${!!x.done}"><span class="sbox"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>${esc(x.text)}</button>`).join("")}</div></div>`;
@@ -1388,7 +1434,7 @@ function peekHtml(t){
   h+=`<div class="pk-src">${t.sourceChat?`From ${esc(t.sourceChat)} · `:""}${t.createdAt?`added ${esc(ago(t.createdAt))}`:""}</div>`;
   return h}
 /* "Work with Claude": a new claude.ai chat pre-filled with the task, told to load context and write progress back via the task-hub skill */
-function claudePrompt(t){
+function claudePrompt(t,ask){
   const p=proj(t.projectId),L=[],st=Array.isArray(t.steps)?t.steps:[],bs=blockers(t),up=(Array.isArray(t.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-3);
   L.push(`Let's get this Ambalam task done. Use the task-hub skill.`);
   L.push(`First ${p?`run project_context('${p.id}') and `:""}read task ${t.id} for the latest.`,"");
@@ -1399,6 +1445,7 @@ function claudePrompt(t){
   if(bs.length)L.push("Waits on:",...bs.map(x=>`- ${x.title} (${x.id})`));
   if(up.length)L.push("Recent updates:",...up.map(x=>`- ${x.text}`));
   if(t.notes)L.push("Notes:",trunc(t.notes,1500));
+  if(ask){L.push("",ask,`Write progress back to this task through the skill (an activity entry by "claude").`);return L.join("\n")}
   L.push("",`Help me finish it: propose a short plan, then do the work with me (drafts, research, messages). As we go, update this task through the skill: tick steps, set the resume note, add an activity entry by "claude", and mark it done when it's finished.`);
   return L.join("\n")}
 function renderPeek(){
@@ -1502,6 +1549,106 @@ function rail(){
   h+=`</section></div>`;
   return h;
 }
+/* ---------- the brief (after Dia's Morning Brief): one page a day at the top of Today.
+   The app builds most of it from local rows; the 9 AM lead adds a day_briefs row (headline + items from email, calendar and Linear).
+   Monday adds last week and this week, Friday a wrap of the week. Every item links to its source and takes Done / Not now / Not useful. ---------- */
+const owes=t=>open(t)&&!!t.owedTo&&!bot(t);
+const youOwe=()=>S.tasks.filter(owes).sort(byAge);
+const briefOf=(d=T())=>(S.day_briefs||[]).find(b=>b.day===d)||null;
+const edOf=(d=T())=>{const w=parse(d).getDay();return w===1?"monday":w===5?"friday":"daily"};
+const ED={daily:"Morning brief",monday:"Monday brief",friday:"Friday wrap"};
+const BTAG={needs_you:"Needs you",awaiting:"Awaiting reply",active:"Active"};
+const LEADRE=/^Marked high impact by daily routine:?\s*/;
+// a star the 9 AM lead set in the last day, so the brief can ask whether it was a good pick
+const leadPick=t=>hiTask(t)&&open(t)&&(Array.isArray(t.activity)?t.activity:[]).some(a=>LEADRE.test(a?.text||"")&&Date.now()-new Date(a.at||0)<24*36e5);
+const leadWhy=t=>((Array.isArray(t.activity)?t.activity:[]).filter(a=>LEADRE.test(a?.text||"")).pop()?.text||"").replace(LEADRE,"");
+const tmrw=()=>nextWork(T(),1);
+// what moved in each project since yesterday morning (on Monday, since Friday evening)
+function sinceYesterday(){const from=Date.now()-(parse(T()).getDay()===1?66:24)*36e5,m=new Map();
+  for(const c of S.changes){if(new Date(c.at)<from||!c.projectId||/^(task_deleted|note_superseded|task_superseded)/.test(c.kind||""))continue;const k=topId(c.projectId)||c.projectId;if(!m.has(k))m.set(k,[]);m.get(k).push(c)}
+  return [...m].map(([pid,cs])=>({p:proj(pid),cs})).filter(x=>x.p&&!x.p.archivedAt).sort((a,b)=>b.cs.length-a.cs.length)}
+function lastWeekBits(){const a=addDays(week()[0],-7),z=addDays(week()[0],-1),inW=d=>!!d&&d>=a&&d<=z;
+  return{done:S.tasks.filter(x=>x.status==="done"&&x.doneAt&&inW(iso(new Date(x.doneAt)))&&!bot(x)),slipped:S.tasks.filter(x=>open(x)&&!bot(x)&&inW(x.due))}}
+function thisWeekBits(){const w=week(),inW=d=>!!d&&d>=w[0]&&d<=w[6];
+  return{th:themesOn(w[0],"week"),hard:S.tasks.filter(x=>firm(x)&&!bot(x)&&inW(x.due)).sort((a,b)=>dueMs(a)-dueMs(b)),
+    calls:seriesSorted().map(s=>({s,at:S.prep[s.id]?.next_at})).filter(x=>x.at&&inW(iso(new Date(x.at)))&&new Date(x.at)>Date.now()-90*6e4),
+    renew:recLive().filter(r=>inW(r.renewsOn))}}
+function weekWrap(){const done=S.tasks.filter(x=>doneThisWeek(x)&&!bot(x)),by=new Map();
+  for(const x of done){const k=proj(topId(x.projectId))?.name||"Unsorted";by.set(k,(by.get(k)||0)+1)}
+  return{done,by:[...by].sort((a,b)=>b[1]-a[1]),dec:S.notes.filter(n=>n.kind==="decision"&&n.createdAt&&iso(new Date(n.createdAt))>=week()[0]),fu:S.tasks.filter(waiting),owe:youOwe()}}
+// the agent's items, minus the ones already answered (Done, Not now, Not useful)
+const bItems=b=>(Array.isArray(b?.items)?b.items:[]).map((x,i)=>({...x,key:String(x?.id??i)})).filter(x=>x&&x.text&&!(b.feedback||{})[x.key]);
+const httpsUrl=u=>/^https:\/\//.test(String(u||""));
+// one line: a tag, the text (a link to its task, note or source), why, and actions
+function bLi(tag,cls,main,why="",acts=""){return `<li class="bi">${tag?`<span class="btag ${cls}">${tag}</span>`:""}<div>${main}${why?`<span class="bi-w">${why}</span>`:""}</div>${acts?`<span class="bi-a">${acts}</span>`:""}</li>`}
+const bT=(attr,text)=>attr?`<button class="bi-t" ${attr}>${esc(text)}</button>`:`<span class="bi-t">${esc(text)}</span>`;
+function bItem(b,x){const rid=x.ref_id,rt=x.ref_type;
+  const attr=rt==="task"&&S.tasks.some(t=>t.id===rid)?`data-peek="${esc(rid)}"`:rt==="note"&&S.notes.some(n=>n.id===rid)?`data-editnote="${esc(rid)}"`:"";
+  const main=attr?bT(attr,x.text):httpsUrl(x.url)?`<a class="bi-t" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>`:bT("",x.text);
+  const src=attr&&httpsUrl(x.url)?` · <a href="${esc(x.url)}" target="_blank" rel="noopener">Source</a>`:"";
+  const fb=(v,l,ti)=>`<button class="tool" data-bfb="${v}" data-b="${esc(b.id)}" data-k="${esc(x.key)}" aria-label="${l}: ${esc(x.text)}" title="${ti}">${l}</button>`;
+  return bLi(BTAG[x.tag]||"",esc(x.tag||""),main,esc(x.why||"")+src,fb("done","Done","Handled")+fb("later","Not now","Hide it for today")+fb("no","Not useful","Hide it, and the 9 AM lead skips things like this"))}
+const bSec=(title,lis,extra="")=>`<div class="bsec" role="group" aria-label="${title}"><h3>${title}</h3><ul>${lis.join("")}</ul>${extra}</div>`;
+const BK="ambalam.brief.v1";
+const briefShut=()=>{try{return localStorage.getItem(BK)===T()}catch{return false}};
+function dayBrief(){if(S.day&&S.day!==T())return"";
+  const t=T(),b=briefOf(t),ed=b?.edition||edOf(t),items=bItems(b),of=s=>items.filter(x=>(x.section||"needs_you")===s).map(x=>bItem(b,x));
+  const owe=youOwe(),moved=sinceYesterday(),picks=S.tasks.filter(leadPick),slipN=S.tasks.filter(x=>slip(x)&&!bot(x)).length;
+  const calls=seriesSorted().map(s=>({s,p:S.prep[s.id]})).filter(x=>x.p?.next_at&&iso(new Date(x.p.next_at))===t&&new Date(x.p.next_at)>Date.now()-90*6e4);
+  const parts=[];
+  const ny=[...of("needs_you"),...owe.slice(0,8).map(x=>bLi("Owed","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),`${esc(x.owedTo)} is waiting · added ${esc(ago(x.createdAt||now()))}`,`<button class="tool" data-quickdone="${esc(x.id)}" aria-label="Done: ${esc(x.title)}">Done</button>`))];
+  if(ny.length)parts.push(bSec("Needs you",ny,owe.length>8?`<p class="bi-more">And ${owe.length-8} more you owe.</p>`:""));
+  const yd=[...(slipN?[bLi("Hard","needs_you",bT("",`${cap(word(slipN))} hard deadline${slipN===1?"":"s"} today`),"In “Can't slip” below")]:[]),
+    ...calls.map(({s,p})=>bLi(esc(istFmt(p.next_at,{hour:"numeric",minute:"2-digit"})),"active",bT(`data-cs="${esc(s.id)}"`,s.name),`${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask`)),...of("ahead")];
+  if(yd.length)parts.push(bSec("Your day",yd));
+  if(picks.length)parts.push(bSec("Picked for you",picks.map(x=>bLi("★","active",bT(`data-peek="${esc(x.id)}"`,x.title),esc(leadWhy(x)||"Starred by the 9 AM lead"),`<button class="tool" data-hino="${esc(x.id)}" aria-label="Not useful: ${esc(x.title)}" title="Unstar it and tell the 9 AM lead it was a poor pick">Not useful</button>`))));
+  const up=[...of("updates"),...moved.slice(0,6).map(({p,cs})=>bLi(String(cs.length),"active",bT(`data-proj="${esc(p.id)}"`,p.name),esc(cs.slice(0,2).map(c=>trunc(c.summary,70)).join(" · "))))];
+  if(up.length)parts.push(bSec(parse(t).getDay()===1?"Since Friday":"Since yesterday",up));
+  if(ed==="monday"){const L=lastWeekBits(),N=thisWeekBits();
+    parts.push(bSec("Last week",[bLi("Done","active",bT("",`${L.done.length} task${L.done.length===1?"":"s"} done`),L.slipped.length?`${L.slipped.length} slipped: ${esc(L.slipped.slice(0,3).map(x=>trunc(x.title,40)).join("; "))}`:"Nothing slipped"),
+      ...L.slipped.slice(0,3).map(x=>bLi("Slipped","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),`was due ${esc(nice(x.due))}`))]));
+    const tw=[...N.th.map(f=>{const l=themeTasks(f),d=l.filter(x=>x.status==="done").length;return bLi("Focus","active",bT(`data-themeedit="${esc(f.id)}"`,f.title),l.length?`${d} of ${l.length} closed`:"")}),
+      ...N.hard.map(x=>bLi("Hard","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),esc(nice(x.due))+(hm(x)?` by ${esc(clock(hm(x)))}`:""))),
+      ...N.calls.map(c=>bLi("Call","active",bT(`data-cs="${esc(c.s.id)}"`,c.s.name),esc(nextTxt(c.at).txt))),
+      ...N.renew.map(r=>bLi("Renew","awaiting",bT("",r.title),esc(nice(r.renewsOn))))];
+    parts.push(bSec("This week",tw.length?tw:[bLi("","",bT("","No week focus yet"),"The 9 AM lead sets it this morning, or set it yourself in This week")],`<button class="act" data-go="week">Open This week</button>`))}
+  if(ed==="friday"){const W=weekWrap();
+    parts.push(bSec("Your week",[bLi("Moved","active",bT("",`${W.done.length} task${W.done.length===1?"":"s"} done`),esc(W.by.slice(0,4).map(([k,n])=>`${k} ${n}`).join(" · "))),
+      ...W.dec.slice(0,4).map(n=>bLi("Decided","active",bT(`data-editnote="${esc(n.id)}"`,n.title))),
+      bLi("Follow up","awaiting",bT(`data-go="followups"`,`${W.fu.length} waiting on others · ${W.owe.length} you owe`))],`<button class="act" data-bskill="week">Weekly wrap in Claude</button>`))}
+  const hu=of("heads_up");if(hu.length)parts.push(bSec("Heads up",hu));
+  const nNeed=ny.length+slipN,auto=[nNeed?`${cap(word(nNeed))} need${nNeed===1?"s":""} you`:"Nothing needs you",calls.length?`${word(calls.length)} call${calls.length===1?"":"s"}`:"",moved.length?`${word(moved.length)} project${moved.length===1?"":"s"} moved`:""].filter(Boolean).join(" · ");
+  const by=b?` · 9 AM lead, ${esc(istFmt(b.updatedAt||b.createdAt||now(),{hour:"numeric",minute:"2-digit"}))}`:"";
+  return `<details class="brief" data-brief${briefShut()?"":" open"}><summary><span class="eyebrow">${ED[ed]}${by}</span><b>${esc(b?.headline||auto+".")}</b></summary><div class="brief-b">${parts.join("")||`<p class="bi-more">Nothing new since yesterday.</p>`}<div class="brief-f"><button class="act" data-bskill="plan">Plan my day in Claude</button><button class="act" data-bskill="wrap">Daily wrap in Claude</button></div></div></details>`}
+document.addEventListener("toggle",e=>{const d=e.target;if(d.matches?.("details[data-brief]"))try{localStorage.setItem(BK,d.open?"":T())}catch{}},true);
+// "Looking ahead": in the evening, pick up to 3 tasks for the next working day; they open it as high impact, and the 9 AM lead leaves your picks alone
+function lookAhead(){const ev=S.forceEvening??istHour()>=18;if(!ev||(S.day&&S.day!==T()))return"";const n=tmrw(),picked=S.tasks.filter(x=>open(x)&&x.highlightDay===n);
+  const cand=sortT(S.tasks.filter(x=>open(x)&&!sugg(x)&&!bot(x)&&!waiting(x)&&!blocked(x)&&x.highlightDay!==n&&(doing(x)||(x.due&&x.due<=addDays(n,2))||x.todayDate===n||wkTask(x)||leftover(x)||onToday(x)))).slice(0,6);
+  if(!picked.length&&!cand.length)return"";
+  const dn=parse(n).toLocaleDateString("en-GB",{weekday:"long"});
+  return `<section class="ahead" aria-label="Looking ahead"><div class="sh"><h2>Looking ahead</h2><span class="n">${picked.length} of 3</span></div><p class="qk-sub">What would make ${esc(dn)} count? Pick up to 3. They open ${esc(dn)} as high impact.</p><div class="ahead-l">${[...picked,...cand].map(x=>`<button class="tool" data-ahead="${esc(x.id)}" aria-pressed="${x.highlightDay===n}">${esc(trunc(x.title,60))}</button>`).join("")}</div></section>`}
+/* saved prompts (after Dia's Skills): open a claude.ai chat pre-filled from local data; no API cost */
+const tl=l=>l.map(x=>`- ${x.title}${proj(x.projectId)?` (${proj(x.projectId).name})`:""}`);
+function briefPrompt(k){const t=T(),L=["Use the task-hub skill."];
+  if(k==="plan"){L.push(`Help me plan today, ${nice(t)}. Run "what's on my plate" first.`,"");
+    const hi=S.tasks.filter(x=>hiTask(x)&&open(x)),sl=S.tasks.filter(x=>slip(x)&&!bot(x)),ow=youOwe();
+    if(sl.length)L.push("Can't slip:",...tl(sl));if(hi.length)L.push("High impact:",...tl(hi));if(ow.length)L.push("People waiting on me:",...ow.map(x=>`- ${x.title} (${x.owedTo})`));
+    L.push("","Suggest an order for the day with rough time blocks around my calls, say what won't fit, and after I agree save the changes (today_date, highlight_day) through the skill.")}
+  else if(k==="wrap"){const f=dayFacts(t);L.push(`Write my daily wrap for ${nice(t)}.`,"");
+    if(f.done.length)L.push("Done today:",...tl(f.done));const dg=S.tasks.filter(doing);if(dg.length)L.push("In progress:",...tl(dg));
+    if(f.dec.length)L.push("Decided:",...f.dec.map(n=>`- ${n.title}`));
+    L.push("","Keep it short and shareable: shipped, in progress, blocked, tomorrow. Then ask me for tomorrow's top 3 and save them as highlight_day for the next working day through the skill.")}
+  else{const W=weekWrap();L.push(`Recap my week (week of ${nice(week()[0])}).`,"");
+    if(W.done.length)L.push("Done this week:",...tl(W.done));if(W.dec.length)L.push("Decided:",...W.dec.map(n=>`- ${n.title}`));
+    if(W.fu.length)L.push("Waiting on others:",...W.fu.map(x=>`- ${x.title} (${x.waitingOn||"someone"})`));if(W.owe.length)L.push("I owe:",...W.owe.map(x=>`- ${x.title} (${x.owedTo})`));
+    L.push("","Write it in three sections: What moved, Key takeaways, Follow-ups. Then propose 3–4 week themes for next week and, after I agree, save them as focus_themes with span 'week' for next Monday through the skill.")}
+  return L.join("\n")}
+const TSKILL={draft:["Draft the message","Draft the message or reply this task needs, in my voice. Show it to me; never send anything."],
+  steps:["Break it into steps","Break this into 3–7 concrete next steps, then save them as the task's steps through the skill."],
+  onepager:["Write a one-pager","Write a one-page brief for this: goal, context, options, recommendation, open questions."],
+  unblock:["What's blocking it?","Work out what's really blocking this and the smallest next move I can make today. Save that as the resume note."]};
+async function openClaude(q,msg){window.open("https://claude.ai/new?q="+encodeURIComponent(q),"_blank","noopener");
+  try{await navigator.clipboard.writeText(q);toast(msg+" The prompt is also copied.",false)}catch{toast(msg,false)}}
 /* ---------- context layer: briefs, calls, changes ---------- */
 document.addEventListener("toggle",e=>{const d=e.target;if(d.matches?.("details[data-seg]"))d.open?S.copen.add(d.dataset.seg):S.copen.delete(d.dataset.seg)},true);
 async function refileSeg(segId){const g=S.segs.find(x=>x.id===segId);const sel=document.querySelector(`[data-refsel="${CSS.escape(segId)}"]`);
@@ -1605,8 +1752,11 @@ function prepSheet(p){const s=S.series.find(x=>x.id===p.id)||{};let h="";
   return h}
 function nextCallCard(){const t=Date.now();
   const s=seriesSorted().find(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-t<24*36e5&&new Date(n)-t>-90*6e4});if(!s)return"";
-  const p=S.prep[s.id],nt=nextTxt(p.next_at);
-  return `<section class="card next-call"><div class="card-h"><h2>${esc(s.name)}</h2></div><span class="when">${esc(nt.txt)} · ${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask</span><button class="more" data-cs="${esc(s.id)}">Open prep</button></section>`}
+  // within the hour: a countdown and the top points to raise; once it has started: add follow-ups
+  const p=S.prep[s.id],nt=nextTxt(p.next_at),ms=new Date(p.next_at)-t,near=ms>0&&ms<60*6e4,started=ms<=0;
+  let h=`<section class="card next-call${near?" near":""}"><div class="card-h"><h2>${esc(s.name)}</h2>${near?`<span class="cd">in ${esc(leftTxt(ms))}</span>`:""}</div><span class="when">${esc(nt.txt)} · ${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask</span>`;
+  if(near){const ag=agendaOf(p).slice(0,3);if(ag.length)h+=`<ul class="nc-ag">${ag.map(a=>`<li><b>${esc(KLBL[a.kind]||a.kind)}</b> ${esc(trunc(a.text,90))}</li>`).join("")}</ul>`}
+  return h+`<div class="nc-a"><button class="more" data-cs="${esc(s.id)}">Open prep</button>${started?`<button class="more" data-callfu="${esc(s.id)}">Add follow-ups</button>`:""}</div></section>`}
 function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
   return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
 /* ---------- people: one page per person note, pulling together what's scattered (waiting_on, inputs, calls, agenda, decisions) ---------- */
@@ -1640,7 +1790,7 @@ function personData(r,all=persons()){if(r&&r.kind==="person")r=personById(r.id);
   return{first,series,next:nexts[0]||null,calls:calls.slice(0,6),allCalls:calls,
     theyOwe:sortT(S.tasks.filter(t=>waiting(t)&&has(t.waitingOn))),
     inputs:S.inputs.filter(i=>i.status==="pending"&&has(i.owner)),
-    youOwe:sortT(S.tasks.filter(t=>open(t)&&!waiting(t)&&has(t.title))),
+    youOwe:sortT(S.tasks.filter(t=>open(t)&&!waiting(t)&&(has(t.title)||has(t.owedTo)))),
     agenda:S.agenda_items.filter(a=>a.status==="open"&&series.some(s=>s.id===a.seriesId)),
     decisions:S.notes.filter(x=>x.kind==="decision"&&(has(x.title)||has(x.body))).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))).slice(0,8)}}
 const pLinks=(r,kind)=>(S.links||[]).filter(l=>l.fromType==="person"&&l.fromId===r.id&&l.toType==="project"&&l.kind===kind&&proj(l.toId));
@@ -2047,10 +2197,10 @@ function renderView(){
     const pool=[...new Set([...slipA,...fuA,...motionA,...startA,...listA,...leftA,...S.tasks.filter(x=>(hiIds.has(x.id)||qIds.has(x.id))&&open(x))])].filter(x=>!bot(x));
     const nh=a=>a.filter(x=>tfilter(x)&&!hiIds.has(x.id)&&!qIds.has(x.id)&&!slip(x)&&!bot(x));
     const held=nh(heldA),fus=nh(fuA),motion=nh(motionA),starts=nh(startA),list=nh(listA),left=nh(leftA),doneT=nh(doneA);
-    h+=todayHead(pool.filter(tfilter).length,doneA.filter(tfilter).length);
+    h+=todayHead(pool.filter(tfilter).length,doneA.filter(tfilter).length)+dayBrief();
     h+=`<div class="today-grid"><div class="today-main">`;
     h+=sec("Can't slip",slipA.filter(tfilter),{cls:"danger slip"});
-    h+=checkinCard()+habitRow();
+    h+=checkinCard()+lookAhead()+habitRow();
     h+=hiBlock()+quickBlock(hiIds)+strip()+quick("Add something for today");
     h+=todayFilters(pool);
     if(S.day&&S.day!==t){const dl=S.tasks.filter(x=>open(x)&&(x.due===S.day||x.todayDate===S.day)&&tfilter(x));h+=secT(`Planned for ${esc(nice(S.day))}`,dl,{empty:"Nothing planned for this day."});}
@@ -2544,6 +2694,18 @@ document.addEventListener("click",async e=>{
     await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
   if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
+  if(b.dataset.bfb){const r=(S.day_briefs||[]).find(x=>x.id===b.dataset.b);if(!r)return;const v=b.dataset.bfb,k=b.dataset.k,it=bItems(r).find(x=>x.key===k);
+    try{await S.db.doc("day_briefs/"+r.id).update({feedback:{...(r.feedback||{}),[k]:v}});
+      if(v==="done"&&it?.ref_type==="task"){const t=S.tasks.find(x=>x.id===it.ref_id);if(t&&open(t))await upd(t.id,{status:"done",doneAt:now()})}
+      toast(v==="done"?"Done":v==="later"?"Hidden for today":"Hidden. The 9 AM lead will skip things like this.")}catch{toast("Couldn't save that.")}return}
+  if(b.dataset.hino){const t=S.tasks.find(x=>x.id===b.dataset.hino);if(!t)return;await upd(t.id,{highlightDay:null,activity:actLog(t,"Routine pick rejected: not useful")});toast("Unstarred. The 9 AM lead will see it was a poor pick.");return}
+  if(b.dataset.ahead){const t=S.tasks.find(x=>x.id===b.dataset.ahead);if(!t)return;const n=tmrw();
+    if(t.highlightDay===n){await upd(t.id,{highlightDay:null});return}
+    if(S.tasks.filter(x=>open(x)&&x.highlightDay===n).length>=3){toast("Three is plenty. Unpick one first.",false);return}
+    await upd(t.id,{highlightDay:n});toast(`Starred for ${parse(n).toLocaleDateString("en-GB",{weekday:"long"})}`);return}
+  if(b.dataset.bskill){await openClaude(briefPrompt(b.dataset.bskill),"Opened Claude.");return}
+  if(b.dataset.tskill){const t=S.tasks.find(x=>x.id===b.dataset.id),k=TSKILL[b.dataset.tskill];if(!t||!k)return;await openClaude(claudePrompt(t,k[1]),"Opened Claude with this task.");return}
+  if(b.dataset.callfu){const s=S.series.find(x=>x.id===b.dataset.callfu);openCapture(`Follow-up from ${s?.name||"the call"}: `);return}
   if(b.dataset.claude){const t=S.tasks.find(x=>x.id===b.dataset.claude);if(!t)return;
     if(t.chatUrl&&/^https:\/\/claude\.ai\//.test(t.chatUrl)){window.open(t.chatUrl,"_blank","noopener");return}
     const q=claudePrompt(t);
@@ -2590,7 +2752,7 @@ function openTask(t){
   editing=t;const f=document.getElementById("taskForm");f.elements.private.checked=!!t?.private;
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
   f.title.value=t?.title||"";f.projectId.innerHTML=projOptions(t?.projectId);f.status.value=t?.status||"todo";
-  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.onQuick.checked=t?.quick===true;f.elements.repeat.value=REP[t?.repeat]?t.repeat:"";f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
+  f.due.value=t?.due||"";f.priority.value=t?.priority||"med";f.elements.effortDays.value=t?.effortDays??"";f.elements.waitingOn.value=t?.waitingOn||"";f.elements.owedTo.value=t?.owedTo||"";f.elements.followUpOn.value=t?.followUpOn||"";f.elements.startDate.value=t?.startDate||"";sbHint();f.onToday.checked=t?.todayDate===T();f.onWeek.checked=t?.weekOf===week()[0];f.onHi.checked=t?.highlightDay===T();f.onQuick.checked=t?.quick===true;f.elements.repeat.value=REP[t?.repeat]?t.repeat:"";f.dueTime.value=hm(t||{});f.dueFirm.checked=!!t?.dueFirm;f.notes.value=t?.notes||"";f.elements.resumeNote.value=t?.resumeNote||"";
   dSteps=clone(Array.isArray(t?.steps)?t.steps:[]);drawSteps();dDeps=(Array.isArray(t?.blockedBy)?t.blockedBy:[]).filter(id=>S.tasks.some(x=>x.id===id));drawDeps();document.getElementById("stepNew").value="";
   const act=(Array.isArray(t?.activity)?t.activity:[]).filter(x=>x&&x.text).slice(-5).reverse();
   document.getElementById("actList").innerHTML=act.length?`<div class="lbl">Recent changes</div>`+act.map(x=>`<div class="act"><b>${x.by==="claude"?"Claude":"You"}</b><span>${esc(x.text)}</span><time>${x.at?esc(ago(x.at)):""}</time></div>`).join(""):"";
@@ -2619,7 +2781,7 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
   const f=e.target;const st=f.status.value;
   const ef=parseInt(f.elements.effortDays.value,10);
   const wx=st==="waiting"?{waitingOn:f.elements.waitingOn.value.trim()||null,followUpOn:f.elements.followUpOn.value||(editing?.status==="waiting"?editing.followUpOn:null)||nextWork(T(),1),...(editing?.status!=="waiting"?{waitingSince:now(),followUps:0}:{})}:{followUpOn:null};
-  const data={...wx,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||(f.dueTime.value?T():null),dueTime:f.dueTime.value||null,dueFirm:f.dueFirm.checked||!!f.dueTime.value,priority:f.priority.value,
+  const data={...wx,owedTo:f.elements.owedTo.value.trim()||null,effortDays:ef>0?ef:null,startDate:f.elements.startDate.value||null,title:f.title.value.trim(),projectId:f.projectId.value||null,status:st,due:f.due.value||(f.dueTime.value?T():null),dueTime:f.dueTime.value||null,dueFirm:f.dueFirm.checked||!!f.dueTime.value,priority:f.priority.value,
     todayDate:f.onToday.checked?T():(editing?.todayDate===T()?null:editing?.todayDate||null),
     weekOf:f.onWeek.checked?week()[0]:(editing?.weekOf===week()[0]?null:editing?.weekOf||null),
     highlightDay:f.onHi.checked?T():(editing?.highlightDay===T()?null:editing?.highlightDay||null),quick:f.onQuick.checked?true:editing?.quick===true?false:editing?.quick??null,repeat:f.elements.repeat.value||null,notes:f.notes.value.trim(),resumeNote:f.elements.resumeNote.value.trim()||null,private:f.elements.private.checked,
@@ -3067,7 +3229,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -3201,6 +3363,7 @@ async function doRefresh(){
     sb.from("inputs").select("*").order("created_at",{ascending:true}),sb.from("input_uses").select("*").order("created_at",{ascending:true})]);
   // feed freshness and themes are optional: if they can't load, nothing else waits on them
   const themes=(async()=>{try{return await sb.from("focus_themes").select("*").gte("day",addDays(T(),-14))}catch{return{error:1}}})();
+  const dbr=(async()=>{try{return await sb.from("day_briefs").select("*").gte("day",addDays(T(),-7))}catch{return{error:1}}})();
   const tbriefs=(async()=>{try{return await sb.from("topic_briefs").select("tag,body,updated_at")}catch{return{error:1}}})();
   const ppl=(async()=>{try{return await sb.from("people").select("*")}catch{return{error:1}}})();
   const lnk=(async()=>{try{return await sb.from("links").select("*")}catch{return{error:1}}})();
@@ -3219,6 +3382,7 @@ async function doRefresh(){
   if(!ll.error&&Array.isArray(ll.data)&&W.n===0&&W.seq===seq0)S.links=ll.data.map(fromRow);
   const lf=await life;LIFE.forEach(([t],i)=>{const r=lf[i];if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S[t]=r.data.map(fromRow)});
   queueMicrotask(()=>{rollRenewals();tidyReviews();if(S.tasks.some(x=>x.status==="done"&&REP[x.repeat])){HIST.begin();rollRepeats()}});
+  {const r=await dbr;if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S.day_briefs=r.data.map(fromRow)}
   if(!tb.error&&Array.isArray(tb.data))S.topicBriefs=Object.fromEntries(tb.data.map(x=>[String(x.tag).toLowerCase(),fromRow(x)]));
   if(!fo.error&&Array.isArray(fo.data)&&W.n===0&&W.seq===seq0)S.focus_themes=fo.data.map(fromRow);
   if(!ss.error&&Array.isArray(ss.data))S.feeds=ss.data.map(x=>({l:{wispr:"Calls",gmail:"Gmail",linear:"Linear"}[x.source]||x.source,at:x.last_run_at,note:x.note})).sort((a,b)=>a.l.localeCompare(b.l));
@@ -3244,9 +3408,9 @@ async function doRefresh(){
 }
 // last good snapshot, so the app paints at once on the next open and fills in fresh data after
 const CACHE="ambalam.cache.v1";
-function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,tbriefs:S.topicBriefs,people:S.people,links:S.links,life:{life_areas:S.life_areas,goals:S.goals,habits:S.habits,habit_logs:S.habit_logs,daily_log:S.daily_log,compass:S.compass,reviews:S.reviews,records:S.records,metrics:S.metrics,metric_logs:S.metric_logs}}))}catch{}}
+function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,dbriefs:S.day_briefs,tbriefs:S.topicBriefs,people:S.people,links:S.links,life:{life_areas:S.life_areas,goals:S.goals,habits:S.habits,habit_logs:S.habit_logs,daily_log:S.daily_log,compass:S.compass,reviews:S.reviews,records:S.records,metrics:S.metrics,metric_logs:S.metric_logs}}))}catch{}}
 function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE)||"null");if(!c||!Array.isArray(c.tasks)||Date.now()-c.at>14*864e5)return false;
-  Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[],topicBriefs:c.tbriefs||{},people:c.people||[],links:c.links||[],...(c.life||{})});S.ready.p=S.ready.t=true;return true}catch{return false}}
+  Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[],day_briefs:c.dbriefs||[],topicBriefs:c.tbriefs||{},people:c.people||[],links:c.links||[],...(c.life||{})});S.ready.p=S.ready.t=true;return true}catch{return false}}
 let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,250)}
 let lt;function later(){clearTimeout(lt);lt=setTimeout(refresh,2500)}
 // redraw once, right after the current handler finishes (before the next frame), however many rows it changed
@@ -3290,9 +3454,9 @@ async function start(){
   sb.channel("hub").on("postgres_changes",{event:"*",schema:"public",table:"tasks"},mergeTask).on("postgres_changes",{event:"*",schema:"public",table:"projects"},soon).on("postgres_changes",{event:"*",schema:"public",table:"notes"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"project_briefs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"source_segments"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"sources"},soon).on("postgres_changes",{event:"INSERT",schema:"public",table:"changes"},later)
-    .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon)
+    .on("postgres_changes",{event:"*",schema:"public",table:"inputs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"day_briefs"},soon).on("postgres_changes",{event:"*",schema:"public",table:"input_uses"},soon)
     .on("postgres_changes",{event:"*",schema:"public",table:"call_series"},()=>{S.prepDirty=true;soon()}).on("postgres_changes",{event:"*",schema:"public",table:"agenda_items"},()=>{S.prepDirty=true;soon()}).subscribe();
-  let last=T();setInterval(()=>{if(T()!==last){last=T();render()}else if(S.view==="today"&&S.tasks.some(x=>slip(x)&&hm(x)))paint()},60000);
+  let last=T();setInterval(()=>{if(T()!==last){last=T();render()}else if(S.view==="today"&&(S.tasks.some(x=>slip(x)&&hm(x))||Object.values(S.prep).some(p=>p?.next_at&&Math.abs(new Date(p.next_at)-Date.now())<90*6e4)))paint()},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }
 (async()=>{

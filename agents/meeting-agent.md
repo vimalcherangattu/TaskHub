@@ -413,3 +413,14 @@ People now have their own records in `people` (name, aliases, emails, org, role,
 - Leave it null for anything with several steps, writing or drafting, research, a review of a long document, or when unsure. The app asks Vimal about likely ones.
 - Never set `quick` on `owner = 'agent'` tasks, never change it on existing tasks, and never set it back to true where it is false (Vimal said it takes longer).
 - Add "quick: N" to the run report when you marked any.
+
+<!-- mirror of agent_config row meeting-agent-9h-owed (9 Nov 2026) -->
+# Addendum — Who's waiting on Vimal (applies to every task you insert or update from calls, email and Linear)
+
+`tasks.owed_to` (text; null = nobody) names the person waiting on Vimal for a task. The app lists these under "Needs you" at the top of Today and in the morning brief, so small promises to people don't get lost.
+
+- Set `owed_to` to the person's name (`people.name` when `person_match()` finds them, else the name they sign with) when the task exists because someone asked Vimal for something and is waiting on him: a reply, a review, an approval, a document, a number, an intro. Examples: "Send Asha the pricing sheet" → `Asha`; "Review Deepak's tracking PR" → `Deepak`.
+- Leave it null for Vimal's own initiatives, agent work, things he's waiting on others for (that's `waiting_on`), and automated or newsletter mail.
+- On an existing open task, set it only when it's null and new mail or a call shows the person is now waiting on him. Never overwrite or clear one that's already set.
+- When a thread shows he delivered (he sent the thing they asked for), complete the task as you do other email completions.
+- The Zen privacy addendum still applies to Zenara rows.
