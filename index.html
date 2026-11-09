@@ -900,6 +900,12 @@ button.bi-t:hover,a.bi-t:hover{text-decoration:underline;text-underline-offset:3
   .bi-a .tool,.ahead-l .tool,.pk-skills .tool,.bsec .act,.brief-f .act,.pk-skills>summary,.nc-a .more{min-height:44px}
   .bi-t{min-height:28px}
 }
+.duec.was,.ritem span.was,.meta .was{color:var(--muted)}
+.cap-line{margin:-6px 0 18px;font-size:14px;color:var(--warn)}.cap-line.ok{color:var(--muted)}.cap-line .act{border:0;background:none;color:var(--accent);font-weight:500;font-size:14px;padding:0 0 0 6px}
+.tri-acts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:6px 0 2px}.tri-acts .btn{min-height:44px;padding:0 6px;justify-content:center}
+.paused-note{margin:0 0 20px;padding:12px 16px;border:1px dashed var(--line-strong);border-radius:var(--radius-m);font-size:14px;color:var(--muted)}
+.nav button.paused{opacity:.75}.nav button.paused .count{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+@media (max-width:820px){.tri-acts{grid-template-columns:repeat(2,minmax(0,1fr))}.cap-line .act{min-height:44px}}
 </style>
 </head>
 <body>
@@ -992,6 +998,7 @@ button.bi-t:hover,a.bi-t:hover{text-decoration:underline;text-underline-offset:3
   <div class="foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="resumeSave">Save note</button></div>
 </form></dialog>
 <dialog id="sprintDlg" aria-labelledby="spH"><div class="dlg sprint" id="sprintBody"></div></dialog>
+<dialog id="triDlg" aria-labelledby="triH"><div class="dlg sprint tri" id="triBody"></div></dialog>
 <dialog id="themeDlg"><form class="dlg" id="themeForm" method="dialog">
   <h3 id="themeDlgTitle">High-impact theme</h3>
   <label>What would make today count?<input name="title" required autocomplete="off" placeholder="e.g. Close all the automation tasks"></label>
@@ -1190,11 +1197,19 @@ const clock=s=>{const[h,m]=s.split(":").map(Number);return `${h%12||12}${m?":"+S
 const leftTxt=ms=>{const m=Math.max(1,Math.round(ms/6e4));return m<60?`${m} min`:m<1440?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:""}`:`${Math.round(m/1440)} days`};
 // slip = a hard deadline due today or already missed: these sit in "Can't slip" at the top of Today
 const slip=t=>firm(t)&&t.due<=T();
-const overdue=t=>open(t)&&t.due&&(t.due<T()||(t.due===T()&&!!hm(t)&&Date.now()>dueMs(t)));
-const onToday=t=>open(t)&&(t.todayDate===T()||(t.due&&t.due<=T()));
-const leftover=t=>open(t)&&t.todayDate&&t.todayDate<T()&&!onToday(t);
+/* paused projects (projects.paused_at): their tasks keep their dates, but nothing in them is due, overdue or on Today / This week */
+const PZ={k:null,s:new Set()};
+const pausedIds=()=>{if(PZ.k!==S.projects){PZ.k=S.projects;PZ.s=new Set(S.projects.filter(p=>p.pausedAt||(p.parentId&&S.projects.find(x=>x.id===p.parentId)?.pausedAt)).map(p=>p.id))}return PZ.s};
+const parked=t=>!!t.projectId&&pausedIds().has(t.projectId);
+/* soft vs hard dates: only a hard deadline (due_firm / due_time) can be "overdue". A soft date that passes is "lapsed":
+   it moves to "Left from earlier" and waits for a decision (the triage), instead of piling up as red */
+const overdue=t=>firm(t)&&!parked(t)&&(t.due<T()||(t.due===T()&&!!hm(t)&&Date.now()>dueMs(t)));
+const lapsed=t=>open(t)&&!parked(t)&&!!t.due&&t.due<T()&&!firm(t);
+const lapsedLong=t=>lapsed(t)&&!waiting(t)&&daysBetween(t.due,T())>=14;
+const onToday=t=>open(t)&&!parked(t)&&(t.todayDate===T()||t.due===T()||(firm(t)&&t.due<T()));
+const leftover=t=>open(t)&&!parked(t)&&!onToday(t)&&((!!t.todayDate&&t.todayDate<T())||lapsed(t));
 const inWeek=s=>{const w=week();return s&&s>=w[0]&&s<=w[6]};
-const onWeek=t=>open(t)&&(t.weekOf===week()[0]||inWeek(t.due)||inWeek(t.todayDate)||overdue(t));
+const onWeek=t=>open(t)&&!parked(t)&&(t.weekOf===week()[0]||inWeek(t.due)||inWeek(t.todayDate)||overdue(t)||lapsed(t));
 const doneOn=(t,d)=>t.status==="done"&&t.doneAt&&iso(new Date(t.doneAt))===d;
 const doneThisWeek=t=>t.status==="done"&&t.doneAt&&inWeek(iso(new Date(t.doneAt)));
 const doing=t=>t.status==="doing";
@@ -1202,7 +1217,7 @@ const waiting=t=>t.status==="waiting";
 /* owner: "me" (default) or "agent" = a scheduled Claude run does it; agent tasks stay off Today/Week but still count in Needs attention */
 const bot=t=>t.owner==="agent";
 /* 2-minute tasks: tasks.quick true = quick, false = "not quick" (no more asking), null = not decided. Quick ones show in "Knock these out" whatever their date */
-const quickT=t=>t.quick===true&&open(t)&&!doing(t)&&!waiting(t)&&!bot(t)&&!blocked(t);
+const quickT=t=>t.quick===true&&open(t)&&!parked(t)&&!doing(t)&&!waiting(t)&&!bot(t)&&!blocked(t);
 const qAge=t=>t.createdAt?Math.max(0,Math.floor((Date.now()-new Date(t.createdAt))/864e5)):0;
 const QRE=/^(review|reply|respond|send|forward|approve|confirm|share|sign|pay|rsvp|ping|text|email|message|book|accept|upload|remind|call back|look at|check (?:in|with|on))\b/i;
 const looksQuick=t=>t.quick==null&&open(t)&&!doing(t)&&!waiting(t)&&!bot(t)&&!(t.effortDays>0)&&(Array.isArray(t.steps)?t.steps:[]).length<2&&QRE.test(String(t.title||"").trim());
@@ -1230,7 +1245,7 @@ const fuDue=t=>waiting(t)&&(t.followUpOn||T())<=T();
 const chase=t=>waiting(t)&&(t.followUps||0)>=3;
 const gapAfter=k=>k>=3?3:2;
 const startBy=t=>t.startDate||(t.due&&t.effortDays>0?addDays(t.due,-t.effortDays):null);
-const startNow=t=>open(t)&&!doing(t)&&!waiting(t)&&!!startBy(t)&&startBy(t)<=T()&&!(t.due&&t.due<=T())&&!onToday(t);
+const startNow=t=>open(t)&&!parked(t)&&!doing(t)&&!waiting(t)&&!!startBy(t)&&startBy(t)<=T()&&!(t.due&&t.due<=T())&&!onToday(t);
 const behind=t=>startNow(t)&&startBy(t)<T();
 const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const ago=s=>{const d=Math.floor((Date.now()-new Date(s))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
@@ -1242,8 +1257,8 @@ const planOf=t=>t.todayDate&&t.todayDate>=T()?t.todayDate:t.due||t.startDate||nu
 const outOfOrder=t=>{if(!blocked(t)||!t.due)return null;return blockers(t).find(b=>overdue(b)||(planOf(b)&&planOf(b)>=t.due))||null};
 const dependsOn=(x,id,seen=new Set())=>{if(!x||seen.has(x.id))return false;seen.add(x.id);return(x.blockedBy||[]).some(b=>b===id||dependsOn(S.tasks.find(y=>y.id===b),id,seen))};
 const stalled=t=>doing(t)&&(Date.now()-new Date(t.updatedAt||t.startedAt||Date.now()))>3*864e5;
-const decide=t=>open(t)&&(t.carryCount||0)>=3;
-const stale=t=>open(t)&&t.status!=="waiting"&&!doing(t)&&t.updatedAt&&(Date.now()-new Date(t.updatedAt))>7*864e5;
+const decide=t=>open(t)&&!parked(t)&&(t.carryCount||0)>=3;
+const stale=t=>open(t)&&!parked(t)&&t.status!=="waiting"&&!doing(t)&&t.updatedAt&&(Date.now()-new Date(t.updatedAt))>7*864e5;
 const sortT=a=>a.slice().sort((x,y)=>(PR[x.priority||"med"]-PR[y.priority||"med"])||((x.due||"9")<(y.due||"9")?-1:(x.due||"9")>(y.due||"9")?1:0)||String(x.createdAt||"").localeCompare(String(y.createdAt||"")));
 const proj=id=>S.projects.find(p=>p.id===id);
 const ordSort=(x,y)=>(x.order??99)-(y.order??99)||x.name.localeCompare(y.name);
@@ -1286,11 +1301,11 @@ const ICON={
  life:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>',
  more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>'
 };
-function attentionCount(){return (S.sources||[]).filter(x=>!x.projectId&&!(x.tags||[]).includes("personal")).length+S.tasks.filter(t=>(overdue(t)&&!waiting(t))||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
+function attentionCount(){return (S.sources||[]).filter(x=>!x.projectId&&!(x.tags||[]).includes("personal")).length+S.tasks.filter(t=>(overdue(t)&&!waiting(t))||lapsedLong(t)||outOfOrder(t)||stale(t)||stalled(t)||decide(t)||behind(t)||chase(t)).length}
 
 // one plain sentence for the rail: each task counted once, under its first reason
 function attentionLine(){
-  const kinds=[["overdue",t=>overdue(t)&&!waiting(t)],["out of order",outOfOrder],["behind its start date","behind their start date",behind],["stalled",stalled],["pushed 3+ times",decide],["untouched for a week",stale],["chased 3+ times",chase]];
+  const kinds=[["overdue",t=>overdue(t)&&!waiting(t)],["past its date for 2+ weeks","past their dates for 2+ weeks",lapsedLong],["out of order",outOfOrder],["behind its start date","behind their start date",behind],["stalled",stalled],["pushed 3+ times",decide],["untouched for a week",stale],["chased 3+ times",chase]];
   const n=new Map();for(const t of S.tasks){const k=kinds.find(x=>x[x.length-1](t));if(k)n.set(k,(n.get(k)||0)+1)}
   const parts=kinds.filter(k=>n.get(k)).map(k=>{const c=n.get(k);return `${word(c)} ${c>1&&k.length===3?k[1]:k[0]}`});
   const calls=(S.sources||[]).filter(x=>!x.projectId&&!(x.tags||[]).includes("personal")).length;
@@ -1311,8 +1326,8 @@ function renderSide(){
     const closed=S.areasClosed.has(a);
     h+=`<button class="group-h" data-area="${esc(a)}" aria-expanded="${!closed}">${a}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
     if(closed)continue;h+=`<div class="nav">`;
-    const btn=(p,cls)=>{const ids=fam(p.id);const ts=S.tasks.filter(t=>ids.includes(t.projectId)&&open(t));const late=ts.filter(overdue).length;
-      return `<button class="${cls}" data-proj="${esc(p.id)}" aria-current="${S.view==="project"&&S.pid===p.id}"><span class="dot" style="background:${esc(p.color||COLORS[7])}"></span>${esc(p.name)}<span class="count ${late?"hot":""}">${ts.length||""}</span></button>`};
+    const btn=(p,cls)=>{const ids=fam(p.id);const ts=S.tasks.filter(t=>ids.includes(t.projectId)&&open(t));const late=ts.filter(overdue).length,pz=pausedIds().has(p.id);
+      return `<button class="${cls}${pz?" paused":""}" data-proj="${esc(p.id)}" aria-current="${S.view==="project"&&S.pid===p.id}"><span class="dot" style="background:${esc(p.color||COLORS[7])}"></span>${esc(p.name)}<span class="count ${late?"hot":""}">${pz?"paused":ts.length||""}</span></button>`};
     for(const p of ps){h+=btn(p,isWs(p)?"ws":"");const here=S.view==="project"&&(S.pid===p.id||proj(S.pid)?.parentId===p.id);if(here)for(const k of kidsOf(p.id))h+=btn(k,"sub")}
     h+=`</div>`;
   }
@@ -1347,6 +1362,7 @@ function statusBit(t){
     if(t.due===T())return !c?`<span class="firm">Must be done today</span>`:ms<0?`<span class="late">Missed · was due ${esc(clock(c))}</span>`:`<span class="${ms<36e5?"soon":"firm"}">Due by ${esc(clock(c))} · ${esc(leftTxt(ms))} left</span>`;
     if(!startBy(t)||doing(t))return `<span class="firm">Hard deadline${c?` · by ${esc(clock(c))}`:""}</span>`}
   if(overdue(t))return `<span class="late">Overdue</span>`;
+  if(lapsed(t))return `<span class="was">Was for ${esc(nice(t.due))}</span>`;
   if(doing(t)&&stalled(t))return `<span class="late">Stalled</span>`;
   const sb=startBy(t);if(sb&&!doing(t))return sb<T()?`<span class="late">Start was ${esc(nice(sb))}</span>`:`<span class="${sb===T()?"started":""}">Start ${esc(nice(sb))}</span>`;
   if(sugg(t)&&t.sourceChat)return `<span>${esc(trunc(t.sourceChat,40))}</span>`;
@@ -1355,7 +1371,7 @@ function statusBit(t){
 // right-hand due column: TODAY, a weekday within 6 days, else 22 OCT
 function dueCol(t){if(!t.due)return `<span class="duec"></span>`;const td=T(),k=daysBetween(td,t.due),d=parse(t.due);
   const c=hm(t),txt=k===0?(c?"By":"Today"):k>0&&k<=6?d.toLocaleDateString("en-GB",{weekday:"short"}):d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-  return `<span class="duec ${overdue(t)?"late":firm(t)?"firm":""}" title="${overdue(t)?"Overdue · ":firm(t)?"Hard deadline · ":"Due "}${esc(nice(t.due))}${c?" by "+esc(clock(c)):""}">${esc((txt+(c?" "+clock(c):"")).toUpperCase())}</span>`}
+  return `<span class="duec ${overdue(t)?"late":firm(t)?"firm":lapsed(t)?"was":""}" title="${overdue(t)?"Overdue · ":firm(t)?"Hard deadline · ":lapsed(t)?"Soft date, passed · ":"Due "}${esc(nice(t.due))}${c?" by "+esc(clock(c)):""}">${esc((txt+(c?" "+clock(c):"")).toUpperCase())}</span>`}
 const PRI={high:"HIGH",med:"MED",low:"LOW"};
 let resumeFirst=null;
 function row(t){
@@ -1379,7 +1395,8 @@ function row(t){
 function peekHtml(t){
   const p=proj(t.projectId),id=esc(t.id),facts=[];
   facts.push(`<span>${{high:"High",med:"Medium",low:"Low"}[t.priority||"med"]} priority</span>`);
-  if(t.due)facts.push(`<span class="${overdue(t)?"late":t.due<=addDays(T(),2)&&open(t)?"warn":""}">${overdue(t)?"Overdue · ":"Due "}${esc(nice(t.due))}${hm(t)?` by ${esc(clock(hm(t)))}`:""}</span>`);
+  if(parked(t)&&open(t))facts.push(`<span>Project paused: not due while it's paused</span>`);
+  if(t.due)facts.push(`<span class="${overdue(t)?"late":lapsed(t)?"":t.due<=addDays(T(),2)&&open(t)?"warn":""}">${overdue(t)?"Overdue · ":lapsed(t)?"Soft date passed · was ":"Due "}${esc(nice(t.due))}${hm(t)?` by ${esc(clock(hm(t)))}`:""}</span>`);
   if(firm(t))facts.push(`<span class="acc">Hard deadline: can't move</span>`);
   if(hiTask(t)&&open(t))facts.push(`<span class="acc">★ High impact today</span>`);
   if(wkTask(t)&&open(t))facts.push(`<span class="acc">★ Week focus</span>`);
@@ -1549,6 +1566,47 @@ function rail(){
   h+=`</section></div>`;
   return h;
 }
+/* ---------- triage (one task at a time): Today / This week / Next week / No date / Drop.
+   "late" = everything past its date; "week" = trim this week's plan down to what you usually finish ---------- */
+const triList=()=>S.tasks.filter(t=>(lapsed(t)||overdue(t))&&!bot(t)&&!waiting(t)&&!sugg(t)).sort((a,b)=>String(a.due).localeCompare(String(b.due))||byAge(a,b));
+const plannedWeek=()=>S.tasks.filter(t=>onWeek(t)&&!bot(t)&&!waiting(t)&&!lapsed(t)&&!overdue(t));
+// how many tasks you finish in a usual week: the last 4 weeks' average (your tasks, not agents')
+function capInfo(){const from=addDays(week()[0],-28),to=addDays(week()[0],-1);
+  const n=S.tasks.filter(t=>t.status==="done"&&t.doneAt&&!bot(t)&&(d=>d>=from&&d<=to)(iso(new Date(t.doneAt)))).length;
+  return{usual:Math.round(n/4),planned:plannedWeek().length}}
+function capLine(){const c=capInfo();if(!c.usual)return"";const over=c.planned-c.usual;
+  return bLi("Capacity",over>0?"needs_you":"active",over>0?`<button class="bi-t" data-triage="week">${c.planned} planned, you usually finish ${c.usual}</button>`:bT("",`${c.planned} planned, you usually finish ${c.usual}`),over>0?`${over} more than usual. Move some to next week or drop them now, not on Friday.`:"Fits your usual week.",over>0?`<button class="tool" data-triage="week">Trim</button>`:"")}
+const TR={i:0,ids:[],mode:"late",n:{}};
+const TRL={today:"Today",week:"This week",next:"Next week",none:"No date",drop:"Drop"};
+function triOpen(mode="late"){TR.mode=mode;TR.i=0;TR.n={};
+  TR.ids=(mode==="week"?plannedWeek().filter(t=>!firm(t)).sort((a,b)=>(PR[b.priority||"med"]-PR[a.priority||"med"])||String(b.due||"9").localeCompare(String(a.due||"9"))):triList()).map(t=>t.id);
+  TR.goal=mode==="week"?Math.max(0,capInfo().planned-capInfo().usual):0;
+  triDraw();const d=document.getElementById("triDlg");if(!d.open)d.showModal()}
+function triDraw(){const el=document.getElementById("triBody"),t=TR.i<TR.ids.length&&S.tasks.find(x=>x.id===TR.ids[TR.i]);
+  const moved=Object.values(TR.n).reduce((a,b)=>a+b,0),sum=Object.entries(TR.n).map(([k,v])=>`${v} ${TRL[k].toLowerCase()}`).join(" · ");
+  if(!t){el.innerHTML=`<h3 id="triH">${moved?`Sorted ${word(moved)}.`:"Nothing to sort."}</h3><p class="dlg-sub">${esc(sum)||"All clear."}${TR.mode==="late"&&!triList().length?" Overdue zero.":""}</p><div class="foot"><span class="spacer"></span><button class="btn primary" data-close>Close</button></div>`;return}
+  const p=proj(t.projectId),k=t.due?daysBetween(t.due,T()):0;
+  const when=t.due?(t.due<T()?`${firm(t)?"Hard deadline missed":"Was for"} ${nice(t.due)} · ${k} day${k===1?"":"s"} ago`:`Due ${nice(t.due)}`):t.weekOf?"Planned this week":"No date";
+  const b=(a,l,cls="")=>`<button class="btn ${cls}" data-tri="${a}">${l}</button>`;
+  el.innerHTML=`<div class="sp-top"><span class="eyebrow">${TR.mode==="week"?"Trim the week":"Past its date"} · ${TR.i+1} of ${TR.ids.length}</span>${TR.mode==="week"&&TR.goal?`<span class="sp-clock">${Math.max(0,TR.goal-moved)} to go</span>`:""}</div>
+    <h3 id="triH">${esc(t.title)}</h3><p class="dlg-sub">${p?`<span class="dot" style="background:${esc(p.color||"var(--faint)")}"></span>`:""}${esc(fullName(p))} · ${esc(when)}${t.priority==="high"?" · high":""}${t.owedTo?` · ${esc(t.owedTo)} is waiting`:""}</p>
+    ${t.resumeNote?`<p class="sp-note">↳ ${esc(t.resumeNote)}</p>`:""}${t.notes?`<p class="sp-note">${esc(trunc(t.notes,220))}</p>`:""}
+    <div class="tri-acts">${b("today","Today","primary")}${TR.mode==="week"?b("skip","Keep this week"):b("week","This week")}${b("next","Next week")}${b("none","No date")}${b("drop","Drop","quiet")}</div>
+    <div class="foot"><button class="btn quiet" data-tri="skip">${TR.mode==="week"?"Next":"Skip"}</button><span class="spacer"></span><button class="btn" data-close>Stop here</button></div>`;
+  el.querySelector('[data-tri="today"]').focus()}
+async function triAct(a){const id=TR.ids[TR.i];if(!id)return;const t=S.tasks.find(x=>x.id===id);TR.i++;
+  if(!t||a==="skip"){triDraw();return}
+  // a soft date that passed (or that the week can't hold) goes; a hard deadline keeps its date unless you say so
+  const soft=!firm(t),nd=soft?{due:null,dueFirm:null}:{};
+  if(a==="none"&&!soft&&!confirm(`“${t.title}” is a hard deadline. Remove its date?`)){TR.i--;return}
+  const patch=a==="today"?{todayDate:T(),...nd}:a==="week"?{weekOf:week()[0],todayDate:null,...nd}:a==="next"?{weekOf:addDays(week()[0],7),todayDate:null,...nd,...(TR.mode==="week"?{due:soft?null:t.due}:{})}:a==="none"?{due:null,dueFirm:null,dueTime:null,weekOf:null,todayDate:null}:null;
+  TR.n[a]=(TR.n[a]||0)+1;triDraw();
+  if(a==="drop"){try{await S.db.doc("tasks/"+id).delete()}catch{toast("Couldn't drop that task.")}}
+  else await upd(id,{...patch,activity:actLog(t,`Triage: ${TRL[a].toLowerCase()}${t.due&&soft&&a!=="today"?` (was for ${nice(t.due)})`:""}`)});
+  // the last one: redraw the summary once its save has landed, so "overdue zero" is right
+  if(TR.i>=TR.ids.length&&document.getElementById("triDlg").open)triDraw()}
+document.getElementById("triDlg")?.addEventListener("keydown",e=>{if(e.target.matches("input,textarea"))return;const m={t:"today",w:"week",n:"next",d:"none",x:"drop",s:"skip"}[e.key.toLowerCase()];if(m&&document.querySelector(`#triBody [data-tri="${m}"]`)){e.preventDefault();triAct(m)}});
+const pausedNote=p=>p&&(p.pausedAt||parentOf(p)?.pausedAt)?`<div class="paused-note">Paused${p.pausedAt?` since ${esc(nice(iso(new Date(p.pausedAt))))}`:` (its workspace is)`}. Its tasks keep their dates but nothing here is due or overdue, and none of it shows on Today or This week.</div>`:"";
 /* ---------- the brief (after Dia's Morning Brief): one page a day at the top of Today.
    The app builds most of it from local rows; the 9 AM lead adds a day_briefs row (headline + items from email, calendar and Linear).
    Monday adds last week and this week, Friday a wrap of the week. Every item links to its source and takes Done / Not now / Not useful. ---------- */
@@ -1597,6 +1655,7 @@ function dayBrief(){if(S.day&&S.day!==T())return"";
   const calls=seriesSorted().map(s=>({s,p:S.prep[s.id]})).filter(x=>x.p?.next_at&&iso(new Date(x.p.next_at))===t&&new Date(x.p.next_at)>Date.now()-90*6e4);
   const parts=[];
   const ny=[...of("needs_you"),...owe.slice(0,8).map(x=>bLi("Owed","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),`${esc(x.owedTo)} is waiting · added ${esc(ago(x.createdAt||now()))}`,`<button class="tool" data-quickdone="${esc(x.id)}" aria-label="Done: ${esc(x.title)}">Done</button>`))];
+  {const tl_=triList(),lg=tl_.filter(lapsedLong).length;if(tl_.length)ny.push(bLi("Decide","needs_you",`<button class="bi-t" data-triage="late">${cap(word(tl_.length))} task${tl_.length===1?"":"s"} past ${tl_.length===1?"its date":"their dates"}</button>`,lg?`${lg} for over 2 weeks. Today, a week, or no date?`:"Today, a week, or no date? About 10 seconds each.",`<button class="tool" data-triage="late">Triage</button>`))}
   if(ny.length)parts.push(bSec("Needs you",ny,owe.length>8?`<p class="bi-more">And ${owe.length-8} more you owe.</p>`:""));
   const yd=[...(slipN?[bLi("Hard","needs_you",bT("",`${cap(word(slipN))} hard deadline${slipN===1?"":"s"} today`),"In “Can't slip” below")]:[]),
     ...calls.map(({s,p})=>bLi(esc(istFmt(p.next_at,{hour:"numeric",minute:"2-digit"})),"active",bT(`data-cs="${esc(s.id)}"`,s.name),`${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask`)),...of("ahead")];
@@ -1607,7 +1666,8 @@ function dayBrief(){if(S.day&&S.day!==T())return"";
   if(ed==="monday"){const L=lastWeekBits(),N=thisWeekBits();
     parts.push(bSec("Last week",[bLi("Done","active",bT("",`${L.done.length} task${L.done.length===1?"":"s"} done`),L.slipped.length?`${L.slipped.length} slipped: ${esc(L.slipped.slice(0,3).map(x=>trunc(x.title,40)).join("; "))}`:"Nothing slipped"),
       ...L.slipped.slice(0,3).map(x=>bLi("Slipped","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),`was due ${esc(nice(x.due))}`))]));
-    const tw=[...N.th.map(f=>{const l=themeTasks(f),d=l.filter(x=>x.status==="done").length;return bLi("Focus","active",bT(`data-themeedit="${esc(f.id)}"`,f.title),l.length?`${d} of ${l.length} closed`:"")}),
+    const cp=capLine();
+    const tw=[...(cp?[cp]:[]),...N.th.map(f=>{const l=themeTasks(f),d=l.filter(x=>x.status==="done").length;return bLi("Focus","active",bT(`data-themeedit="${esc(f.id)}"`,f.title),l.length?`${d} of ${l.length} closed`:"")}),
       ...N.hard.map(x=>bLi("Hard","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),esc(nice(x.due))+(hm(x)?` by ${esc(clock(hm(x)))}`:""))),
       ...N.calls.map(c=>bLi("Call","active",bT(`data-cs="${esc(c.s.id)}"`,c.s.name),esc(nextTxt(c.at).txt))),
       ...N.renew.map(r=>bLi("Renew","awaiting",bT("",r.title),esc(nice(r.renewsOn))))];
@@ -1615,7 +1675,8 @@ function dayBrief(){if(S.day&&S.day!==T())return"";
   if(ed==="friday"){const W=weekWrap();
     parts.push(bSec("Your week",[bLi("Moved","active",bT("",`${W.done.length} task${W.done.length===1?"":"s"} done`),esc(W.by.slice(0,4).map(([k,n])=>`${k} ${n}`).join(" · "))),
       ...W.dec.slice(0,4).map(n=>bLi("Decided","active",bT(`data-editnote="${esc(n.id)}"`,n.title))),
-      bLi("Follow up","awaiting",bT(`data-go="followups"`,`${W.fu.length} waiting on others · ${W.owe.length} you owe`))],`<button class="act" data-bskill="week">Weekly wrap in Claude</button>`))}
+      bLi("Follow up","awaiting",bT(`data-go="followups"`,`${W.fu.length} waiting on others · ${W.owe.length} you owe`)),
+      (()=>{const n=triList().length;return n?bLi("Zero","needs_you",`<button class="bi-t" data-triage="late">Close the week at overdue zero: ${n} left</button>`,"Each one: today, next week, no date, or drop.",`<button class="tool" data-triage="late">Triage</button>`):bLi("Zero","active",bT("","Overdue zero"),"Nothing past its date. The week is clean.")})()],`<button class="act" data-bskill="week">Weekly wrap in Claude</button>`))}
   const hu=of("heads_up");if(hu.length)parts.push(bSec("Heads up",hu));
   const nNeed=ny.length+slipN,auto=[nNeed?`${cap(word(nNeed))} need${nNeed===1?"s":""} you`:"Nothing needs you",calls.length?`${word(calls.length)} call${calls.length===1?"":"s"}`:"",moved.length?`${word(moved.length)} project${moved.length===1?"":"s"} moved`:""].filter(Boolean).join(" · ");
   const by=b?` · 9 AM lead, ${esc(istFmt(b.updatedAt||b.createdAt||now(),{hour:"numeric",minute:"2-digit"}))}`:"";
@@ -2211,7 +2272,7 @@ function renderView(){
     h+=secT(`Start today <span class="n" style="font-weight:500">${starts.some(behind)?"· some are behind":""}</span>`,starts.sort((a,b)=>startBy(a).localeCompare(startBy(b))));
     h+=secT("To do today",list,{empty:S.tf?"Nothing for today in this filter.":"Your list for today is clear. Pull something in from This week or a project."});
     h+=secT(`Can't start yet <span class="n" style="font-weight:500">· waiting on another task</span>`,held);
-    h+=secT("Left from earlier",left,{action:left.length?`<button class="act" data-carry>Move ${S.tf?"these":"all"} to today</button>`:""});
+    h+=secT("Left from earlier",left,{action:left.length?`${triList().length?`<button class="act" data-triage="late">Triage ${triList().length}</button> `:""}<button class="act" data-carry>Move ${S.tf?"these":"all"} to today</button>`:""});
     h+=secT("Done today",doneT);
     const botN=S.tasks.filter(x=>open(x)&&bot(x)).length;
     if(botN)h+=`<div class="empty">Your scheduled runs are handling ${word(botN)} task${botN===1?"":"s"} that aren't on this list. <button class="act" data-go="agents">See them</button></div>`;
@@ -2222,6 +2283,7 @@ function renderView(){
     // week-focus tasks show once, in the focus block
     const openW=allW.filter(x=>!wIds.has(x.id));
     h+=`<div class="head"><div><h1>Finish this week</h1><div class="sub">${esc(nice(w[0]))} to ${esc(nice(w[6]))}</div></div>${progress(doneW.length,doneW.length+allW.length,"finished")}</div>`;
+    {const c=capInfo();if(c.usual&&c.planned>c.usual)h+=`<p class="cap-line">${c.planned} planned this week; you usually finish about ${c.usual}. <button class="act" data-triage="week">Trim the week</button></p>`;else if(c.usual)h+=`<p class="cap-line ok">${c.planned} planned this week; you usually finish about ${c.usual}.</p>`}
     h+=hiBlock("week");
     h+=strip()+quick("Add something to finish this week");
     const days=S.day?[S.day]:w;
@@ -2336,8 +2398,8 @@ function renderView(){
   }
   else if(S.view==="project"&&isWs(proj(S.pid))){
     const p=proj(S.pid);const kids=kidsOf(p.id);const ids=fam(p.id);const all=S.tasks.filter(t=>ids.includes(t.projectId));
-    h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">Workspace · ${esc(p.area||"")} · ${kids.length} projects</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-newsub="${esc(p.id)}">Add project</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
-    h+=briefBlock(p.id)+projPeople(ids);
+    h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">Workspace · ${esc(p.area||"")} · ${kids.length} projects</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-newsub="${esc(p.id)}">Add project</button><button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
+    h+=pausedNote(p)+briefBlock(p.id)+projPeople(ids);
     h+=quick(`Add a task to ${esc(p.name)}`);
     h+=sec("Overdue",sortT(all.filter(overdue)),{cls:"danger"});
     for(const k of kids)h+=sec(`<span class="dot" style="display:inline-block;background:${esc(k.color)};margin-right:8px"></span>${esc(k.name)}`,sortT(S.tasks.filter(t=>t.projectId===k.id&&open(t)&&!overdue(t))),{empty:"No open tasks.",action:`<button class="act" data-proj="${esc(k.id)}">Open</button>`});
@@ -2349,8 +2411,8 @@ function renderView(){
   else if(S.view==="project"){
     const inbox=S.pid==="__inbox";const p=proj(S.pid);const par=parentOf(p);
     const ts=S.tasks.filter(t=>inbox?!proj(t.projectId):t.projectId===S.pid);
-    h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${p?.archivedAt?`<button class="crumb" data-go="archive">Archived</button> · `:""}${inbox?"Tasks without a project":par?`<button class="crumb" data-proj="${esc(par.id)}">${esc(par.name)}</button> · ${esc(p?.area||"")}`:esc(p?.area||"")}</div></div><div class="right">${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
-    if(p)h+=briefBlock(p.id)+projPeople([p.id]);
+    h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${p?.archivedAt?`<button class="crumb" data-go="archive">Archived</button> · `:""}${inbox?"Tasks without a project":par?`<button class="crumb" data-proj="${esc(par.id)}">${esc(par.name)}</button> · ${esc(p?.area||"")}`:esc(p?.area||"")}</div></div><div class="right" style="display:flex;gap:6px">${p&&!par?`<button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button>`:""}${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
+    if(p)h+=pausedNote(p)+briefBlock(p.id)+projPeople([p.id]);
     h+=quick(`Add a task${p?` to ${esc(p.name)}`:""}`);
     h+=sec("Suggested by Claude",sortT(ts.filter(sugg)));
     h+=sec("Overdue",sortT(ts.filter(overdue)),{cls:"danger"});
@@ -2694,6 +2756,10 @@ document.addEventListener("click",async e=>{
     await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
   if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
+  if(b.dataset.triage){triOpen(b.dataset.triage);return}
+  if(b.dataset.tri){await triAct(b.dataset.tri);return}
+  if(b.dataset.pause){const p=proj(b.dataset.pause);if(!p)return;const on=!p.pausedAt;
+    try{await S.db.doc("projects/"+p.id).update({pausedAt:on?now():null});PZ.k=null;paint();toast(on?`${p.name} paused. Its tasks keep their dates but stay off Today and This week.`:`${p.name} resumed`)}catch{toast("Couldn't change that.")}return}
   if(b.dataset.bfb){const r=(S.day_briefs||[]).find(x=>x.id===b.dataset.b);if(!r)return;const v=b.dataset.bfb,k=b.dataset.k,it=bItems(r).find(x=>x.key===k);
     try{await S.db.doc("day_briefs/"+r.id).update({feedback:{...(r.feedback||{}),[k]:v}});
       if(v==="done"&&it?.ref_type==="task"){const t=S.tasks.find(x=>x.id===it.ref_id);if(t&&open(t))await upd(t.id,{status:"done",doneAt:now()})}
@@ -3229,7 +3295,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={pausedAt:"paused_at",owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};

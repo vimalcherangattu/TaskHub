@@ -30,14 +30,16 @@ o as (
     exists (select 1 from unnest(t.blocked_by) b join tasks x on x.id = b where x.status <> 'done') blocked,
     (select string_agg(x.title, '; ') from unnest(t.blocked_by) b join tasks x on x.id = b where x.status <> 'done') waits_on_titles
   from tasks t left join projects p on p.id = t.project_id
-  where t.status not in ('done','suggested') and t.owner = 'me')  -- agent-owned tasks live under "Run by agents"; list them separately if asked
+  where t.status not in ('done','suggested') and t.owner = 'me'
+    and not exists (select 1 from projects pp where pp.id = t.project_id and (pp.paused_at is not null or exists (select 1 from projects pq where pq.id = pp.parent_id and pq.paused_at is not null))))  -- paused projects stay off the plate  -- agent-owned tasks live under "Run by agents"; list them separately if asked
 select case
     when (o.due_firm or o.due_time is not null) and o.due <= d.today then '0 can''t slip'  -- hard deadline today or missed; lead with these, earliest time first
     when o.status = 'doing' then '1 on it now'
     when o.quick and o.status = 'todo' and not o.blocked then '1b quick (2 min)'  -- any date, oldest first: say "n quick ones waiting, oldest <age>"
     when o.status = 'waiting' then '2 follow up today'
     when o.blocked and (o.today_date = d.today or o.due <= d.today or o.start_by <= d.today) then '5 cannot start yet'
-    when o.due < d.today then '3 overdue'
+    when o.due < d.today and (o.due_firm or o.due_time is not null) then '3 overdue'
+    when o.due < d.today then '3b left from earlier'  -- soft date passed: not overdue; suggest the triage in the app
     when o.today_date = d.today or o.due = d.today then '4 today'
     when o.start_by <= d.today then '4 start today'
     when o.due <= d.today + 6 then '6 later this week'

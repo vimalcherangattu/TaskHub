@@ -69,6 +69,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
   - `parent_id` must be a top-level project (one with no parent). The app shows only one level of nesting.
   - `color` comes from `#2F6DB5 #C4412F #3E8A57 #E0A21A #7A4FB0 #1F8A8A #D0662A #5E6E68 #B0407A`; `order` is 99.
 - Never delete projects. Deleting one moves its tasks and notes to Unsorted.
+- **Paused projects** (`projects.paused_at` set; Fyule since 9 Nov 2026): tasks keep their dates, but the app treats nothing in them as due or overdue and keeps them off Today and This week. File into them as usual, but don't set dates, stars or `today_date` on their tasks. "Pause X" / "resume X": set or clear `paused_at` (top-level projects; sub-projects follow their parent).
 
 ## Tasks: fields and what the app expects
 
@@ -79,7 +80,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 | `status` | See *Status changes* below. Each status needs its fields. |
 | `priority` | `high` / `med` / `low`. Default `med`. **`high` only** for a hard external deadline within 7 days, someone blocked waiting on Vimal, or when he says so. Important-in-general is `med`. |
 | `owner` | `me` (default: Vimal does it) or `agent` (a scheduled Claude run does it itself, e.g. a YouTube episode build or a book draft). Agent tasks stay off Today and This week (app view "Run by agents") but still show in Needs attention when overdue. Tasks from chats are `me`; set `agent` only when he says a run will do it. Never flip an owner the app or a run set without him asking. |
-| `due` | Deadline. Always set one; if he gave none, pick a sensible date and say so. |
+| `due` | **Only a real date** (decided 9 Nov 2026). Set it when he names a date, when the task must happen before an event, or when someone else set the deadline. Otherwise don't invent one: set `week_of` (this or next Monday) for "this week" / "next week", or leave both empty for "sometime". Guessed dates were most of his overdue pile. In the app only hard deadlines (`due_firm` / `due_time`) count as **overdue**; a soft date that passes moves to "Left from earlier" and he triages it (Today / This week / Next week / No date / Drop). Never push a passed soft date forward on your own. |
 | `today_date` | On today's list when it equals today. Tasks due today or earlier show on Today anyway. Clear it (null) to take a task off today. |
 | `week_of` | The **Monday** of the week it should finish. Any other day breaks the Week view. |
 | `effort_days` | Working days of effort, only when over a day. The app derives the start date as `due - effort_days`. |
@@ -113,7 +114,7 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 
 ### Adding tasks
 
-- **Things he says he needs to do** (do, follow up, decide, finish, send, book, pay…): insert with `status = 'todo'`. Include project, due, priority, `source = 'chat'` and `source_chat`. Confirm in one line: "Added 'Call bank' → Home & family, due Fri 16 Oct, med."
+- **Things he says he needs to do** (do, follow up, decide, finish, send, book, pay…): insert with `status = 'todo'`. Include project, priority, `source = 'chat'`, `source_chat`, and a `due` only when there's a real date (else `week_of` or nothing; see `due`). Confirm in one line: "Added 'Call bank' → Home & family, this week, med."
 - **Your own recommendations** that he hasn't rejected, and only concrete actions (not advice, not options he's still weighing): insert with `status = 'suggested'`. He reviews these in the hub, where he can accept, add to today or this week, start, mark done or dismiss.
 - Work over a day: set `effort_days` and give the start date in the confirmation, e.g. "due 15 Oct, ~10 days, start by 5 Oct".
 - A task with several clear parts: fill `steps`.
@@ -312,7 +313,7 @@ Vimal's recurring calls are in `call_series`: `david-1on1` (Mon 9 PM IST), `ravi
 - **"What's on my plate"**: run the plate query in `reference/queries.md`. It mirrors the app's Today screen. Answer in this order:
   1. On it now
   2. Follow up today
-  3. Overdue
+  3. Overdue (hard deadlines only), then "Left from earlier": soft dates that passed. Offer the triage in the app rather than moving them yourself.
   4. Today (including "start today")
   5. Can't start yet (blocked, with what each waits on)
   6. Later this week

@@ -424,3 +424,14 @@ People now have their own records in `people` (name, aliases, emails, org, role,
 - On an existing open task, set it only when it's null and new mail or a call shows the person is now waiting on him. Never overwrite or clear one that's already set.
 - When a thread shows he delivered (he sent the thing they asked for), complete the task as you do other email completions.
 - The Zen privacy addendum still applies to Zenara rows.
+
+<!-- mirror of agent_config row meeting-agent-9i-dates (9 Nov 2026) -->
+# Addendum — Only real dates, and paused projects (applies to every task you insert or update; overrides every earlier instruction to give a task a due date, including Step 7, the email and Linear check, inbox filing and voice captures)
+
+Most of Vimal's overdue pile came from guessed due dates. From now on:
+
+- Set `due` only for a real date: one the source names ("by Friday", "on the 14th"), an event the task must happen before, or someone else's deadline. A voice note that says "today" or "tomorrow" counts.
+- No real date: don't invent one. If the source says "this week" or "next week", set `week_of` to that Monday. Otherwise leave `due` and `week_of` null; the task waits in its project without going overdue.
+- Only hard deadlines (`due_firm`, `due_time`) count as overdue in the app. A soft date that passes moves to "Left from earlier" for Vimal to triage. Mark a date hard only when the source says it can't move (unchanged).
+- Never push a soft date forward just because it passed; Vimal triages those in the app. "A date moved" in a call still updates `due`.
+- Paused projects (`projects.paused_at` set, on the project or its parent): still file calls, notes and suggested tasks there, but don't set `due`, `week_of` or `today_date` on their tasks, and don't report them as overdue or stalled.

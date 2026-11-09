@@ -1,8 +1,16 @@
 # Status
 
-**Last updated:** 9 Nov 2026 (the brief, after Dia) (app changes on branch `vimal/quirky-galileo-ut9ii1`, not yet on `main`; database and agent changes are live)
+**Last updated:** 9 Nov 2026 (the brief; overdue overhaul) (live on https://task-hub-one-delta.vercel.app/)
 
 ## Current state
+- **Overdue overhaul (9 Nov):** Vimal had 99 of 189 open tasks overdue, 77 of them from dates guessed in chats, and was adding ~20 tasks a day while closing ~14.
+  - **Only real dates:** skill rule (`due` only for a real date, else `week_of` or nothing), new hourly addendum `meeting-agent-9i-dates` (overrides every earlier "give it a due date"), and the 9 AM lead's prompt. Chat and agent tasks still come in as before (Vimal wants that intelligence layer kept).
+  - **Soft vs hard:** only hard deadlines are overdue. A soft date that passes is "lapsed": it moves to "Left from earlier" as "Was for <date>", isn't red, and counts in Needs attention only after 2 weeks. Plate query: `3b left from earlier`.
+  - **Triage:** one task at a time, Today / This week / Next week / No date / Drop (keys T W N D X S); a soft date is cleared when it's re-planned; logged in activity. From the brief ("n tasks past their dates"), Today's "Left from earlier" and the Friday wrap.
+  - **Capacity:** Week view and the Monday brief show "n planned; you usually finish about m" (last 4 weeks' average) with "Trim the week" (the triage over this week's soft tasks, low priority first).
+  - **Overdue zero on Fridays:** a line in the Friday wrap and in the 9 AM lead's Friday push.
+  - **Paused projects:** new column `projects.paused_at`; Pause / Resume on a project page; paused tasks keep their dates but stay off Today, This week, overdue and agent picks. **Fyule paused on 9 Nov.**
+  - Test: `triage.mjs`. Re-upload the skill.
 - **The brief, after Dia (9 Nov):** researched Dia's Morning Brief, `/weekly` and `/daily-wrap` skills, Better Meetings and Memory, and built the parts that fit:
   - **Brief at the top of Today** (collapsible, remembered per day): Needs you, Your day, Picked for you, Since yesterday (Since Friday on Mondays, from `changes`), Heads up. **Monday brief** adds Last week (done, slipped) and This week (week focus, hard deadlines, calls, renewals); **Friday wrap** adds Your week (done by project, decisions, follow-ups). The app builds it from local rows, so it works with no agent row.
   - **New table `day_briefs`** (one row a day: `edition`, `headline`, `items` jsonb, `feedback` jsonb). The 9 AM lead writes it (new STEP 8, `agent_config` row `lead-8-brief`, mirrored in `agents/lead-brief.md`; the trigger prompt now reads it at the start, lists it as write (i), and puts the headline second in the push with a link). Each agent item has Done / Not now / Not useful; "no" teaches the lead what to leave out.
@@ -64,7 +72,7 @@
 - Nothing mid-change. Handoff note: "Handoff: Ambalam Life OS" (resume with "continue ambalam life-os").
 
 ## Next step
-- Merge `vimal/quirky-galileo-ut9ii1` into `main` to put the brief live. Until then the 9 AM lead writes `day_briefs` rows that the live app doesn't show yet (harmless).
+- Vimal: run the triage once (about 15 minutes for the ~90 past their date), then trim this week.
 - Re-upload the task-hub skill (owed_to, the brief).
 - Tue 10 Nov after 9 AM: check `select day, edition, headline, jsonb_array_length(items) from day_briefs;` and that the push opens with the Agents line, then the headline. After the hourly runs: `select title, owed_to from tasks where owed_to is not null;`
 - Vimal: set Repeats on the regular tasks (LinkedIn posts weekly, Healio pieces every 2 weeks); suggested task due 31 Oct. No task uses `repeat` yet. Handoff: "Handoff: Ambalam recurring tasks" (resume with "continue ambalam recurring tasks").
