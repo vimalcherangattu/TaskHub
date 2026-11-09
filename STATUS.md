@@ -69,11 +69,11 @@
 - **Tests:** all 15 pass (`tests/*.mjs`; `owner.mjs` added 24 Oct). `focus.mjs` covers high impact, themes, merging and done-here; `topics.mjs` covers Topics.
 
 ## In progress
-- Nothing mid-change. Handoff note: "Handoff: Ambalam Life OS" (resume with "continue ambalam life-os").
+- Nothing mid-change. Handoff note: "Handoff: Ambalam brief and overdue" (resume with "continue ambalam brief and overdue"). Life OS: "continue ambalam life-os". Nine handoffs older than 14 days were closed on 9 Nov; their open items are in the Ambalam brief.
 
 ## Next step
 - Vimal: run the triage once (about 15 minutes for the ~90 past their date), then trim this week.
-- Re-upload the task-hub skill (owed_to, the brief).
+- Re-upload the task-hub skill (owed_to, the brief, real dates, paused projects); the zip was sent on 9 Nov.
 - Tue 10 Nov after 9 AM: check `select day, edition, headline, jsonb_array_length(items) from day_briefs;` and that the push opens with the Agents line, then the headline. After the hourly runs: `select title, owed_to from tasks where owed_to is not null;`
 - Vimal: set Repeats on the regular tasks (LinkedIn posts weekly, Healio pieces every 2 weeks); suggested task due 31 Oct. No task uses `repeat` yet. Handoff: "Handoff: Ambalam recurring tasks" (resume with "continue ambalam recurring tasks").
 - Skill re-uploaded by Vimal on 26 Oct. Confirm the uploaded zip has the "Life OS" section (the second zip sent); if not, upload it again.
