@@ -24,10 +24,10 @@ await p.evaluate(()=>{
   refresh();
 });
 await p.waitForTimeout(700);
-await p.click('#side [data-go="topics"]'); await p.waitForTimeout(150);
+await p.click('#side [data-go="notes"]'); await p.waitForTimeout(100); await p.click('#view [data-go="topics"]'); // 9 Nov: Topics sits under Notes await p.waitForTimeout(150);
 console.log('topics:', await p.evaluate(()=>[...document.querySelectorAll('#view [data-topic]')].map(x=>x.dataset.topic+' | '+x.querySelector('.nb>span').textContent)));
 await p.click('#view [data-topic="pricing"]'); await p.waitForTimeout(150);
-console.log('page:', await p.evaluate(()=>({h1:document.querySelector('#view h1').textContent,sub:document.querySelector('#view .sub').textContent,brief:!!document.querySelector('#view .brief'),secs:[...document.querySelectorAll('#view section .sh h2')].map(x=>x.textContent),tasks:[...document.querySelectorAll('#view .task')].map(x=>x.dataset.tid),calls:[...document.querySelectorAll('#view .pk-list li')].length,nav:document.querySelector('#side [data-go="topics"]').getAttribute('aria-current')})));
+console.log('page:', await p.evaluate(()=>({h1:document.querySelector('#view h1').textContent,sub:document.querySelector('#view .sub').textContent,brief:!!document.querySelector('#view .brief'),secs:[...document.querySelectorAll('#view section .sh h2')].map(x=>x.textContent),tasks:[...document.querySelectorAll('#view .task')].map(x=>x.dataset.tid),calls:[...document.querySelectorAll('#view .pk-list li')].length,nav:document.querySelector('#side [data-go="notes"]').getAttribute('aria-current')})));
 await p.screenshot({path:new URL('./out/topic.png', import.meta.url).pathname});
 await p.evaluate(()=>{S.view='notes';render()}); await p.waitForTimeout(100);
 console.log('notes has Topics button:', await p.evaluate(()=>!!document.querySelector('#view [data-go="topics"]')));

@@ -57,6 +57,15 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 - **Deleting: never write a raw `DELETE`.** Any SQL containing DELETE (or DROP) triggers a confirmation prompt that cancels itself after 60 seconds. Use `select hub_delete('<table>', '<id>');` instead (tables: tasks, notes, agenda_items, inputs, input_uses, hub_sessions, routing_rules). It deletes one row and cleans up links (tasks that waited on it, notes that pointed to it). If `hub_delete` doesn't exist yet, mark the item instead (a task `status = 'done'` with a note, or a note's `superseded_by`) and tell Vimal the delete needs his OK.
 - **Timeouts.** If a write times out, it may or may not have happened. Check with a SELECT before retrying, and retry on `Supabase_Connector`. Never tell Vimal something was saved unless a SELECT confirms it.
 
+## How the app shows it (simplified 9 Nov 2026)
+
+The app has five places: **Today, Inbox, Plan, Projects, Notes**. Older names in this file map like this:
+- **Today** is one list: hard deadlines, starred tasks (`highlight_day` = today), started work, today's dates and follow-ups due. In the morning it opens on **Plan the day**: a draft from the 9 AM lead's stars and today's dates that he confirms. In the evening, **Close the day** places what's left, takes the check-in and stars up to 3 for tomorrow.
+- **Inbox** holds what he hasn't placed yet: `suggested` tasks, tasks whose soft date passed (the old "Left from earlier"), unfiled notes and unfiled calls. He decides one at a time (Today, This week, Next week, No date, Already done, Drop).
+- **Plan** has tabs: Week (with "Trim the week"), Waiting, Calls, Agents ("Run by agents"), Review (reviews, plus Needs attention, Life areas, Goals, Habits, Log and Life admin).
+- A star on a row means `highlight_day` = today. Priority only sets the sort order. 2-minute tasks are candidates in Plan the day and a "two-minute tasks" chip on Today, not a block.
+- Field rules below are unchanged; agents and chats add tasks exactly as before.
+
 ## Projects
 
 `projects(id, name, area, color, order, parent_id, scope)`, where `scope` describes what belongs in the project and what doesn't. Keep it current when a project's remit changes; routing reads it.

@@ -37,6 +37,7 @@ async function setup(p,{edition='monday'}={}){
       delete:()=>({eq:(c,id)=>{const i=tb.findIndex(x=>x.id===id);if(i>=0)tb.splice(i,1);return Promise.resolve({error:null})}}),
       insert:row=>({select:()=>({single:()=>{const r={id:'new'+tb.length,...row};tb.push(r);return Promise.resolve({data:{...r},error:null})}})})}};
     try{localStorage.removeItem('ambalam.brief.v1')}catch{}
+    S.showBrief=true;S.tmode='list'; // 9 Nov: the brief sits behind the Brief chip on Today
     window.opened=[];window.open=u=>{opened.push(u);return null};
     refresh();
   },{edition});
@@ -75,7 +76,7 @@ await p.click('.brief summary'); await p.waitForTimeout(200);
 await p.click('.brief [data-bskill="plan"]'); await p.waitForTimeout(200);
 console.log('Plan my day opens Claude with the brief:', await p.evaluate(()=>{const u=decodeURIComponent(opened.at(-1)||'');return u.startsWith('https://claude.ai/new?q=')&&u.includes('task-hub skill')&&u.includes('File the GST return')&&u.includes('Send Asha the pricing sheet (Asha)')}));
 await p.evaluate(()=>setPeek('w1')); await p.waitForTimeout(200);
-await p.evaluate(()=>document.querySelector('#peek .pk-skills').open=true);
+await p.click('#peek [data-pkmore]'); await p.waitForTimeout(150); // 9 Nov: Claude prompts sit under the quick look's More
 await p.click('#peek [data-tskill="steps"]'); await p.waitForTimeout(200);
 console.log('quick look: More with Claude:', await p.evaluate(()=>{const u=decodeURIComponent(opened.at(-1)||'');return u.includes('Task: Draft the launch plan')&&u.includes('Break this into 3–7 concrete next steps')&&!u.includes('Help me finish it')}));
 await p.evaluate(()=>setPeek('o1')); await p.waitForTimeout(200);
@@ -86,16 +87,16 @@ await p.evaluate(()=>openTask(S.tasks.find(x=>x.id==='w2'))); await p.waitForTim
 await p.evaluate(()=>document.getElementById('tsMore').open=true);
 await p.fill('#taskForm input[name="owedTo"]','Kara'); await p.click('#taskForm .foot button.primary'); await p.waitForTimeout(400);
 console.log('task sheet saves Owed to:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='w2').owed_to==='Kara'&&document.querySelector('.brief').textContent.includes('Kara is waiting')));
-// Looking ahead (evening)
-await p.evaluate(()=>{S.forceEvening=true;render()}); await p.waitForTimeout(200);
-const cands=await p.evaluate(()=>[...document.querySelectorAll('.ahead [data-ahead]')].map(x=>x.dataset.ahead));
+// Looking ahead (evening): now step 3 of Close the day
+await p.evaluate(()=>{S.forceEvening=true;S.view='close';render()}); await p.waitForTimeout(200);
+const cands=await p.evaluate(()=>[...document.querySelectorAll('.cd-stars [data-ahead]')].map(x=>x.dataset.ahead));
 console.log('Looking ahead shows candidates:', JSON.stringify(cands), cands.length>=4);
-for(const id of cands.slice(0,4)){await p.click(`.ahead [data-ahead="${id}"]`); await p.waitForTimeout(250)}
+for(const id of cands.slice(0,4)){await p.click(`.cd-stars [data-ahead="${id}"]`); await p.waitForTimeout(250)}
 console.log('up to 3 starred for the next working day:', await p.evaluate(()=>{const n=tmrw();return DB.tasks.filter(x=>x.highlight_day===n).length===3}));
-await p.click(`.ahead [data-ahead="${cands[0]}"]`); await p.waitForTimeout(250);
+await p.click(`.cd-stars [data-ahead="${cands[0]}"]`); await p.waitForTimeout(250);
 console.log('tap again unpicks:', await p.evaluate(id=>DB.tasks.find(x=>x.id===id).highlight_day===null,cands[0]));
 await p.screenshot({path:new URL('out/brief-evening.png',import.meta.url).pathname});
-await p.evaluate(()=>{S.forceEvening=false});
+await p.evaluate(()=>{S.forceEvening=false;S.view='today';render()});
 // meeting countdown card
 await p.evaluate(()=>{S.series=[{id:'cs1',name:'Zenara weekly',active:true,order:1}];S.prep={cs1:{next_at:new Date(Date.now()+25*6e4).toISOString(),agenda:[{id:'a1',kind:'decide',text:'Pick the launch date'}],asks:[],inputs:[],questions:[],done:[],doing:[],next:[],blocked:[],decided:[]}};render()}); await p.waitForTimeout(200);
 console.log('call within the hour: countdown and points:', await p.evaluate(()=>{const c=document.querySelector('.next-call.near');return!!c&&/in 2\d min/.test(c.querySelector('.cd').textContent)&&c.textContent.includes('Pick the launch date')}));

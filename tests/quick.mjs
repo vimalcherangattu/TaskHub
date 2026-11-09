@@ -34,25 +34,19 @@ const errs=[];
 const p=await b.newPage({viewport:{width:1440,height:1000}}); p.on('pageerror',e=>errs.push(e.message));
 p.on('dialog',d=>d.accept());
 await setup(p);
-const strip=()=>p.evaluate(()=>{const s=document.querySelector('#view section.qk');return s?[...s.querySelectorAll('.task')].map(x=>x.dataset.tid):null});
-// whatever the date, oldest first; waiting and starred ones stay where they were
-console.log('strip, oldest first:', JSON.stringify(await strip()), JSON.stringify(await strip())==='["q1","q2","q3"]');
-console.log('shown once on Today:', await p.evaluate(()=>['q1','q2','q3','q5'].every(id=>document.querySelectorAll(`#view .task[data-tid="${id}"]`).length===1)));
-console.log('starred one stays in High impact:', await p.evaluate(()=>!!document.querySelector('#view section.hi .task[data-tid="q5"]')));
+// 9 Nov: no "Knock these out" block. 2-minute tasks are a chip on Today that opens "I have 10 minutes",
+// and a candidate group in Plan the day, oldest first. The "Do these take 2 minutes?" prompt is gone.
+const strip=()=>p.evaluate(()=>{const m=S.tmode;S.tmode='plan';S.pd=null;render();const g=[...document.querySelectorAll('#view .pd-g')].find(x=>x.querySelector('.pd-gh span').textContent==='2-minute tasks');const r=g?[...g.querySelectorAll('[data-pdadd]')].map(x=>x.dataset.pdadd):[];S.tmode='list';render();return r});
+await p.evaluate(()=>{S.tmode='list';render()});
+console.log('plan the day, oldest first:', JSON.stringify(await strip()), JSON.stringify(await strip())==='["q1","q2"]', '(q3 is dated today, so it is already in the draft)');
+console.log('chip on Today:', await p.evaluate(()=>document.querySelector('.tchip[data-sprint]')?.textContent));
 console.log('counts in the header:', await p.evaluate(()=>document.querySelector('.thead h1').textContent));
-console.log('age tag on old ones only:', await p.evaluate(()=>document.querySelector('.task[data-tid="q1"] .meta').textContent.includes('5 days old')&&!document.querySelector('.task[data-tid="q2"] .meta').textContent.includes('days old')));
-// suggestions: only undecided ones that look quick, oldest first
-const sug=await p.evaluate(()=>[...document.querySelectorAll('.qk-s b')].map(x=>x.textContent));
-console.log('suggestions:', JSON.stringify(sug), sug.length===2&&sug[0].startsWith('Reply to Deepak'));
-await p.click('[data-qkyes="s1"]'); await p.waitForTimeout(300);
-await p.click('[data-qkno="s2"]'); await p.waitForTimeout(300);
-console.log('yes and no saved:', await p.evaluate(()=>{const g=id=>DB.tasks.find(x=>x.id===id).quick;return g('s1')===true&&g('s2')===false}));
-console.log('suggestions gone, s1 in the strip:', await p.evaluate(()=>!document.querySelector('.qk-sug')&&!!document.querySelector('section.qk .task[data-tid="s1"]')));
+await p.evaluate(()=>upd('s1',{quick:true})); await p.waitForTimeout(300);
 await p.screenshot({path:new URL('out/quick.png',import.meta.url).pathname});
 // quick look toggle
 await p.click('.task[data-tid="s4"] .title').catch(async()=>{await p.evaluate(()=>setPeek('s4'))});
 await p.evaluate(()=>setPeek('s4')); await p.waitForTimeout(200);
-await p.click('#peek [data-qk="s4"]'); await p.waitForTimeout(300);
+await p.click('#peek [data-pkmore]'); await p.click('#peek [data-qk="s4"]'); await p.waitForTimeout(300);
 console.log('quick look marks it:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='s4').quick===true&&document.querySelector('#peek [data-qk]').getAttribute('aria-pressed')==='true'&&document.getElementById('peek').textContent.includes('2-minute task')));
 await p.click('#peek [data-qk="s4"]'); await p.waitForTimeout(300);
 console.log('and unmarks it (false, so no more asking):', await p.evaluate(()=>DB.tasks.find(x=>x.id==='s4').quick===false));
@@ -71,7 +65,7 @@ console.log('Capture "#quick":', await p.evaluate(()=>{const r=DB.tasks.find(x=>
 console.log('plain title untouched:', await p.evaluate(()=>quickParse('Make it quick').quick!==true&&quickParse('Call (quick)').title==='Call'&&quickParse('Book 2 mins').quick===true&&quickParse('Read 2m').title==='Read'&&quickParse('#quick').title==='#quick'));
 // I have 10 minutes
 const n0=(await strip()).length;
-await p.click('section.qk [data-sprint]'); await p.waitForTimeout(300);
+await p.click('.tchip[data-sprint]'); await p.waitForTimeout(300);
 console.log('sprint opens on the oldest:', await p.evaluate(()=>document.getElementById('sprintDlg').open&&document.getElementById('spH').textContent.startsWith('Review Vamby')));
 console.log('countdown:', await p.evaluate(()=>/^\d+:\d\d left$/.test(document.getElementById('spClock').textContent)));
 await p.click('#sprintBody [data-sp="done"]'); await p.waitForTimeout(300);
@@ -84,10 +78,10 @@ await p.click('#sprintBody [data-close]'); await p.waitForTimeout(300);
 console.log('strip after:', JSON.stringify(await strip()), n0);
 // phone
 const m=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); m.on('pageerror',e=>errs.push(e.message));
-await setup(m);
+await setup(m); await m.evaluate(()=>{S.tmode='list';render()});
 await m.screenshot({path:new URL('out/quick-phone.png',import.meta.url).pathname});
-console.log('phone targets ≥44px:', await m.evaluate(()=>[...document.querySelectorAll('section.qk .sh .act, .qk-sa .tool')].every(x=>x.getBoundingClientRect().height>=44)));
-await m.evaluate(()=>{document.documentElement.dataset.theme='dark'}); await m.click('section.qk [data-sprint]'); await m.waitForTimeout(300);
+console.log('phone targets ≥44px:', await m.evaluate(()=>[...document.querySelectorAll('.tchip')].every(x=>x.getBoundingClientRect().height>=44)));
+await m.evaluate(()=>{document.documentElement.dataset.theme='dark'}); await m.click('.tchip[data-sprint]'); await m.waitForTimeout(300);
 await m.screenshot({path:new URL('out/quick-sprint-dark.png',import.meta.url).pathname});
 console.log('errors', errs);
 await b.close();

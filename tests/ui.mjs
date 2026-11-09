@@ -39,30 +39,28 @@ async function setup(p){
 }
 const errs=[];
 const p=await b.newPage({viewport:{width:1440,height:1000}}); p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await setup(p);
+await setup(p); await p.evaluate(()=>{S.tmode='list';render()}); await p.waitForTimeout(100);
 await p.screenshot({path:new URL('./out/v2-today.png', import.meta.url).pathname});
-await p.click('.task[data-tid="t2"] .title'); await p.waitForTimeout(400);
+await p.click('.task[data-tid="t3"] .title'); await p.waitForTimeout(400);
 await p.screenshot({path:new URL('./out/v2-peek.png', import.meta.url).pathname});
 console.log('peek open:', await p.evaluate(()=>!document.getElementById('peek').hidden), '| sel:', await p.evaluate(()=>document.querySelector('.task.sel')?.dataset.tid));
-await p.click('#peek [data-step="t2"][data-i="4"]'); await p.waitForTimeout(300);
-console.log('step ticked:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t2').steps[4].done), '| peek still open:', await p.evaluate(()=>!document.getElementById('peek').hidden));
+await p.click('#peek [data-step="t3"][data-i="2"]'); await p.waitForTimeout(300);
+console.log('step ticked:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t3').steps[2].done), '| peek still open:', await p.evaluate(()=>!document.getElementById('peek').hidden));
 await p.evaluate(()=>{window.open=(u)=>{window.__opened=u;return null}});
-await p.click('#peek [data-claude="t2"]'); await p.waitForTimeout(200);
+await p.click('#peek [data-pkmore]'); await p.click('#peek [data-claude="t3"]'); await p.waitForTimeout(200);
 {const u=await p.evaluate(()=>window.__opened||''),q=decodeURIComponent(u.split('?q=')[1]||'');
- console.log('claude link:', u.startsWith('https://claude.ai/new?q='), '| has context:', q.includes("project_context('zenara-launches')")&&q.includes('Task: Close COM-432')&&q.includes('- [x] Discovery call guide')&&q.includes('task-hub skill'));}
+ console.log('claude link:', u.startsWith('https://claude.ai/new?q='), '| has context:', q.includes("project_context('zenara-content')")&&q.includes('Task: Draft patient-facing Assess handout')&&q.includes('- [x] Discovery call guide')&&q.includes('task-hub skill'));}
 await p.keyboard.press('ArrowDown'); await p.waitForTimeout(200); console.log('arrow →', await p.evaluate(()=>S.peek));
 await p.click('.task[data-tid="t5"] .title'); await p.waitForTimeout(200); console.log('title click switches peek →', await p.evaluate(()=>S.peek));
 await p.click('.task[data-tid="t8"] .body', {position:{x:5,y:5}}); await p.waitForTimeout(200); console.log('row click switches peek →', await p.evaluate(()=>S.peek));
 await p.keyboard.press('Escape'); await p.waitForTimeout(200); console.log('esc closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
-await p.click('.task[data-tid="t2"] .title'); await p.waitForTimeout(300); /* blank sidebar space: (700,20) can land on a task row, which now switches the quick look */ await p.click('#side', {position:{x:5,y:990}}); await p.waitForTimeout(200); console.log('outside click closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
-await p.click('[data-focusall]'); await p.waitForTimeout(200); console.log('on it now rows (all):', await p.evaluate(()=>document.querySelectorAll('.focus .task').length));
-await p.click('[data-focusall]'); await p.waitForTimeout(200);
+await p.click('.task[data-tid="t3"] .title'); await p.waitForTimeout(300); /* blank sidebar space: (700,20) can land on a task row, which now switches the quick look */ await p.click('#side', {position:{x:5,y:990}}); await p.waitForTimeout(200); console.log('outside click closes:', await p.evaluate(()=>document.getElementById('peek').hidden));
+console.log('one list on Today (stalled t2 waits in Plan the day):', await p.evaluate(()=>!!document.querySelector('#view .tlist')&&!document.querySelector('#view .tlist .task[data-tid="t2"]')&&!document.querySelector('#view section.hi, #view section.qk, #view .rail')));
 await p.evaluate(()=>{S.view='followups';render()}); await p.waitForTimeout(300); await p.screenshot({path:new URL('./out/v2-waiting.png', import.meta.url).pathname});
 await p.evaluate(()=>{S.view='project';S.pid='zenara-launches';render()}); await p.waitForTimeout(300); console.log('sidebar subs shown for open workspace:', await p.evaluate(()=>document.querySelectorAll('#side .sub').length));
-await p.click('button.group-h[data-area="Life"]'); await p.waitForTimeout(150); console.log('Life folded:', await p.evaluate(()=>!document.querySelector('#side [data-proj="home"]')));
-await p.click('button.group-h[data-area="Life"]');
+console.log('sidebar: five places:', await p.evaluate(()=>[...document.querySelectorAll('#side nav [data-go]')].map(b=>b.textContent.replace(/\d+/,'')).join(',')));
 const m=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); m.on('pageerror',e=>errs.push(e.message));
-await setup(m); await m.screenshot({path:new URL('./out/v2-phone.png', import.meta.url).pathname});
-await m.tap('.task[data-tid="t2"] .title'); await m.waitForTimeout(400); await m.screenshot({path:new URL('./out/v2-phone-peek.png', import.meta.url).pathname});
+await setup(m); await m.evaluate(()=>{S.tmode='list';render()}); await m.screenshot({path:new URL('./out/v2-phone.png', import.meta.url).pathname});
+await m.tap('.task[data-tid="t3"] .title'); await m.waitForTimeout(400); await m.screenshot({path:new URL('./out/v2-phone-peek.png', import.meta.url).pathname});
 console.log('errors', errs);
 await b.close();

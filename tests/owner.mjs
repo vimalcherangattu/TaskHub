@@ -45,20 +45,20 @@ await p.evaluate(()=>{DB.tasks.find(x=>x.id==='t1').owner='agent';refresh()}); a
 const onToday=await p.evaluate(()=>[...document.querySelectorAll('#view .task')].map(x=>x.dataset.tid));
 console.log('agent task off Today:', !onToday.includes('t1'), '| own task still on Today:', onToday.includes('t5'));
 console.log('Today hint links to agents:', await p.evaluate(()=>!!document.querySelector('#view [data-go="agents"]')));
-console.log('nav count:', await p.evaluate(()=>document.querySelector('#side [data-go="agents"] .count')?.textContent));
 await p.evaluate(()=>{S.view='week';render()}); await p.waitForTimeout(200);
+console.log('Plan tab count:', await p.evaluate(()=>document.querySelector('.ptabs [data-go="agents"] span')?.textContent)); // 9 Nov: Run by agents is Plan › Agents
 console.log('agent task off Week:', await p.evaluate(()=>!document.querySelector('#view .task[data-tid="t1"]')));
-await p.click('#side [data-go="agents"]'); await p.waitForTimeout(200);
+await p.click('.ptabs [data-go="agents"]'); await p.waitForTimeout(200);
 console.log('agents view lists it:', await p.evaluate(()=>[...document.querySelectorAll('#view .task')].map(x=>x.dataset.tid)));
 await p.evaluate(()=>{S.view='all';render()}); await p.waitForTimeout(200);
 console.log('All tasks shows Agent tag:', await p.evaluate(()=>document.querySelector('#view .task[data-tid="t1"]')?.textContent.includes('Agent')));
 // toggle back from the quick look
 await p.click('.task[data-tid="t1"] .title'); await p.waitForTimeout(300);
-await p.click('#peek [data-own="t1"]'); await p.waitForTimeout(300);
+await p.click('#peek [data-pkmore]'); await p.click('#peek [data-own="t1"]'); await p.waitForTimeout(300);
 console.log('toggle back to me:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t1').owner));
 await p.click('#peek [data-own="t1"]'); await p.waitForTimeout(300);
 console.log('toggle to agent:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='t1').owner));
 const m=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); m.on('pageerror',e=>errs.push(e.message));
-await setup(m); console.log('phone: Run by agents in More, with its count:', await m.evaluate(()=>{openMore();const b=document.querySelector('#moreBody [data-go="agents"]');document.getElementById('moreDlg').close();return b?b.textContent:false}));
+await setup(m); await m.click('#tabs [data-go="week"]'); await m.waitForTimeout(150); console.log('phone: Agents tab under Plan, with its count:', await m.evaluate(()=>document.querySelector('.ptabs [data-go="agents"]')?.textContent||false));
 console.log('errors', errs);
 await b.close();

@@ -51,19 +51,21 @@ await p.evaluate(()=>{
 await p.waitForTimeout(800);
 await p.waitForTimeout(400);
 const txt=s=>p.evaluate(s=>[...document.querySelectorAll(s)].map(x=>x.textContent.replace(/\s+/g,' ').trim()),s);
-console.log('sidebar groups:', await txt('#side .nav-g'), 'live items:', await p.evaluate(()=>['life','goals','habits','log'].every(v=>document.querySelector(`#side [data-go="${v}"]`))));
-console.log('phone tabs:', await p.evaluate(()=>[...document.querySelectorAll('#tabs button')].map(b=>b.dataset.go||'more')));
-// habits on Today
-console.log('today habits:', await txt('.hb .hb-b'));
+// 9 Nov: five places; the Life OS pages sit under Plan › Review; habits and the check-in are part of Close the day
+console.log('sidebar places:', await p.evaluate(()=>[...document.querySelectorAll('#side nav [data-go]')].map(b=>b.dataset.go).join(',')));
+await p.evaluate(()=>{S.view='reviews';render()}); await p.waitForTimeout(100);
+console.log('live pages under Review:', await p.evaluate(()=>['life','goals','habits','log'].every(v=>document.querySelector(`#view [data-go="${v}"]`))&&document.querySelector('.ptabs [data-go="reviews"]').getAttribute('aria-selected')==='true'));
+console.log('phone tabs:', await p.evaluate(()=>[...document.querySelectorAll('#tabs button')].map(b=>b.dataset.go||('capture' in b.dataset?'capture':'?')).join(',')));
+await p.evaluate(()=>{S.forceEvening=true;S.view='close';render()}); await p.waitForTimeout(150);
+console.log('close-the-day habits:', await txt('.hb .hb-b'));
 await p.click('.hb [data-habit="h1"]'); await p.waitForTimeout(250);
 console.log('ticked:', await p.evaluate(()=>({db:DB.habit_logs.some(l=>l.habit_id==='h1'&&l.day===T()&&l.done),label:document.querySelector('.hb [data-habit="h1"]').textContent.replace(/\s+/g,' ')})));
 await p.click('.hb [data-habit="h1"]'); await p.waitForTimeout(250);
 console.log('unticked:', await p.evaluate(()=>!DB.habit_logs.some(l=>l.habit_id==='h1'&&l.day===T())));
-// evening check-in
-await p.evaluate(()=>{S.forceEvening=true;render()});
-await p.click('#ciForm [data-ci="energy"][data-v="4"]'); await p.click('#ciForm [data-ci="mood"][data-v="5"]');
-await p.fill('#ciForm input[name="line"]','Good focus day'); await p.fill('#ciForm input[name="win"]','Finished the deck'); await p.click('#ciForm button[type="submit"]'); await p.waitForTimeout(300);
-console.log('check-in saved:', await p.evaluate(()=>{const l=DB.daily_log.find(x=>x.day===T());return l&&[l.energy,l.mood,l.line,l.win].join('|')}), await txt('.ci.done p'));
+await p.click('.cd [data-ci="energy"][data-v="4"]'); await p.click('.cd [data-ci="mood"][data-v="5"]');
+await p.fill('[data-cdf="line"]','Good focus day'); await p.fill('[data-cdf="win"]','Finished the deck'); await p.click('[data-closeday]'); await p.waitForTimeout(400);
+console.log('check-in saved:', await p.evaluate(()=>{const l=DB.daily_log.find(x=>x.day===T());return l&&[l.energy,l.mood,l.line,l.win].join('|')}), await p.evaluate(()=>S.view+'|'+!!document.querySelector('.tchip.ok')));
+await p.evaluate(()=>{S.forceEvening=false});
 // Life view
 await p.evaluate(()=>{S.view='life';render()}); await p.waitForTimeout(100);
 console.log('life:', await p.evaluate(()=>({sub:document.querySelector('#view .sub').textContent,goals:[...document.querySelectorAll('#view .gl')].map(x=>x.querySelector('b').textContent+' '+x.querySelector('.gl-p span:last-child').textContent+' '+x.querySelector('.gl-m').textContent),areas:[...document.querySelectorAll('.ac')].map(x=>x.querySelector('b').textContent+':'+x.querySelector('.ast').textContent),energy:document.querySelector('.esr').getAttribute('aria-label')})));
@@ -110,11 +112,12 @@ console.log('project life area:', await p.evaluate(()=>DB.projects.find(x=>x.id=
 await p.setViewportSize({width:390,height:844}); await p.evaluate(()=>{S.view='life';render()}); await p.waitForTimeout(200);
 console.log('phone overflow:', await p.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth));
 await p.screenshot({path:new URL('./out/life-phone.png', import.meta.url).pathname,fullPage:true});
-await p.click('#tabs [data-more]'); await p.waitForTimeout(150);
-console.log('more sheet:', await p.evaluate(()=>[...document.querySelectorAll('#moreBody .sh h2')].map(x=>x.textContent)));
-await p.screenshot({path:new URL('./out/more-phone.png', import.meta.url).pathname});
-await p.click('#moreBody [data-go="people"]'); await p.waitForTimeout(150);
-console.log('from more:', await p.evaluate(()=>[S.view,document.getElementById('moreDlg').open,document.querySelector('#tabs [data-more]').getAttribute('aria-current')]));
+await p.click('#tabs [data-go="notes"]'); await p.waitForTimeout(150);
+console.log('phone: People from Notes:', await p.evaluate(()=>!!document.querySelector('#view [data-go="people"]')));
+await p.click('#view [data-go="people"]'); await p.waitForTimeout(150);
+console.log('notes tab current on People:', await p.evaluate(()=>[S.view,document.querySelector('#tabs [data-go="notes"]').getAttribute('aria-current')].join('|')));
+await p.click('#tabs [data-go="week"]'); await p.waitForTimeout(150);
+console.log('phone: Plan has projects and settings:', await p.evaluate(()=>['projects'].every(v=>document.querySelector(`#view .set-row [data-go="${v}"]`))&&!!document.querySelector('#view .set-row [data-signout]')));
 await p.evaluate(()=>{document.documentElement.dataset.theme='dark';S.view='life';render()}); await p.waitForTimeout(100);
 await p.screenshot({path:new URL('./out/life-dark.png', import.meta.url).pathname});
 console.log('errors', errs);

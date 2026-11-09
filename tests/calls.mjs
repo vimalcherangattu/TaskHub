@@ -36,9 +36,10 @@ await p.evaluate(()=>{
   refresh();
 });
 await p.waitForTimeout(600);
-const rail = await p.$('.next-call'); console.log(name,'next-call card:', rail? (await rail.innerText()).replace(/\n/g,' | '):'none');
+// 9 Nov: Today shows the next call as an "Up next" chip when it's today, and the card only within the hour
+const rail = await p.$('.next-call [data-cs], .tchip[data-cs]'); console.log(name,'next call on Today:', rail? (await rail.innerText()).replace(/\n/g,' | '):'not today');
 if(w>500) await p.screenshot({path:new URL('./out/'+name+'-today.png', import.meta.url).pathname,fullPage:false});
-await (w>500? p.click('.next-call [data-cs]') : p.evaluate(()=>{S.view='calls';render()}));
+await (w>500&&rail? rail.click() : p.evaluate(()=>{S.view='calls';S.cs='david-1on1';try{history.replaceState(null,'','#call/david-1on1')}catch{}render()}));
 await p.waitForTimeout(500);
 console.log('hash', await p.evaluate(()=>location.hash), 'view', await p.evaluate(()=>S.view+'/'+S.cs));
 await p.screenshot({path:new URL('./out/'+name+'.png', import.meta.url).pathname,fullPage:true});console.log(await p.evaluate(()=>{const u=document.querySelector('.pl'),l=u.querySelector('li');const cu=getComputedStyle(u),cl=getComputedStyle(l);return [cu.display,cu.alignItems,cu.textAlign,cl.display,cl.width,cl.justifyContent,cl.marginLeft,u.getBoundingClientRect().width].join(' ')}));
@@ -52,7 +53,7 @@ await p.click('[data-prepall="david-1on1"]'); await p.waitForTimeout(200);
 console.log('show all rows:', await p.evaluate(()=>document.querySelectorAll('.pl li').length));
 await p.click('[data-cs="sam-catchup"]'); await p.waitForTimeout(300);
 console.log('sam sheet boxes:', await p.evaluate(()=>[...document.querySelectorAll('.prep-box h2')].map(x=>x.textContent).join(' / ')));
-console.log('nav:', await p.evaluate(()=>document.querySelector('#side [data-go="calls"]')?.textContent));
+console.log('nav:', await p.evaluate(()=>document.querySelector('.ptabs [data-go="calls"]')?.textContent));
 console.log('errors', errs);
 await p.close();
 }

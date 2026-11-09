@@ -42,10 +42,11 @@ At session start, read this file and `STATUS.md`. At every wrap-up, update `STAT
   - `tasks.status`: todo, doing, waiting, suggested, done
   - `priority`: high, med, low
   - `notes.kind`: fact, person, idea, decision, link, note
-  - `tasks.quick`: true (a 2-minute task, kept in "Knock these out" on Today whatever its date), false (Vimal said it takes longer; never suggest again), null (not decided).
+  - `tasks.quick`: true (a 2-minute task: a chip on Today that opens "I have 10 minutes", and a candidate in Plan the day), false (Vimal said it takes longer; never suggest again), null (not decided).
   - `tasks.repeat`: daily, weekdays, weekly, fortnightly, monthly, or null (one-off). One open copy at a time: marking it done adds the next copy and clears `repeat` on the done one (`rollRepeats` in the app, also on sync; the SQL is in the skill's `reference/queries.md`).
-  - `tasks.due`: only a real date (decided 9 Nov 2026); otherwise `week_of` or nothing. Only hard deadlines (`due_firm` / `due_time`) are `overdue()` in the app; a soft date that passes is `lapsed()`, sits in "Left from earlier" and goes through the triage (`triOpen`). Agents never move a passed soft date.
+  - `tasks.due`: only a real date (decided 9 Nov 2026); otherwise `week_of` or nothing. Only hard deadlines (`due_firm` / `due_time`) are `overdue()` in the app; a soft date that passes is `lapsed()` and waits in Inbox (`inboxItems`) or the triage (`triOpen`). Agents never move a passed soft date.
   - `tasks.owner`: me (default), agent. `bot(t)` in the app; agent tasks are filtered out of Today/Week and listed in the "Run by agents" view, but still count in Needs attention.
+- **Layout (simplified 9 Nov 2026):** five places: Today (`todayView`: Plan the day in the morning via `planDayView`, one list via `todayList()`, Close the day via `closeView`), Inbox (`inboxView`), Plan (tabs over week / followups / calls / agents / reviews; Life OS pages sit under Review), Projects, Notes. A row carries a star, one status (`statusBit`) and a real deadline; the quick look has Done, Start, When, More.
 - **Keep these working:** the quick look (`peekHtml`, `renderPeek`, `setPeek`), the task editor's field names and ids (`#taskForm`, `#depList`, `#depAdd`, `#stepList`, `#stepNew`, `#actList`, `#delTask`) and its submit handler.
 - **`doRefresh`:** keep the staleness check (`W.n`, `W.seq`) so a sync never overwrites a save in flight.
 - **Library choice:** don't add frameworks or build tools. Keep it one HTML file plus static assets.

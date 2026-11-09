@@ -1,8 +1,17 @@
 # Status
 
-**Last updated:** 9 Nov 2026 (the brief; overdue overhaul) (live on https://task-hub-one-delta.vercel.app/)
+**Last updated:** 9 Nov 2026 (simplify: five places, one list on Today, Inbox, Plan the day, Close the day)
 
 ## Current state
+- **Simplify (9 Nov, from the "Simplify (9 Nov)" page of the TaskHub Redesign canvas):**
+  - **Five places:** Today, Inbox, Plan, Projects, Notes. The sidebar lists only projects that moved this week. Phone tabs: Today, Inbox, Capture, Plan, Notes (the More sheet is gone; Projects and settings sit at the foot of Plan on phone).
+  - **Today shows one moment at a time.** Morning (before 2 PM IST, until planned): **Plan the day**, a draft from the 9 AM lead's stars and today's dates, with candidates (started, someone waiting, due this week, 2-minute, this week), a day-capacity line (tasks done per working day over 4 weeks), "+ Theme for today" and "Carry to today". "Start the day with n" commits it. During the day: one list (hard deadlines, stars, started, the rest, blocked, done crossed off) under a row of chips (Up next, n in Inbox, Brief, 2-minute tasks, day themes, Plan the day, Close the day). Evening: **Close the day** places what's left (tomorrow, later this week, no date, done), takes the check-in and habits, and stars up to 3 for the next working day. "Planned" and "closed" are remembered per day in localStorage (`ambalam.planned`, `ambalam.closed`).
+  - **Inbox:** suggestions, tasks past a soft date, unfiled notes and unfiled calls, decided one at a time (T W N D Y X, S skip, E edit, Undo last). Agents and chats add tasks as before.
+  - **Plan:** tabs Week, Waiting, Calls, Agents, Review. Review also links Needs attention, Life areas, Goals, Habits, Log and Life admin, and lists the empty ones in one line.
+  - **Rows:** star, project, one status (Agent's job, Blocked, Waiting on X, Owed to X, Started or Stalled, hard deadline, Was for) and a real date. No priority pill and no repeat, 2-min, steps or pushed tags; priority only sets the sort order.
+  - **Quick look:** Done, Start (Pause), When (Today, Tomorrow, This week, Next week, Pick a date, No date), More (star, week focus, 2-minute, waiting on, agent's job, Claude, merge, edit, delete). Facts fold into Details; "n other open tasks in <project>" folds into one line.
+  - Gone from Today: the open brief (now behind the Brief chip), the Can't slip block, the check-in, Looking ahead, habits, the High impact block, Knock these out and "Do these take 2 minutes?", the day strip, filters, and the rail (waiting, ideas, keep in touch, from your notes, this week).
+  - Tests updated for the new layout (act, brief, calls, dep, focus, life, owner, quick, repeat, steps, topics, triage, ui); new `simplify.mjs`. Skill: a "How the app shows it" section; re-upload it.
 - **Overdue overhaul (9 Nov):** Vimal had 99 of 189 open tasks overdue, 77 of them from dates guessed in chats, and was adding ~20 tasks a day while closing ~14.
   - **Only real dates:** skill rule (`due` only for a real date, else `week_of` or nothing), new hourly addendum `meeting-agent-9i-dates` (overrides every earlier "give it a due date"), and the 9 AM lead's prompt. Chat and agent tasks still come in as before (Vimal wants that intelligence layer kept).
   - **Soft vs hard:** only hard deadlines are overdue. A soft date that passes is "lapsed": it moves to "Left from earlier" as "Was for <date>", isn't red, and counts in Needs attention only after 2 weeks. Plate query: `3b left from earlier`.

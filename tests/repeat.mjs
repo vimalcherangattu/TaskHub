@@ -38,7 +38,8 @@ check('done elsewhere rolls on sync', mn.length===2&&mn.some(x=>x.status==='done
 let sn=await rows('Standup notes');
 check('no second copy when one is already open', sn.length===2&&sn.filter(x=>x.status!=='done').length===1&&sn.find(x=>x.id==='r4').repeat==null);
 // the ↻ tag on rows and in the quick look
-check('row tag', await p.evaluate(()=>document.querySelector('.task[data-tid="r1"] .meta').textContent.includes('↻ weekly')));
+// 9 Nov: rows carry a star, one status and a deadline; the repeat rule shows in the quick look instead of a row tag
+check('no repeat tag on the row', await p.evaluate(()=>!document.querySelector('.task[data-tid="r1"] .meta').textContent.includes('↻')));
 await p.evaluate(()=>setPeek('r1')); await p.waitForTimeout(200);
 check('quick look says when the next one is', await p.evaluate(()=>document.getElementById('peek').textContent.includes('Every week. Done adds the next one, '+nice(addDays(T(),7)))));
 // done: next copy a week on, steps unticked, priority and notes kept; the finished one hands the rule on

@@ -27,53 +27,50 @@ await p.evaluate(()=>{
   refresh();
 });
 await p.waitForTimeout(700);
-const hi=()=>p.evaluate(()=>{const s=document.querySelector('#view .hi');return s&&{rows:[...s.querySelectorAll('.task')].map(x=>x.dataset.tid),themes:[...s.querySelectorAll('.theme-t')].map(x=>x.textContent),n:[...s.querySelectorAll('.theme-n')].map(x=>x.textContent),carry:s.querySelector('.hi-carry')?.textContent||'',empty:!!s.querySelector('.hi-empty')}});
-console.log('empty block, carry-over offered:', await hi());
-
-// star a task from its quick look; it moves out of the lists below into the block
+// 9 Nov: Today is one list; a star marks today's focus (stars sort first), day themes are chips with "n of m closed",
+// carry-over and "+ Theme" live in Plan the day, and Star / Merge sit under the quick look's More
+const st=()=>p.evaluate(()=>({order:[...document.querySelectorAll('#view .tlist .task')].map(x=>x.dataset.tid),stars:[...document.querySelectorAll('#view .tlist .task')].filter(x=>x.querySelector('.tstar')).map(x=>x.dataset.tid),themes:[...document.querySelectorAll('#view .tchip[data-themeedit]')].map(x=>x.textContent)}));
+await p.evaluate(()=>{S.tmode='list';render()}); await p.waitForTimeout(150);
+console.log('today list:', await st());
 await p.click('#view .task[data-tid="f1"] .title'); await p.waitForTimeout(150);
-await p.click('#peek [data-hi="f1"]'); await p.waitForTimeout(150);
-console.log('starred f1:', await hi(), 'pressed', await p.getAttribute('#peek [data-hi="f1"]','aria-pressed'), 'db', await p.evaluate(()=>DB.tasks.find(x=>x.id==='f1').highlight_day===T()));
-console.log('f1 shown once on Today:', await p.evaluate(()=>document.querySelectorAll('#view .task[data-tid="f1"]').length));
-
-// siblings in the quick look: other Small Fish tasks on other dates
+await p.click('#peek [data-pkmore]'); await p.click('#peek [data-hi="f1"]'); await p.waitForTimeout(150);
+console.log('starred f1:', await st(), 'pressed', await p.getAttribute('#peek [data-hi="f1"]','aria-pressed'), 'db', await p.evaluate(()=>DB.tasks.find(x=>x.id==='f1').highlight_day===T()));
+console.log('f1 shown once on Today, first:', await p.evaluate(()=>document.querySelectorAll('#view .task[data-tid="f1"]').length===1&&document.querySelector('#view .tlist .task').dataset.tid==='f1'));
+// siblings in the quick look: one folded line, other Small Fish tasks on other dates
+await p.click('#peek .pk-sibs summary'); await p.waitForTimeout(100);
 console.log('also open in Small Fish:', await p.evaluate(()=>[...document.querySelectorAll('#peek .sibs li .pk-link')].map(x=>x.dataset.peek)));
-// tick one off while working on f1
 await p.click('#peek [data-donehere="f3"]'); await p.waitForTimeout(200);
 console.log('done here:', await p.evaluate(()=>{const a=S.tasks.find(x=>x.id==='f3'),t=S.tasks.find(x=>x.id==='f1');return{f3:a.status,f3log:a.activity.at(-1).text,f1log:t.activity.at(-1).text}}));
-// merge one in: its steps and notes move over, the earlier deadline and higher priority win, the dependent task now waits on f1
 await p.click('#peek [data-mergein="f2"]'); await p.waitForTimeout(250);
-console.log('merged:', await p.evaluate(()=>{const t=S.tasks.find(x=>x.id==='f1');return{gone:!S.tasks.some(x=>x.id==='f2'),db:DB.tasks.find(x=>x.id==='f2').superseded_by,steps:t.steps.map(x=>x.text+(x.done?'✓':'')),pri:t.priority,due:t.due,notes:t.notes,dep:S.tasks.find(x=>x.id==='f4').blockedBy,peekSteps:document.querySelectorAll('#peek .step').length}}));
+console.log('merged:', await p.evaluate(()=>{const t=S.tasks.find(x=>x.id==='f1');return{gone:!S.tasks.some(x=>x.id==='f2'),db:DB.tasks.find(x=>x.id==='f2').superseded_by,steps:t.steps.map(x=>x.text+(x.done?'✓':'')),pri:t.priority,due:t.due,notes:t.notes,dep:S.tasks.find(x=>x.id==='f4').blockedBy}}));
 await p.screenshot({path:new URL('./out/focus-peek.png', import.meta.url).pathname});
-// undo brings the merged task back
 await p.keyboard.press('Control+z'); await p.waitForTimeout(300);
 console.log('after undo:', await p.evaluate(()=>({back:S.tasks.find(x=>x.id==='f2')?.status,sup:DB.tasks.find(x=>x.id==='f2').superseded_by,dep:S.tasks.find(x=>x.id==='f4').blockedBy,steps:S.tasks.find(x=>x.id==='f1').steps.length})));
-// pick several in the dialog, across projects with search
-await p.click('#peek [data-merge="f1"]'); await p.waitForTimeout(150);
+await p.click('#peek .pk-panel [data-merge="f1"]'); await p.waitForTimeout(150);
 console.log('merge dialog lists:', await p.evaluate(()=>[...document.querySelectorAll('#mergeList .pick-gh')].map(x=>x.textContent+':'+[...document.querySelectorAll('#mergeList input')].length)));
 await p.fill('#mergeQ','zapier'); await p.waitForTimeout(100);
 await p.check('#mergeList input[value="a1"]'); await p.fill('#mergeQ',''); await p.waitForTimeout(100);
 await p.check('#mergeList input[value="f2"]');
-console.log('buttons:', await p.textContent('#mergeGo'), '|', await p.textContent('#mergeDone'));
 await p.click('#mergeDone'); await p.waitForTimeout(250);
 console.log('marked done from dialog:', await p.evaluate(()=>({a1:S.tasks.find(x=>x.id==='a1').status,f2:S.tasks.find(x=>x.id==='f2').status,f1log:S.tasks.find(x=>x.id==='f1').activity.at(-1).text})));
 await p.keyboard.press('Escape'); await p.evaluate(()=>setPeek(null)); await p.waitForTimeout(100);
-
-// a theme: words in the title tick the matching tasks
-await p.click('#view [data-newtheme]'); await p.waitForTimeout(150);
+// Plan the day: yesterday's unfinished star is offered, and a theme ticks the tasks its words match
+await p.evaluate(()=>{S.tmode='plan';S.pd=null;render()}); await p.waitForTimeout(150);
+console.log('carry offered:', await p.evaluate(()=>document.querySelector('#view .hi-carry')?.textContent.includes('Book plumber')));
+await p.click('#view [data-hicarry="day"]'); await p.waitForTimeout(250);
+console.log('carried:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='h1').highlight_day===T()&&S.pd.stars.includes('h1')));
+await p.click('#view [data-newtheme="day"]'); await p.waitForTimeout(150);
 await p.fill('#themeForm input[name="title"]','Close all the automation things'); await p.waitForTimeout(100);
 console.log('pre-ticked:', await p.evaluate(()=>[...document.querySelectorAll('#themeList input:checked')].map(x=>x.value)));
 await p.click('#themeForm button[type="submit"]'); await p.waitForTimeout(250);
-console.log('theme on Today:', await hi(), 'db', await p.evaluate(()=>DB.focus_themes.map(f=>f.title+':'+f.task_ids.join(','))));
-await p.click('#view .hi .task[data-tid="a2"] .chk'); await p.waitForTimeout(150);
-await p.click('#view .hi .task[data-tid="a2"] .chk'); await p.waitForTimeout(150);
-console.log('after closing a2:', (await hi()).n);
-// carry yesterday's unfinished star to today
-await p.click('#view [data-hicarry]'); await p.waitForTimeout(200);
-console.log('carried:', await hi());
+await p.evaluate(()=>{S.tmode='list';render()}); await p.waitForTimeout(150);
+console.log('theme on Today:', await st(), 'db', await p.evaluate(()=>DB.focus_themes.map(f=>f.title+':'+f.task_ids.join(','))));
+await p.click('#view .tlist .task[data-tid="a2"] .chk'); await p.waitForTimeout(150);
+await p.click('#view .tlist .task[data-tid="a2"] .chk'); await p.waitForTimeout(150);
+console.log('after closing a2:', (await st()).themes);
 await p.screenshot({path:new URL('./out/focus-today.png', import.meta.url).pathname});
 // the task sheet has the same switch
-await p.click('#view .task[data-tid="h1"] .title'); await p.waitForTimeout(100); await p.click('#peek [data-edit="h1"]'); await p.waitForTimeout(150);
+await p.click('#view .task[data-tid="h1"] .title'); await p.waitForTimeout(100); await p.click('#peek [data-pkmore]'); await p.click('#peek [data-edit="h1"]'); await p.waitForTimeout(150);
 console.log('sheet pill pressed:', await p.getAttribute('#taskForm [data-ck="onHi"]','aria-pressed'));
 await p.click('#taskForm [data-ck="onHi"]'); await p.click('#taskForm button[type="submit"]'); await p.waitForTimeout(200);
 console.log('unstarred via sheet:', await p.evaluate(()=>DB.tasks.find(x=>x.id==='h1').highlight_day));
@@ -82,7 +79,7 @@ await p.evaluate(()=>{const m=week()[0],a=d=>{const x=parse(m);x.setDate(x.getDa
   S.focus_themes.push({id:'w-old',day:a(-7),span:'week',title:'Last week: close Filow launch',taskIds:['h1']},{id:'w-next',day:a(7),span:'week',title:'Next week: ICP calls',taskIds:[]});
   S.view='week';setPeek(null);render()}); await p.waitForTimeout(150);
 await p.evaluate(()=>setPeek('f4')); await p.waitForTimeout(100);
-await p.click('#peek [data-hiw="f4"]'); await p.waitForTimeout(150);
+await p.click('#peek [data-pkmore]'); await p.click('#peek [data-hiw="f4"]'); await p.waitForTimeout(150);
 console.log('week star:', await p.evaluate(()=>({db:DB.tasks.find(x=>x.id==='f4').highlight_week===week()[0],fact:[...document.querySelectorAll('#peek .pk-facts span')].map(x=>x.textContent).includes('★ Week focus')})));
 await p.evaluate(()=>setPeek(null)); await p.waitForTimeout(100);
 await p.click('#view [data-newtheme="week"]'); await p.waitForTimeout(150);

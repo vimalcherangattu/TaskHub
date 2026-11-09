@@ -38,11 +38,17 @@ const p=await b.newPage({viewport:{width:1440,height:1100}}); p.on('pageerror',e
 await setup(p);
 const secOf=h=>p.evaluate(h=>{const s=[...document.querySelectorAll('#view section')].find(x=>x.querySelector('h2')?.textContent.trim().startsWith(h));return s?[...s.querySelectorAll('.task')].map(x=>x.dataset.tid):[]},h);
 console.log('only hard deadlines are overdue:', await p.evaluate(()=>{const g=id=>S.tasks.find(x=>x.id===id);return overdue(g('h1'))&&!overdue(g('s1'))&&lapsed(g('s1'))&&!lapsed(g('h1'))}));
-const left=await secOf('Left from earlier'),todo=await secOf('To do today');
-console.log('soft-late tasks in Left from earlier, not To do today:', JSON.stringify(left), left.includes('s1')&&left.includes('s2')&&!todo.includes('s1')&&todo.includes('td'));
-console.log('row says "Was for", not Overdue:', await p.evaluate(()=>{const r=document.querySelector('.task[data-tid="s1"]');return r.textContent.includes('Was for')&&!r.textContent.includes('Overdue')&&r.querySelector('.duec').classList.contains('was')}));
+// 9 Nov: soft dates that passed wait in Inbox ("Past its date"), not on Today
+await p.evaluate(()=>{S.showBrief=true;S.tmode='list';render()}); await p.waitForTimeout(100);
+const lateIds=()=>p.evaluate(()=>inboxItems().filter(x=>x.k==='late').map(x=>x.id));
+const left=await lateIds(),todo=await p.evaluate(()=>[...document.querySelectorAll('#view .tlist .task')].map(x=>x.dataset.tid));
+console.log('soft-late tasks in Inbox, not on Today:', JSON.stringify(left), left.includes('s1')&&left.includes('s2')&&!todo.includes('s1')&&todo.includes('td'));
+await p.evaluate(()=>{S.view='inbox';S.ik='late';render()}); await p.waitForTimeout(100);
+console.log('Inbox card says "Was for", not Overdue:', await p.evaluate(()=>{const c=document.querySelector('.in-card');return c.textContent.includes('Past its date')&&c.textContent.includes('Was for')&&!c.textContent.includes('Overdue')}));
+await p.evaluate(()=>{S.view='today';S.ik=null;render()}); await p.waitForTimeout(100);
 console.log('paused project stays off Today:', await p.evaluate(()=>!document.querySelector('#view .task[data-tid="fy1"]')&&!document.querySelector('#view .task[data-tid="fy2"]')&&!onToday(S.tasks.find(x=>x.id==='fy2'))));
-console.log('sidebar marks it paused:', await p.evaluate(()=>document.querySelector('aside [data-proj="fy"]')?.textContent.includes('paused')));
+// 9 Nov: the sidebar lists only projects that moved this week
+console.log('sidebar marks it paused:', await p.evaluate(()=>{S.tasks.find(x=>x.id==='fy1').updatedAt=new Date().toISOString();render();return document.querySelector('aside [data-proj="fy"]')?.textContent.includes('paused')}));
 console.log('needs attention: 2+ weeks past, once:', await p.evaluate(()=>attentionLine().includes('past its date for 2+ weeks')));
 console.log('brief offers the triage:', await p.evaluate(()=>!!document.querySelector('.brief [data-triage="late"]')&&document.querySelector('.brief').textContent.includes('3 tasks past their dates')||document.querySelector('.brief').textContent.includes('Three tasks past their dates')));
 // triage
@@ -56,7 +62,7 @@ await p.click('#triBody [data-tri="none"]'); await p.waitForTimeout(250);
 console.log('No date on a hard deadline asks first, then clears it:', await p.evaluate(()=>{const t=DB.tasks.find(x=>x.id==='h1');return t.due===null&&t.due_firm===null}));
 console.log('end screen sums it up:', await p.evaluate(()=>document.getElementById('triH').textContent.startsWith('Sorted three')&&document.getElementById('triBody').textContent.includes('Overdue zero')));
 await p.click('#triBody [data-close]'); await p.waitForTimeout(200);
-console.log('Left from earlier is empty now:', JSON.stringify(await secOf('Left from earlier')));
+console.log('Inbox has nothing past its date now:', JSON.stringify(await lateIds()));
 // week capacity: 8 done in the last 4 weeks → usually 2 a week
 await p.evaluate(()=>{S.view='week';render()}); await p.waitForTimeout(200);
 const cl=await p.evaluate(()=>document.querySelector('.cap-line')?.textContent||'');
@@ -81,7 +87,7 @@ console.log('Friday: overdue zero line with Triage:', await p.evaluate(()=>{cons
 await p.screenshot({path:new URL('out/triage.png',import.meta.url).pathname});
 // phone
 const m=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:2}); m.on('pageerror',e=>errs.push(e.message)); m.on('dialog',d=>d.accept());
-await setup(m);
+await setup(m); await m.evaluate(()=>{S.showBrief=true;S.tmode='list';render()});
 await m.click('#view [data-triage="late"]'); await m.waitForTimeout(200);
 console.log('phone: triage buttons 44px, no sideways scroll:', await m.evaluate(()=>[...document.querySelectorAll('#triBody .tri-acts .btn')].every(x=>x.getBoundingClientRect().height>=44)&&document.getElementById('triBody').scrollWidth<=document.getElementById('triBody').clientWidth+1));
 await m.screenshot({path:new URL('out/triage-phone.png',import.meta.url).pathname});
