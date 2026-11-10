@@ -20,13 +20,15 @@ async function setup(p){
      k('w2','Week med due later',{due:week()[6]}),
      k('w3','Week high',{week_of:wk,priority:'high'}),
      k('w4','Week low two',{week_of:wk,priority:'low'}),
+     k('sg1','Suggested, past its date',{project_id:'fy',status:'suggested',due:d(-8),due_firm:false}),
      ...done],
     notes:[],call_series:[],agenda_items:[],changes:[],day_briefs:[]};
     const q=t=>{const o={then:(r,j)=>Promise.resolve({data:JSON.parse(JSON.stringify(DB[t]||[])),error:null}).then(r,j),order:()=>o,limit:()=>o,gte:()=>o};return o};
     sb.rpc=()=>Promise.resolve({data:null,error:null});
     sb.from=t=>{const tb=DB[t]||(DB[t]=[]);return{select:()=>q(t),
-      update:row=>({eq:(c,id)=>{const r=tb.find(x=>x.id===id);if(r)Object.assign(r,row);return Promise.resolve({error:null})}}),
-      upsert:row=>{const r=tb.find(x=>x.id===row.id);if(r)Object.assign(r,row);else tb.push({...row});return Promise.resolve({error:null})},
+      // like the real table: tasks.due_firm is NOT NULL (a null clears nothing; it fails the save)
+      update:row=>({eq:(c,id)=>{if(t==='tasks'&&'due_firm' in row&&row.due_firm===null)return Promise.resolve({error:{message:'null value in column "due_firm" violates not-null constraint',code:'23502'}});const r=tb.find(x=>x.id===id);if(r)Object.assign(r,row);return Promise.resolve({error:null})}}),
+      upsert:row=>{if(t==='tasks'&&row.due_firm===null)return Promise.resolve({error:{message:'not-null',code:'23502'}});const r=tb.find(x=>x.id===row.id);if(r)Object.assign(r,row);else tb.push({...row});return Promise.resolve({error:null})},
       delete:()=>({eq:(c,id)=>{const i=tb.findIndex(x=>x.id===id);if(i>=0)tb.splice(i,1);return Promise.resolve({error:null})}}),
       insert:row=>({select:()=>({single:()=>{const r={id:'new'+tb.length,...row};tb.push(r);return Promise.resolve({data:{...r},error:null})}})})}};
     S.forceEvening=false;refresh();
@@ -45,6 +47,10 @@ const left=await lateIds(),todo=await p.evaluate(()=>[...document.querySelectorA
 console.log('soft-late tasks in Inbox, not on Today:', JSON.stringify(left), left.includes('s1')&&left.includes('s2')&&!todo.includes('s1')&&todo.includes('td'));
 await p.evaluate(()=>{S.view='inbox';S.ik='late';render()}); await p.waitForTimeout(100);
 console.log('Inbox card says "Was for", not Overdue:', await p.evaluate(()=>{const c=document.querySelector('.in-card');return c.textContent.includes('Past its date')&&c.textContent.includes('Was for')&&!c.textContent.includes('Overdue')}));
+// 10 Nov: a suggestion past its soft date, sent to Next week from Inbox, saves (due_firm false, never null) and leaves the pile
+await p.evaluate(()=>{S.ik='sug';render()}); await p.waitForTimeout(100);
+await p.evaluate(()=>inAct('next')); await p.waitForTimeout(300);
+console.log('Inbox Next week on a late suggestion saves:', await p.evaluate(()=>{const t=DB.tasks.find(x=>x.id==='sg1');return t.status==='todo'&&t.week_of===addDays(week()[0],7)&&t.due===null&&t.due_firm===false&&!inboxItems().some(x=>x.id==='sg1')&&!document.querySelector('.toast.err, .toast')?.textContent.includes("didn't save")}));
 await p.evaluate(()=>{S.view='today';S.ik=null;render()}); await p.waitForTimeout(100);
 console.log('paused project stays off Today:', await p.evaluate(()=>!document.querySelector('#view .task[data-tid="fy1"]')&&!document.querySelector('#view .task[data-tid="fy2"]')&&!onToday(S.tasks.find(x=>x.id==='fy2'))));
 // 9 Nov: the sidebar lists only projects that moved this week
@@ -59,7 +65,7 @@ console.log('Today: on today, soft date cleared, logged:', await p.evaluate(()=>
 await p.keyboard.press('w'); await p.waitForTimeout(250);
 console.log('key W: this week, date cleared:', await p.evaluate(()=>{const t=DB.tasks.find(x=>x.id==='s1');return t.week_of===week()[0]&&t.due===null&&t.today_date===null}));
 await p.click('#triBody [data-tri="none"]'); await p.waitForTimeout(250);
-console.log('No date on a hard deadline asks first, then clears it:', await p.evaluate(()=>{const t=DB.tasks.find(x=>x.id==='h1');return t.due===null&&t.due_firm===null}));
+console.log('No date on a hard deadline asks first, then clears it:', await p.evaluate(()=>{const t=DB.tasks.find(x=>x.id==='h1');return t.due===null&&t.due_firm===false}));
 console.log('end screen sums it up:', await p.evaluate(()=>document.getElementById('triH').textContent.startsWith('Sorted three')&&document.getElementById('triBody').textContent.includes('Overdue zero')));
 await p.click('#triBody [data-close]'); await p.waitForTimeout(200);
 console.log('Inbox has nothing past its date now:', JSON.stringify(await lateIds()));

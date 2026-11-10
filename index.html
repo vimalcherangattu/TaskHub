@@ -1480,9 +1480,9 @@ async function inAct(a){const c=inboxPool()[0];if(!c)return;
   if(a==="skip"){S.inSkip=[...(S.inSkip||[]).filter(x=>x!==c.id),c.id];render();return}
   if(a==="edit"){if(c.t)openTask(c.t);else if(c.n)openNote(c.n);return}
   const t=c.t;if(!t)return;
-  const soft=!firm(t),past=soft&&t.due&&t.due<T()?{due:null,dueFirm:null}:{},st=sugg(t)?{status:"todo"}:{},wk=week()[0];
+  const soft=!firm(t),past=soft&&t.due&&t.due<T()?{due:null,dueFirm:false}:{},st=sugg(t)?{status:"todo"}:{},wk=week()[0];
   if(a==="today"&&sugg(t)&&t.waitingOn){st.status="waiting";Object.assign(st,{waitingSince:now(),followUps:0,followUpOn:nextWork(T(),1)})}
-  const P={today:{...st,todayDate:T(),...past},week:{...st,weekOf:wk,todayDate:null,...past},next:{...st,weekOf:addDays(wk,7),todayDate:null,...past},none:{...st,todayDate:null,weekOf:null,...(soft?{due:null,dueFirm:null,dueTime:null}:{})},done:{status:"done",doneAt:now()}}[a];
+  const P={today:{...st,todayDate:T(),...past},week:{...st,weekOf:wk,todayDate:null,...past},next:{...st,weekOf:addDays(wk,7),todayDate:null,...past},none:{...st,todayDate:null,weekOf:null,...(soft?{due:null,dueFirm:false,dueTime:null}:{})},done:{status:"done",doneAt:now()}}[a];
   S.inLog=[...(S.inLog||[]),{title:t.title,to:INL[a]}].slice(-3);S.inDone=(S.inDone||0)+1;S.inSkip=(S.inSkip||[]).filter(x=>x!==t.id);
   if(a==="drop"){try{await S.db.doc("tasks/"+t.id).delete()}catch{toast("Couldn't drop that.")}return}
   await upd(t.id,{...P,activity:actLog(t,`Inbox: ${INL[a].toLowerCase()}${lapsed(t)?` (was for ${nice(t.due)})`:""}`)})}
@@ -1515,7 +1515,7 @@ async function pdGo(){const t=T(),P=S.pd;if(!P)return;const live=id=>S.tasks.fin
     if(x.todayDate!==t&&x.due!==t)patch.todayDate=t;if(star!==hiTask(x))patch.highlightDay=star?t:null;n++;
     if(Object.keys(patch).length)await upd(id,patch)}
   for(const id of P.orig.filter(id=>!P.ids.includes(id))){const x=live(id);if(!x)continue;const soft=!firm(x);
-    await upd(id,{todayDate:null,highlightDay:null,...(soft&&x.due===t?{due:null,dueFirm:null,weekOf:x.weekOf||week()[0]}:{}),activity:actLog(x,"Plan the day: taken off today")})}
+    await upd(id,{todayDate:null,highlightDay:null,...(soft&&x.due===t?{due:null,dueFirm:false,weekOf:x.weekOf||week()[0]}:{}),activity:actLog(x,"Plan the day: taken off today")})}
   flagSet(PLANK);S.tmode="list";render();document.querySelector("main").scrollTo(0,0);toast(`Day planned: ${word(n)} task${n===1?"":"s"}`)}
 const STAR=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>`;
 const tOrd=x=>x.status==="done"?9:slip(x)?0:hiTask(x)?1:doing(x)?2:blocked(x)?5:waiting(x)?4:3;
@@ -1559,9 +1559,9 @@ function closeView(){const t=T(),d=parse(t),left=todayList().filter(x=>!waiting(
   if(habitsOn().some(x=>hDue(x,t)))h+=step(++i,"Habits",habitRow());
   return h+`<div class="cd-go"><button class="btn primary" data-closeday>Close the day</button></div>`}
 async function closeDay(){const t=T(),nx=tmrw(),cd=S.cd||{},wk=week();let n=0;
-  for(const[id,v]of Object.entries(cd)){const x=S.tasks.find(y=>y.id===id);if(!x||!open(x))continue;const soft=!firm(x),clr=soft&&x.due&&x.due<=t?{due:null,dueFirm:null}:{};n++;
+  for(const[id,v]of Object.entries(cd)){const x=S.tasks.find(y=>y.id===id);if(!x||!open(x))continue;const soft=!firm(x),clr=soft&&x.due&&x.due<=t?{due:null,dueFirm:false}:{};n++;
     if(v==="done"){await upd(id,{status:"done",doneAt:now()});continue}
-    const patch=v==="tomorrow"?{todayDate:nx,...clr}:v==="later"?{todayDate:null,weekOf:wk[6]>=addDays(nx,1)?wk[0]:addDays(wk[0],7),...clr}:{todayDate:null,weekOf:null,...(soft?{due:null,dueFirm:null,dueTime:null}:{})};
+    const patch=v==="tomorrow"?{todayDate:nx,...clr}:v==="later"?{todayDate:null,weekOf:wk[6]>=addDays(nx,1)?wk[0]:addDays(wk[0],7),...clr}:{todayDate:null,weekOf:null,...(soft?{due:null,dueFirm:false,dueTime:null}:{})};
     await upd(id,{...patch,activity:actLog(x,`Close the day: ${v==="tomorrow"?"tomorrow":v==="later"?"later this week":"no date"}`)})}
   const l=logOf(t),F=S.cdF||{},ci=S.ci||{},data={};
   if(ci.energy)data.energy=ci.energy;if(ci.mood)data.mood=ci.mood;if(F.line!=null)data.line=F.line.trim()||null;if(F.win!=null)data.win=F.win.trim()||null;
@@ -1577,8 +1577,8 @@ function reviewMore(){const at=attentionCount(),gs=liveGoals().length,hs=habitsO
 const settingsRow=()=>`<div class="phone-only set-row"><button class="btn" data-go="projects">All projects</button><button class="btn" data-theme-toggle>${document.documentElement.dataset.theme==="dark"?"Light mode":"Dark mode"}</button><button class="btn" data-export>Export everything</button><button class="btn" data-signout>Sign out</button></div>`;
 /* the quick look's "When" */
 const WL={today:"today",tomorrow:"tomorrow",week:"this week",next:"next week",date:"",none:"no date"};
-async function whenSet(t,k,dt){const wk=week()[0],soft=!firm(t),past=d=>soft&&t.due&&t.due<=d?{due:null,dueFirm:null}:{};
-  const P=k==="today"?{todayDate:T(),...(soft&&t.due&&t.due<T()?{due:null,dueFirm:null}:{})}:k==="tomorrow"?{todayDate:addDays(T(),1),...past(T())}:k==="week"?{todayDate:null,weekOf:wk,...past(T())}:k==="next"?{todayDate:null,weekOf:addDays(wk,7),...past(addDays(wk,6))}:k==="date"?{todayDate:dt,weekOf:null,...past(T())}:{todayDate:null,weekOf:null,highlightDay:null,...(soft?{due:null,dueFirm:null,dueTime:null}:{})};
+async function whenSet(t,k,dt){const wk=week()[0],soft=!firm(t),past=d=>soft&&t.due&&t.due<=d?{due:null,dueFirm:false}:{};
+  const P=k==="today"?{todayDate:T(),...(soft&&t.due&&t.due<T()?{due:null,dueFirm:false}:{})}:k==="tomorrow"?{todayDate:addDays(T(),1),...past(T())}:k==="week"?{todayDate:null,weekOf:wk,...past(T())}:k==="next"?{todayDate:null,weekOf:addDays(wk,7),...past(addDays(wk,6))}:k==="date"?{todayDate:dt,weekOf:null,...past(T())}:{todayDate:null,weekOf:null,highlightDay:null,...(soft?{due:null,dueFirm:false,dueTime:null}:{})};
   if(sugg(t))P.status="todo";S.pkPanel=null;
   const ok=await upd(t.id,{...P,activity:actLog(t,`Planned for ${k==="date"?nice(dt):WL[k]}`)});if(ok)toast(k==="none"?"No date. It's in its project until you plan it.":`Planned for ${k==="date"?nice(dt):WL[k]}`)}
 function renderSide(){
@@ -1867,9 +1867,9 @@ function triDraw(){const el=document.getElementById("triBody"),t=TR.i<TR.ids.len
 async function triAct(a){const id=TR.ids[TR.i];if(!id)return;const t=S.tasks.find(x=>x.id===id);TR.i++;
   if(!t||a==="skip"){triDraw();return}
   // a soft date that passed (or that the week can't hold) goes; a hard deadline keeps its date unless you say so
-  const soft=!firm(t),nd=soft?{due:null,dueFirm:null}:{};
+  const soft=!firm(t),nd=soft?{due:null,dueFirm:false}:{};
   if(a==="none"&&!soft&&!confirm(`“${t.title}” is a hard deadline. Remove its date?`)){TR.i--;return}
-  const patch=a==="today"?{todayDate:T(),...nd}:a==="week"?{weekOf:week()[0],todayDate:null,...nd}:a==="next"?{weekOf:addDays(week()[0],7),todayDate:null,...nd,...(TR.mode==="week"?{due:soft?null:t.due}:{})}:a==="none"?{due:null,dueFirm:null,dueTime:null,weekOf:null,todayDate:null}:null;
+  const patch=a==="today"?{todayDate:T(),...nd}:a==="week"?{weekOf:week()[0],todayDate:null,...nd}:a==="next"?{weekOf:addDays(week()[0],7),todayDate:null,...nd,...(TR.mode==="week"?{due:soft?null:t.due}:{})}:a==="none"?{due:null,dueFirm:false,dueTime:null,weekOf:null,todayDate:null}:null;
   TR.n[a]=(TR.n[a]||0)+1;triDraw();
   if(a==="drop"){try{await S.db.doc("tasks/"+id).delete()}catch{toast("Couldn't drop that task.")}}
   else await upd(id,{...patch,activity:actLog(t,`Triage: ${TRL[a].toLowerCase()}${t.due&&soft&&a!=="today"?` (was for ${nice(t.due)})`:""}`)});
