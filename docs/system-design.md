@@ -15,7 +15,7 @@ app  ──realtime──▶ all of the above, live
 ```
 
 ## Why no table per project
-Projects and sub-projects share the same tables, keyed by `project_id`, with `projects.parent_id` giving the hierarchy. This keeps dependencies (`blocked_by`), search (`brain_search`) and cross-project views working. Isolation comes from **segments**: a call touching five sub-projects is stored once and summarised five times, once per sub-project.
+Projects and sub-projects share the same tables, keyed by `project_id`, with `projects.parent_id` giving the hierarchy, any number of levels deep (13 Nov 2026; `project_tree()` / `project_path()` in SQL, `chain()` / `desc()` / `fam()` in the app). This keeps dependencies (`blocked_by`), search (`brain_search`) and cross-project views working. Isolation comes from **segments**: a call touching five sub-projects is stored once and summarised five times, once per sub-project.
 
 ## Routing
 1. `projects.scope` describes what belongs in each project and what doesn't. This is the main signal.

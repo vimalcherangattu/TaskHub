@@ -70,15 +70,15 @@ The app has five places: **Today, Inbox, Plan, Projects, Notes**. Older names in
 
 `projects(id, name, area, color, order, parent_id, scope)`, where `scope` describes what belongs in the project and what doesn't. Keep it current when a project's remit changes; routing reads it.
 
-- Always file tasks and notes under an existing project id. Prefer the most specific sub-project: Zenara work goes in `zenara-content`, `zenara-launches`, `zenara-ops`, `zenara-positioning` or `zenara-website` when one fits, otherwise `zenara`. Small Fish work goes in `sf-domain`, `sf-gtm`, `sf-product` or `sf-website`, otherwise `account-finder`.
+- Always file tasks and notes under an existing project id. Prefer the most specific sub-project: Zenara work goes in `zenara-content`, `zenara-launches`, `zenara-ops`, `zenara-positioning` or `zenara-website` when one fits, otherwise `zenara`. Small Fish work goes in `sf-domain`, `sf-gtm`, `sf-product` or `sf-website`, otherwise `account-finder`. Side businesses (Tharavad, `group-hq`): file into the deepest branch that fits (e.g. `kitchen-table-numbers`), and use `group-hq` itself only for group-level work (Karanavar, scout, budgets, weekly board).
 - If nothing fits, use `project_id = null` (shown as Unsorted) and ask whether to create a project.
 - **Creating a project (only after he says yes):**
   - `id` is a lowercase-hyphen slug; prefix sub-projects with the parent's id style (e.g. `zenara-events`).
   - `area` must be exactly `Career`, `Products` or `Life`. Any other value hides the project in the app.
-  - `parent_id` must be a top-level project (one with no parent). The app shows only one level of nesting.
+  - `parent_id` can be any project: nesting goes as deep as needed (13 Nov 2026), e.g. Tharavad (`group-hq`) › Faceless YouTube › Kitchen Table Numbers, and Tharavad › Small Fish (`account-finder`) › GTM & research. `project_path(id)` gives the full path, `project_tree(id)` a project plus everything under it; `project_context`, `brain_search`, `whats_new` and call prep cover the whole branch.
   - `color` comes from `#2F6DB5 #C4412F #3E8A57 #E0A21A #7A4FB0 #1F8A8A #D0662A #5E6E68 #B0407A`; `order` is 99.
 - Never delete projects. Deleting one moves its tasks and notes to Unsorted.
-- **Paused projects** (`projects.paused_at` set; Fyule since 9 Nov 2026): tasks keep their dates, but the app treats nothing in them as due or overdue and keeps them off Today and This week. File into them as usual, but don't set dates, stars or `today_date` on their tasks. "Pause X" / "resume X": set or clear `paused_at` (top-level projects; sub-projects follow their parent).
+- **Paused projects** (`projects.paused_at` set; Fyule since 9 Nov 2026): tasks keep their dates, but the app treats nothing in them as due or overdue and keeps them off Today and This week. File into them as usual, but don't set dates, stars or `today_date` on their tasks. "Pause X" / "resume X": set or clear `paused_at` (any level; everything under a paused project is paused too).
 
 ## Tasks: fields and what the app expects
 

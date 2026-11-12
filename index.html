@@ -73,7 +73,7 @@ main{overflow-y:auto;padding:40px clamp(16px,4vw,56px) 120px;scroll-behavior:smo
 .group-h{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:16px 12px 6px}
 .dot{width:10px;height:10px;border-radius:4px;flex:none}
 .nav button.ws{font-weight:600;color:var(--ink)}
-.nav button.sub{min-height:36px;padding:0 12px 0 34px;font-size:14px;color:var(--muted)}
+.nav button.sub{min-height:36px;padding:0 12px 0 calc(34px + (var(--lv,1) - 1) * 16px);font-size:14px;color:var(--muted)}
 .nav button.sub[aria-current="true"]{color:var(--ink)}
 .crumb{border:0;background:none;padding:0;color:var(--accent);font-weight:500}
 .crumb:hover{text-decoration:underline;text-underline-offset:3px}
@@ -1310,7 +1310,7 @@ const leftTxt=ms=>{const m=Math.max(1,Math.round(ms/6e4));return m<60?`${m} min`
 const slip=t=>firm(t)&&t.due<=T();
 /* paused projects (projects.paused_at): their tasks keep their dates, but nothing in them is due, overdue or on Today / This week */
 const PZ={k:null,s:new Set()};
-const pausedIds=()=>{if(PZ.k!==S.projects){PZ.k=S.projects;PZ.s=new Set(S.projects.filter(p=>p.pausedAt||(p.parentId&&S.projects.find(x=>x.id===p.parentId)?.pausedAt)).map(p=>p.id))}return PZ.s};
+const pausedIds=()=>{if(PZ.k!==S.projects){PZ.k=S.projects;PZ.s=new Set(S.projects.filter(p=>chain(p).some(x=>x.pausedAt)).map(p=>p.id))}return PZ.s};
 const parked=t=>!!t.projectId&&pausedIds().has(t.projectId);
 /* soft vs hard dates: only a hard deadline (due_firm / due_time) can be "overdue". A soft date that passes is "lapsed":
    it moves to "Left from earlier" and waits for a decision (the triage), instead of piling up as red */
@@ -1373,12 +1373,16 @@ const stale=t=>open(t)&&!parked(t)&&t.status!=="waiting"&&!doing(t)&&t.updatedAt
 const sortT=a=>a.slice().sort((x,y)=>(PR[x.priority||"med"]-PR[y.priority||"med"])||((x.due||"9")<(y.due||"9")?-1:(x.due||"9")>(y.due||"9")?1:0)||String(x.createdAt||"").localeCompare(String(y.createdAt||"")));
 const proj=id=>S.projects.find(p=>p.id===id);
 const ordSort=(x,y)=>(x.order??99)-(y.order??99)||x.name.localeCompare(y.name);
-const parentOf=p=>p&&p.parentId?proj(p.parentId):null;
-const kidsOf=id=>S.projects.filter(p=>p.parentId===id&&!p.archivedAt).sort(ordSort);
-const isWs=p=>!!p&&S.projects.some(x=>x.parentId===p.id);
+const parentOf=p=>p&&p.parentId&&p.parentId!==p.id?proj(p.parentId)||null:null;
+const kidsOf=id=>S.projects.filter(p=>p.parentId===id&&p.id!==id&&!p.archivedAt).sort(ordSort);
+const isWs=p=>!!p&&S.projects.some(x=>x.parentId===p.id&&x.id!==p.id);
 const tops=a=>S.projects.filter(p=>(p.area||"Life")===a&&!parentOf(p)&&!p.archivedAt).sort(ordSort);
-const fam=id=>[id,...kidsOf(id).map(k=>k.id)];
-const fullName=p=>{if(!p)return"Unsorted";const pa=parentOf(p);return pa?`${pa.name} › ${p.name}`:p.name};
+// nesting goes any number of levels deep (Tharavad › Faceless YouTube › Kitchen Table Numbers); every walk is guarded against a loop in the data
+const chain=p=>{const out=[],seen=new Set();for(let x=p;x&&!seen.has(x.id);x=parentOf(x)){seen.add(x.id);out.unshift(x)}return out}; // root … p
+const desc=id=>{const out=[],seen=new Set([id]),q=[id];while(q.length){for(const k of kidsOf(q.shift()))if(!seen.has(k.id)){seen.add(k.id);out.push(k);q.push(k.id)}}return out};
+const fam=id=>[id,...desc(id).map(k=>k.id)];
+const depthOf=p=>Math.max(0,chain(p).length-1);
+const fullName=p=>p?chain(p).map(x=>x.name).join(" › "):"Unsorted";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 /* high impact: single tasks (tasks.highlight_day, or highlight_week for the week's focus) and themes that cover several tasks (focus_themes; span day or week) */
 const hiTask=t=>t.highlightDay===T();
@@ -1593,8 +1597,10 @@ function renderSide(){
   const ps=[...mv.keys()].map(proj).filter(Boolean).sort((a,b)=>mv.get(b.id)-mv.get(a.id)).slice(0,8);
   if(S.view==="project"&&proj(S.pid)&&!ps.includes(topOf(proj(S.pid))))ps.push(topOf(proj(S.pid)));
   if(ps.length){h+=`<div class="group-h">Moved this week</div><div class="nav">`;
-    const btn=(p,cls)=>{const pz=pausedIds().has(p.id);return `<button class="${cls}${pz?" paused":""}" data-proj="${esc(p.id)}" aria-current="${S.view==="project"&&S.pid===p.id}"><span class="dot" style="background:${esc(p.color||COLORS[7])}"></span>${esc(p.name)}<span class="count">${pz?"paused":""}</span></button>`};
-    for(const p of ps){h+=btn(p,"");const here=S.view==="project"&&(S.pid===p.id||proj(S.pid)?.parentId===p.id);if(here)for(const k of kidsOf(p.id))h+=btn(k,"sub")}
+    const btn=(p,cls,d=0)=>{const pz=pausedIds().has(p.id);return `<button class="${cls}${pz?" paused":""}"${d>1?` style="--lv:${d}"`:""} data-proj="${esc(p.id)}" aria-current="${S.view==="project"&&S.pid===p.id}"><span class="dot" style="background:${esc(p.color||COLORS[7])}"></span>${esc(p.name)}<span class="count">${pz?"paused":""}</span></button>`};
+    const path=S.view==="project"&&proj(S.pid)?chain(proj(S.pid)).map(x=>x.id):[];
+    const tree=(p,d)=>{let o=btn(p,d?"sub":"",d);if(path.includes(p.id))for(const k of kidsOf(p.id))o+=tree(k,d+1);return o};
+    for(const p of ps)h+=tree(p,0);
     h+=`</div>`}
   const inbox=S.tasks.filter(t=>open(t)&&!proj(t.projectId)).length;
   if(inbox)h+=`<div class="nav"><button data-proj="__inbox" aria-current="${S.pid==="__inbox"}"><span class="dot" style="background:var(--faint)"></span>Unsorted<span class="count">${inbox}</span></button></div>`;
@@ -1876,7 +1882,7 @@ async function triAct(a){const id=TR.ids[TR.i];if(!id)return;const t=S.tasks.fin
   // the last one: redraw the summary once its save has landed, so "overdue zero" is right
   if(TR.i>=TR.ids.length&&document.getElementById("triDlg").open)triDraw()}
 document.getElementById("triDlg")?.addEventListener("keydown",e=>{if(e.target.matches("input,textarea"))return;const m={t:"today",w:"week",n:"next",d:"none",x:"drop",s:"skip"}[e.key.toLowerCase()];if(m&&document.querySelector(`#triBody [data-tri="${m}"]`)){e.preventDefault();triAct(m)}});
-const pausedNote=p=>p&&(p.pausedAt||parentOf(p)?.pausedAt)?`<div class="paused-note">Paused${p.pausedAt?` since ${esc(nice(iso(new Date(p.pausedAt))))}`:` (its workspace is)`}. Its tasks keep their dates but nothing here is due or overdue, and none of it shows on Today or This week.</div>`:"";
+const pausedNote=p=>p&&pausedIds().has(p.id)?`<div class="paused-note">Paused${p.pausedAt?` since ${esc(nice(iso(new Date(p.pausedAt))))}`:` (${esc(chain(p).find(x=>x.pausedAt)?.name||"its workspace")} is)`}. Its tasks keep their dates but nothing here is due or overdue, and none of it shows on Today or This week.</div>`:"";
 /* ---------- the brief (after Dia's Morning Brief): one page a day at the top of Today.
    The app builds most of it from local rows; the 9 AM lead adds a day_briefs row (headline + items from email, calendar and Linear).
    Monday adds last week and this week, Friday a wrap of the week. Every item links to its source and takes Done / Not now / Not useful. ---------- */
@@ -2638,11 +2644,11 @@ function renderView(){
   }
   else if(S.view==="project"&&isWs(proj(S.pid))){
     const p=proj(S.pid);const kids=kidsOf(p.id);const ids=fam(p.id);const all=S.tasks.filter(t=>ids.includes(t.projectId));
-    h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">Workspace · ${esc(p.area||"")} · ${kids.length} projects</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-newsub="${esc(p.id)}">Add project</button><button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
+    h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">${crumbs(p)}Workspace · ${esc(topOf(p).area||"")} · ${kids.length} projects${ids.length-1>kids.length?` (${ids.length-1} with theirs)`:""}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-newsub="${esc(p.id)}">Add project</button><button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
     h+=pausedNote(p)+briefBlock(p.id)+projPeople(ids);
     h+=quick(`Add a task to ${esc(p.name)}`);
     h+=sec("Overdue",sortT(all.filter(overdue)),{cls:"danger"});
-    for(const k of kids)h+=sec(`<span class="dot" style="display:inline-block;background:${esc(k.color)};margin-right:8px"></span>${esc(k.name)}`,sortT(S.tasks.filter(t=>t.projectId===k.id&&open(t)&&!overdue(t))),{empty:"No open tasks.",action:`<button class="act" data-proj="${esc(k.id)}">Open</button>`});
+    for(const k of kids){const kf=fam(k.id),n=kf.length-1;h+=sec(`<span class="dot" style="display:inline-block;background:${esc(k.color)};margin-right:8px"></span>${esc(k.name)}${n?` <span class="n" style="font-weight:500">· ${n} project${n===1?"":"s"}</span>`:""}`,sortT(S.tasks.filter(t=>kf.includes(t.projectId)&&open(t)&&!overdue(t))),{empty:"No open tasks.",action:`<button class="act" data-proj="${esc(k.id)}">Open</button>`})}
     h+=sec("General",sortT(S.tasks.filter(t=>t.projectId===p.id&&open(t)&&!overdue(t))));
     h+=sec("Suggested by Claude",sortT(all.filter(sugg)));
     h+=sec("Done recently",all.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,10));
@@ -2651,7 +2657,7 @@ function renderView(){
   else if(S.view==="project"){
     const inbox=S.pid==="__inbox";const p=proj(S.pid);const par=parentOf(p);
     const ts=S.tasks.filter(t=>inbox?!proj(t.projectId):t.projectId===S.pid);
-    h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${p?.archivedAt?`<button class="crumb" data-go="archive">Archived</button> · `:""}${inbox?"Tasks without a project":par?`<button class="crumb" data-proj="${esc(par.id)}">${esc(par.name)}</button> · ${esc(p?.area||"")}`:esc(p?.area||"")}</div></div><div class="right" style="display:flex;gap:6px">${p&&!par?`<button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button>`:""}${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
+    h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${p?.archivedAt?`<button class="crumb" data-go="archive">Archived</button> · `:""}${inbox?"Tasks without a project":par?`${crumbs(p)}${esc(topOf(p).area||"")}`:esc(p?.area||"")}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${p&&!p.archivedAt?`<button class="btn" data-newsub="${esc(p.id)}">Add project</button>`:""}${p?`<button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button>`:""}${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
     if(p)h+=pausedNote(p)+briefBlock(p.id)+projPeople([p.id]);
     h+=quick(`Add a task${p?` to ${esc(p.name)}`:""}`);
     h+=sec("Suggested by Claude",sortT(ts.filter(sugg)));
@@ -2762,8 +2768,8 @@ function brainPanel(){
     const ns=S.notes.filter(n=>n.projectId===p.id);const about=ns.filter(n=>n.kind==="fact");
     const people=ns.filter(n=>n.kind==="person"),rest=ns.filter(n=>n.kind!=="fact"&&n.kind!=="person").sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
     const ts=sortT(S.tasks.filter(t=>t.projectId===p.id&&(open(t)||sugg(t))));const subs=kidsOf(p.id);const par=parentOf(p);
-    const subList=subs.length?`<h4>Projects (${subs.length})</h4>`+subs.map(k=>{const o=S.tasks.filter(t=>t.projectId===k.id&&open(t));const l=o.filter(overdue).length;return `<button class="pl" data-bsel="p:${esc(k.id)}"><span class="dot" style="background:${esc(k.color)}"></span>${esc(k.name)}<span class="count">${o.length} open${l?`, <span style="color:var(--danger);font-weight:600">${l} late</span>`:""}</span></button>`}).join(""):"";
-    return `<div class="k">${par?`<button class="crumb" data-bsel="p:${esc(par.id)}">${esc(par.name)}</button> · `:""}${subs.length?"Workspace · ":""}${esc(p.area||"")}</div><h3><span class="dot" style="display:inline-block;background:${esc(p.color)};margin-right:8px;vertical-align:3px"></span>${esc(p.name)}</h3>${about.map(n=>`<div class="about">${esc(n.body)}</div>`).join("")||`<div class="about">No description yet.</div>`}
+    const subList=subs.length?`<h4>Projects (${subs.length})</h4>`+subs.map(k=>{const kf=fam(k.id),o=S.tasks.filter(t=>kf.includes(t.projectId)&&open(t));const l=o.filter(overdue).length;return `<button class="pl" data-bsel="p:${esc(k.id)}"><span class="dot" style="background:${esc(k.color)}"></span>${esc(k.name)}<span class="count">${o.length} open${l?`, <span style="color:var(--danger);font-weight:600">${l} late</span>`:""}</span></button>`}).join(""):"";
+    return `<div class="k">${chain(p).slice(0,-1).map(x=>`<button class="crumb" data-bsel="p:${esc(x.id)}">${esc(x.name)}</button> · `).join("")}${subs.length?"Workspace · ":""}${esc(p.area||"")}</div><h3><span class="dot" style="display:inline-block;background:${esc(p.color)};margin-right:8px;vertical-align:3px"></span>${esc(p.name)}</h3>${about.map(n=>`<div class="about">${esc(n.body)}</div>`).join("")||`<div class="about">No description yet.</div>`}
       <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-addnote="${esc(p.id)}">Add note</button><button class="btn" data-proj="${esc(p.id)}">Open project</button></div>
       ${subList}
       ${people.length?`<h4>People</h4>${people.map(noteItem).join("")}`:""}
@@ -2792,8 +2798,10 @@ function brainPanel(){
 /* ---------- today filters ---------- */
 (()=>{try{const s=JSON.parse(localStorage.getItem("hub.today")||"{}");Object.assign(S,{tf:s.tf||"",tsub:s.tsub||"",tgroup:!!s.tgroup,tsort:s.tsort||"priority"})}catch{Object.assign(S,{tf:"",tsub:"",tgroup:false,tsort:"priority"})}})();
 function saveTF(){try{localStorage.setItem("hub.today",JSON.stringify({tf:S.tf,tsub:S.tsub,tgroup:S.tgroup,tsort:S.tsort}))}catch{}}
-const topOf=p=>parentOf(p)||p;
-function tfilter(t){if(!S.tf)return true;const p=proj(t.projectId);if(S.tf==="__none")return!p;if(!p)return false;if(S.tsub)return p.id===S.tsub;return topOf(p).id===S.tf}
+const crumbs=p=>chain(p).slice(0,-1).map(x=>`<button class="crumb" data-proj="${esc(x.id)}">${esc(x.name)}</button> · `).join("");
+const topOf=p=>chain(p)[0]||p;
+const kidOn=(ws,p)=>{const c=chain(p),i=c.findIndex(x=>x.id===ws.id);return i<0?null:c[i+1]||ws}; // the child of ws that p sits under (ws itself for its own tasks)
+function tfilter(t){if(!S.tf)return true;const p=proj(t.projectId);if(S.tf==="__none")return!p;if(!p)return false;if(S.tsub)return S.tsub===S.tf?p.id===S.tsub:chain(p).some(x=>x.id===S.tsub);return topOf(p).id===S.tf}
 function tsortList(l){
   if(S.tsort==="due")return l.slice().sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999")||PR[a.priority||"med"]-PR[b.priority||"med"]);
   if(S.tsort==="project")return l.slice().sort((a,b)=>(proj(a.projectId)?fullName(proj(a.projectId)):"~").localeCompare(proj(b.projectId)?fullName(proj(b.projectId)):"~")||PR[a.priority||"med"]-PR[b.priority||"med"]);
@@ -2815,7 +2823,7 @@ function todayFilters(pool){
   let out=`<div class="filters one"><div class="chips">${chip("","All",pool.length)}${topsHere.map(p=>chip(p.id,`<span class="dot" style="display:inline-block;width:7px;height:7px;background:${esc(p.color)};margin-right:5px;vertical-align:1px"></span>${esc(p.name)}`,cnt.get(p.id)||0)).join("")}${none?chip("__none","Unsorted",none):""}</div>${vopts}</div>`;
   const ws=proj(S.tf);
   if(ws&&isWs(ws)){
-    const sc=new Map();for(const x of pool){const p=proj(x.projectId);if(p&&topOf(p).id===ws.id)sc.set(p.id,(sc.get(p.id)||0)+1)}
+    const sc=new Map();for(const x of pool){const p=proj(x.projectId);const k=p&&kidOn(ws,p);if(k)sc.set(k.id,(sc.get(k.id)||0)+1)}
     out+=`<div class="filters" style="margin-bottom:8px"><div class="chips">${chip("",`All of ${esc(ws.name)}`,null,"tsub",!S.tsub)}${[ws,...kidsOf(ws.id)].filter(p=>sc.has(p.id)||p.id===S.tsub).map(p=>chip(p.id,p.id===ws.id?"General":esc(p.name),sc.get(p.id)||0,"tsub",S.tsub===p.id)).join("")}</div></div>`;
   }
   return out;
@@ -3071,7 +3079,7 @@ document.addEventListener("change",e=>{if(e.target.dataset?.whenpick&&e.target.v
 let editing=null;
 function projOptions(sel){const o=(p,l)=>`<option value="${esc(p.id)}" ${p.id===sel?"selected":""}>${esc(l)}</option>`;
   const arch=proj(sel)?.archivedAt?o(proj(sel),proj(sel).name+" (archived)"):"";
-  return `<option value="">Unsorted</option>`+arch+AREAS.map(a=>{const ps=tops(a);return ps.length?`<optgroup label="${a}">${ps.map(p=>o(p,p.name)+kidsOf(p.id).map(k=>o(k,"\u00a0\u00a0\u2014 "+k.name)).join("")).join("")}</optgroup>`:""}).join("")}
+  return `<option value="">Unsorted</option>`+arch+AREAS.map(a=>{const ps=tops(a);return ps.length?`<optgroup label="${a}">${ps.map(p=>o(p,p.name)+desc(p.id).map(k=>o(k,"\u00a0\u00a0".repeat(depthOf(k))+"\u2014 "+k.name)).join("")).join("")}</optgroup>`:""}).join("")}
 function openTask(t){
   editing=t;const f=document.getElementById("taskForm");f.elements.private.checked=!!t?.private;
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
@@ -3290,7 +3298,7 @@ document.getElementById("delNote").addEventListener("click",async()=>{if(!editin
 /* links: [[ in a note or task body links it to a person, project, note, task or topic; links live in S.links */
 function wikiItems(){const out=[];
   for(const r of persons())out.push({t:r.virtual?"note":"person",id:r.id,label:r.name,sub:"Person"+(r.role?` · ${r.role}`:"")});
-  for(const p of S.projects)if(!p.archivedAt)out.push({t:"project",id:p.id,label:p.name,sub:"Project"+(proj(p.parentId)?` · ${proj(p.parentId).name}`:"")});
+  for(const p of S.projects)if(!p.archivedAt)out.push({t:"project",id:p.id,label:p.name,sub:"Project"+(parentOf(p)?` · ${fullName(parentOf(p))}`:"")});
   for(const n of S.notes)if(n.kind!=="person")out.push({t:"note",id:n.id,label:n.title,sub:KIND[n.kind]?.l||"Note"});
   for(const x of S.tasks)if(open(x))out.push({t:"task",id:x.id,label:x.title,sub:"Task"+(proj(x.projectId)?` · ${proj(x.projectId).name}`:"")});
   for(const e of topics())out.push({t:"topic",id:e.tag,label:topicName(e.tag),sub:"Topic"});
@@ -3524,8 +3532,9 @@ let editingP=null,pColor=COLORS[0];
 function openProj(p,parentId){
   editingP=p;const f=document.getElementById("projForm");const el=f.elements;
   const curPar=p?p.parentId:parentId;
-  el.parentId.innerHTML=`<option value="">None (top level)</option>`+S.projects.filter(x=>!x.parentId&&(!p||x.id!==p.id)).sort((a,b)=>a.name.localeCompare(b.name)).map(x=>`<option value="${esc(x.id)}" ${x.id===curPar?"selected":""}>${esc(x.name)}</option>`).join("");
-  el.parentId.disabled=!!(p&&isWs(p));
+  const no=new Set(p?fam(p.id):[]);const po=x=>no.has(x.id)?"":`<option value="${esc(x.id)}" ${x.id===curPar?"selected":""}>${esc("\u00a0\u00a0".repeat(depthOf(x))+(depthOf(x)?"\u2014 ":"")+x.name)}</option>`;
+  el.parentId.innerHTML=`<option value="">None (top level)</option>`+AREAS.map(a=>{const ps=tops(a).filter(x=>!no.has(x.id));return ps.length?`<optgroup label="${a}">${ps.map(x=>po(x)+desc(x.id).map(po).join("")).join("")}</optgroup>`:""}).join("");
+  el.parentId.disabled=false;
   document.getElementById("projDlgTitle").textContent=p?"Edit project":"New project";
   f.name.value=p?.name||"";f.area.value=p?.area||proj(parentId)?.area||"Life";el.lifeArea.innerHTML=areaOpts(p?.lifeArea||proj(parentId)?.lifeArea);pColor=p?.color||COLORS[S.projects.length%COLORS.length];drawSw();
   document.getElementById("delProj").hidden=!p;const ab=document.getElementById("archProj");ab.hidden=!p;ab.textContent=p?.archivedAt?"Bring back":"Archive";document.getElementById("projDlg").showModal();
@@ -3535,8 +3544,10 @@ document.getElementById("swatches").addEventListener("click",e=>{const b=e.targe
 document.getElementById("projForm").addEventListener("submit",async e=>{
   const f=e.target;const name=f.name.value.trim();if(!name)return;
   const par=f.elements.parentId.value||null;
-  const data={name,area:par?(proj(par)?.area||f.area.value):f.area.value,parentId:par,color:pColor,lifeArea:f.elements.lifeArea.value||null,updatedAt:now()};
-  if(editingP&&isWs(editingP))delete data.parentId;
+  if(editingP&&par&&fam(editingP.id).includes(par)){toast("A project can't sit inside itself.");return}
+  const data={name,area:par?(topOf(proj(par))?.area||f.area.value):f.area.value,parentId:par,color:pColor,lifeArea:f.elements.lifeArea.value||null,updatedAt:now()};
+  // a moved workspace takes its whole branch along; keep the branch's area in step with its new home
+  if(editingP)for(const k of desc(editingP.id))if((k.area||"")!==data.area)S.db.doc("projects/"+k.id).update({area:data.area,updatedAt:now()}).catch(()=>{});
   try{if(editingP)await S.db.doc("projects/"+editingP.id).update(data);
     else{let id=(par?par+"-":"")+(name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||("p-"+Date.now()));if(proj(id))id+="-"+Date.now().toString(36);await S.db.doc("projects/"+id).set({...data,order:99,createdAt:now()})}
     toast("Project saved")}catch{toast("Couldn't save that project.")}
@@ -3547,8 +3558,9 @@ document.getElementById("archProj").addEventListener("click",async()=>{const p=e
   const left=S.tasks.filter(t=>fam(p.id).includes(t.projectId)&&open(t)).length;
   if(left){toast(`Close or move its ${left} open task${left===1?"":"s"} first`,false);return}
   try{await S.db.doc("projects/"+p.id).update({archivedAt:now()});toast(`${p.name} archived. Find it under Archive.`);document.getElementById("projDlg").close();S.view="archive";S.pid=null;render()}catch{toast("Couldn't archive that.")}});
-document.getElementById("delProj").addEventListener("click",async()=>{if(!editingP)return;if(!confirm(isWs(editingP)?"Delete this workspace? Its projects become top-level and its own tasks move to Unsorted.":"Delete this project? Its tasks move to Unsorted."))return;
-  try{await S.db.doc("projects/"+editingP.id).delete();S.view="projects";S.pid=null;toast("Project deleted")}catch{toast("Couldn't delete that project.")}document.getElementById("projDlg").close()});
+document.getElementById("delProj").addEventListener("click",async()=>{if(!editingP)return;if(!confirm(isWs(editingP)?`Delete this workspace? Its projects move up to ${parentOf(editingP)?.name||"the top level"} and its own tasks move to Unsorted.`:"Delete this project? Its tasks move to Unsorted."))return;
+  try{const up=parentOf(editingP)?.id||null;for(const k of kidsOf(editingP.id))await S.db.doc("projects/"+k.id).update({parentId:up,updatedAt:now()});
+    await S.db.doc("projects/"+editingP.id).delete();S.view="projects";S.pid=null;toast("Project deleted")}catch{toast("Couldn't delete that project.")}document.getElementById("projDlg").close()});
 
 /* ---------- boot: Supabase ---------- */
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";

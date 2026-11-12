@@ -31,7 +31,7 @@ o as (
     (select string_agg(x.title, '; ') from unnest(t.blocked_by) b join tasks x on x.id = b where x.status <> 'done') waits_on_titles
   from tasks t left join projects p on p.id = t.project_id
   where t.status not in ('done','suggested') and t.owner = 'me'
-    and not exists (select 1 from projects pp where pp.id = t.project_id and (pp.paused_at is not null or exists (select 1 from projects pq where pq.id = pp.parent_id and pq.paused_at is not null))))  -- paused projects stay off the plate  -- agent-owned tasks live under "Run by agents"; list them separately if asked
+    and not exists (select 1 from projects pp where pp.id = t.project_id and (pp.paused_at is not null or exists (select 1 from projects pq where pp.id = any(project_tree(pq.id)) and pq.paused_at is not null))))  -- paused projects stay off the plate  -- agent-owned tasks live under "Run by agents"; list them separately if asked
 select case
     when (o.due_firm or o.due_time is not null) and o.due <= d.today then '0 can''t slip'  -- hard deadline today or missed; lead with these, earliest time first
     when o.status = 'doing' then '1 on it now'
