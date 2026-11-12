@@ -47,6 +47,27 @@ await p.evaluate(()=>{S.view='project';S.pid='ktn';render()}); await p.waitForTi
 console.log('leaf crumbs:', await p.evaluate(()=>[...document.querySelectorAll('#view .head .crumb')].map(x=>x.textContent).join(' / ')));
 console.log('sidebar path:', await p.evaluate(()=>[...document.querySelectorAll('.nav button[data-proj]')].map(x=>x.dataset.proj+(x.style.getPropertyValue('--lv')?':'+x.style.getPropertyValue('--lv'):'')).join(',')));
 console.log('leaf has Add project:', await p.evaluate(()=>!!document.querySelector('#view [data-newsub="ktn"]')));
+// seven levels: Tharavad › Faceless YouTube › KTN › Season 1 › Episode block › Ep 4 › Thumbnails
+await p.evaluate(()=>{DB.projects.push({id:'s1',name:'Season 1',area:'Products',parent_id:'ktn',color:'#3E8A57'},{id:'blk',name:'Episode block',area:'Products',parent_id:'s1',color:'#E0A21A'},{id:'ep4',name:'Ep 4',area:'Products',parent_id:'blk',color:'#5E6E68'},{id:'thumbs',name:'Thumbnails',area:'Products',parent_id:'ep4',color:'#2F6DB5'},{id:'thumbs-b',name:'Alt thumbnails',area:'Products',parent_id:'ep4',color:'#2F6DB5'});
+  DB.tasks.push({id:'g',title:'Pick the Ep 4 thumbnail',project_id:'thumbs',status:'todo',priority:'med',updated_at:new Date().toISOString(),steps:[],activity:[],blocked_by:[]});refresh()}); await p.waitForTimeout(500);
+await p.evaluate(()=>{S.view='project';S.pid='thumbs';render()}); await p.waitForTimeout(200);
+console.log('deep name on screen:', await p.evaluate(()=>fullName(proj('thumbs'))), '| search path:', await p.evaluate(()=>fullPath(proj('thumbs')).split(' › ').length));
+console.log('deep crumbs:', await p.evaluate(()=>[...document.querySelectorAll('#view .head .crumb')].map(x=>x.textContent).join(' / ')));
+console.log('deep sidebar rows:', await p.evaluate(()=>[...document.querySelectorAll('.nav button')].filter(x=>x.closest('.nav')&&(x.dataset.proj)).map(x=>(x.classList.contains('more')?'[':'')+x.textContent.trim()+(x.style.getPropertyValue('--lv')?':'+x.style.getPropertyValue('--lv'):'')).join(', ')));
+console.log('max indent level:', await p.evaluate(()=>Math.max(...[...document.querySelectorAll('.nav button.sub')].map(x=>+x.style.getPropertyValue('--lv')||1))));
+console.log('7th level has no Add project:', await p.evaluate(()=>!document.querySelector('#view [data-newsub]')));
+console.log('picker indent capped:', await p.evaluate(()=>{const d=document.createElement('select');d.innerHTML=projOptions('thumbs');const o=[...d.options].find(x=>x.value==='thumbs').textContent;return JSON.stringify(o)}));
+await p.screenshot({path:new URL('out/nest-deep.png',import.meta.url).pathname});
+await p.evaluate(()=>openProj(proj('home'))); await p.waitForTimeout(150);
+await p.evaluate(()=>{const f=document.getElementById('projForm');f.elements.parentId.value='thumbs';f.requestSubmit()}); await p.waitForTimeout(300);
+console.log('8th level refused:', await p.evaluate(()=>!DB.projects.find(x=>x.id==='home').parent_id&&document.body.textContent.includes('7 is the most')));
+await p.evaluate(()=>document.getElementById('projDlg').close());
+await p.evaluate(()=>{DB.projects=DB.projects.filter(x=>!['s1','blk','ep4','thumbs','thumbs-b'].includes(x.id));DB.tasks=DB.tasks.filter(x=>x.id!=='g');S.view='project';S.pid='ktn';refresh()}); await p.waitForTimeout(500);
+const ph=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); ph.on('pageerror',e=>errs.push(e.message));
+await setup(ph); await ph.evaluate(()=>{DB.projects.push({id:'s1',name:'Season 1',area:'Products',parent_id:'ktn',color:'#3E8A57'},{id:'blk',name:'Episode block',area:'Products',parent_id:'s1',color:'#E0A21A'},{id:'ep4',name:'Ep 4',area:'Products',parent_id:'blk',color:'#5E6E68'},{id:'thumbs',name:'Thumbnails',area:'Products',parent_id:'ep4',color:'#2F6DB5'});refresh()}); await ph.waitForTimeout(500);
+await ph.evaluate(()=>{S.view='project';S.pid='thumbs';render()}); await ph.waitForTimeout(200);
+console.log('phone: no sideways scroll:', await ph.evaluate(()=>document.documentElement.scrollWidth<=390));
+await ph.screenshot({path:new URL('out/nest-phone.png',import.meta.url).pathname});
 // pausing Tharavad pauses every level below
 await p.evaluate(()=>{DB.projects.find(x=>x.id==='group-hq').paused_at=new Date().toISOString();refresh()}); await p.waitForTimeout(500);
 console.log('paused below:', await p.evaluate(()=>['faceless-youtube','ktn','filow','home'].map(id=>id+':'+pausedIds().has(id)).join(',')));

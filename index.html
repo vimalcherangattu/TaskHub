@@ -73,8 +73,9 @@ main{overflow-y:auto;padding:40px clamp(16px,4vw,56px) 120px;scroll-behavior:smo
 .group-h{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:16px 12px 6px}
 .dot{width:10px;height:10px;border-radius:4px;flex:none}
 .nav button.ws{font-weight:600;color:var(--ink)}
-.nav button.sub{min-height:36px;padding:0 12px 0 calc(34px + (var(--lv,1) - 1) * 16px);font-size:14px;color:var(--muted)}
+.nav button.sub{min-height:36px;padding:0 12px 0 calc(34px + (var(--lv,1) - 1) * 14px);font-size:14px;color:var(--muted)}
 .nav button.sub[aria-current="true"]{color:var(--ink)}
+.nav button.sub.more{font-size:13px;color:var(--muted);min-height:32px}
 .crumb{border:0;background:none;padding:0;color:var(--accent);font-weight:500}
 .crumb:hover{text-decoration:underline;text-underline-offset:3px}
 .side-add{border:1px dashed var(--line-strong);background:none;border-radius:12px;min-height:40px;padding:0 12px;width:100%;text-align:left;color:var(--faint);margin-top:10px;transition:background .18s var(--ease),color .18s}
@@ -1382,7 +1383,12 @@ const chain=p=>{const out=[],seen=new Set();for(let x=p;x&&!seen.has(x.id);x=par
 const desc=id=>{const out=[],seen=new Set([id]),q=[id];while(q.length){for(const k of kidsOf(q.shift()))if(!seen.has(k.id)){seen.add(k.id);out.push(k);q.push(k.id)}}return out};
 const fam=id=>[id,...desc(id).map(k=>k.id)];
 const depthOf=p=>Math.max(0,chain(p).length-1);
-const fullName=p=>p?chain(p).map(x=>x.name).join(" › "):"Unsorted";
+const MAXD=7; // deepest a branch may go, counting the top project (the database enforces the same)
+const fullPath=p=>p?chain(p).map(x=>x.name).join(" › "):"Unsorted";
+// on screen a deep path keeps its ends: Tharavad › … › Faceless YouTube › Kitchen Table Numbers
+const fullName=p=>{if(!p)return"Unsorted";const c=chain(p);return(c.length>3?[c[0].name,"…",c[c.length-2].name,p.name]:c.map(x=>x.name)).join(" › ")};
+const gone=p=>!!p&&chain(p).some(x=>x.archivedAt); // archived itself or under an archived project
+const ind=d=>"\u00a0\u00a0".repeat(Math.min(d,3))+(d?(d>3?"\u2026 ":"\u2014 "):""); // picker indent stops growing after 3 levels
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 /* high impact: single tasks (tasks.highlight_day, or highlight_week for the week's focus) and themes that cover several tasks (focus_themes; span day or week) */
 const hiTask=t=>t.highlightDay===T();
@@ -1472,7 +1478,7 @@ function inboxView(){
     h+=`<h2 id="inH">${esc(c.t?c.t.title:c.n?c.n.title:callTitle(c.s))}</h2><p class="in-why">${esc(inboxWhy(c))}</p>`;
     if(c.t){h+=`<div class="in-acts">${Object.entries({today:"T",week:"W",next:"N",none:"D",done:"Y",drop:"X"}).map(([a,k])=>`<button class="in-a${a==="today"?" go":a==="drop"?" dng":""}" data-in="${a}"><span>${INL[a]}</span><kbd>${k}</kbd></button>`).join("")}</div>
       <div class="in-keys"><button class="act" data-in="skip">Skip <kbd>S</kbd></button><button class="act" data-in="edit">Edit first <kbd>E</kbd></button>${c.t&&proj(c.t.projectId)?`<button class="act" data-merge="${esc(c.t.id)}">Merge into another task</button>`:""}</div>`}
-    else{const opts=`<option value="">Choose a project…</option>`+S.projects.filter(q=>!q.archivedAt).slice().sort((a,b)=>fullName(a).localeCompare(fullName(b))).map(q=>`<option value="${esc(q.id)}">${esc(fullName(q))}</option>`).join("");
+    else{const opts=`<option value="">Choose a project…</option>`+S.projects.filter(q=>!gone(q)).slice().sort((a,b)=>fullName(a).localeCompare(fullName(b))).map(q=>`<option value="${esc(q.id)}">${esc(fullName(q))}</option>`).join("");
       h+=c.n?`<div class="in-file"><label>File under <select data-notesel="${esc(c.n.id)}">${opts}</select></label><button class="btn primary" data-notefile="${esc(c.n.id)}">File</button><button class="btn" data-editnote="${esc(c.n.id)}">Open</button></div>`
         :`<div class="in-file"><label>File under <select data-filesel="${esc(c.s.id)}" aria-label="Project for this call">${opts}</select></label><button class="btn primary" data-filecall="${esc(c.s.id)}">File</button>${/^https?:/.test(c.s.url||"")?`<a class="btn" href="${esc(c.s.url)}" target="_blank" rel="noopener">Open recording</a>`:""}</div>`;
       h+=`<div class="in-keys"><button class="act" data-in="skip">Skip <kbd>S</kbd></button></div>`}
@@ -1597,10 +1603,17 @@ function renderSide(){
   const ps=[...mv.keys()].map(proj).filter(Boolean).sort((a,b)=>mv.get(b.id)-mv.get(a.id)).slice(0,8);
   if(S.view==="project"&&proj(S.pid)&&!ps.includes(topOf(proj(S.pid))))ps.push(topOf(proj(S.pid)));
   if(ps.length){h+=`<div class="group-h">Moved this week</div><div class="nav">`;
-    const btn=(p,cls,d=0)=>{const pz=pausedIds().has(p.id);return `<button class="${cls}${pz?" paused":""}"${d>1?` style="--lv:${d}"`:""} data-proj="${esc(p.id)}" aria-current="${S.view==="project"&&S.pid===p.id}"><span class="dot" style="background:${esc(p.color||COLORS[7])}"></span>${esc(p.name)}<span class="count">${pz?"paused":""}</span></button>`};
-    const path=S.view==="project"&&proj(S.pid)?chain(proj(S.pid)).map(x=>x.id):[];
-    const tree=(p,d)=>{let o=btn(p,d?"sub":"",d);if(path.includes(p.id))for(const k of kidsOf(p.id))o+=tree(k,d+1);return o};
-    for(const p of ps)h+=tree(p,0);
+    const btn=(p,cls,d=0)=>{const pz=pausedIds().has(p.id);return `<button class="${cls}${pz?" paused":""}"${d>1?` style="--lv:${d}"`:""}${d?` title="${esc(fullPath(p))}"`:""} data-proj="${esc(p.id)}" aria-current="${S.view==="project"&&S.pid===p.id}"><span class="dot" style="background:${esc(p.color||COLORS[7])}"></span>${esc(p.name)}<span class="count">${pz?"paused":""}</span></button>`};
+    const cur=S.view==="project"?proj(S.pid):null,path=cur?chain(cur):[];
+    const tree=p=>{if(!path.length||path[0].id!==p.id)return btn(p,"");
+      let o=btn(p,"");const up=path.slice(1,-1),d0=up.length>1?2:1; // levels between the top and the open project
+      if(up.length>1)o+=`<button class="sub more" style="--lv:1" data-proj="${esc(up[up.length-2].id)}" title="${esc(up.slice(0,-1).map(x=>x.name).join(" › "))}">… ${up.length-1} level${up.length===2?"":"s"} up</button>`;
+      if(up.length)o+=btn(up[up.length-1],"sub",d0);
+      const lv=up.length?d0+1:1,sibs=up.length||path.length>1?kidsOf(parentOf(cur).id):[];
+      if(path.length>1){for(const k of sibs){o+=btn(k,"sub",lv);if(k.id===cur.id)for(const g of kidsOf(k.id))o+=btn(g,"sub",lv+1)}}
+      else for(const g of kidsOf(cur.id))o+=btn(g,"sub",1);
+      return o};
+    for(const p of ps)h+=tree(p);
     h+=`</div>`}
   const inbox=S.tasks.filter(t=>open(t)&&!proj(t.projectId)).length;
   if(inbox)h+=`<div class="nav"><button data-proj="__inbox" aria-current="${S.pid==="__inbox"}"><span class="dot" style="background:var(--faint)"></span>Unsorted<span class="count">${inbox}</span></button></div>`;
@@ -2328,7 +2341,7 @@ function goalPage(id){const g=goalById(id);if(!g)return `<div class="empty">That
   h+=`<section><div class="sh"><h2>Milestones · linked tasks and projects</h2><span class="n">${items.length}</span></div>${items.map(l=>{if(l.fromType==="task"){const t=S.tasks.find(x=>x.id===l.fromId);return t?`<div class="gi"><span class="gi-c${t.status==="done"?" on":""}" aria-hidden="true"></span><button class="lk" data-peek="${esc(t.id)}">${esc(t.title)}</button><span class="when">Task${t.due?" · "+esc(nice(t.due)):""}</span><button class="x" data-unlink="${esc(l.id)}" aria-label="Unlink ${esc(t.title)}">×</button></div>`:""}
       const pr=proj(l.fromId);if(!pr)return"";const ts=S.tasks.filter(x=>fam(pr.id).includes(x.projectId)&&x.status!=="suggested"),dn=ts.filter(x=>x.status==="done").length;
       return `<div class="gi"><span class="dot" style="background:${esc(pr.color||COLORS[7])}"></span><button class="lk" data-proj="${esc(pr.id)}">${esc(fullName(pr))}</button><span class="when">Project · ${dn} of ${ts.length} done</span><button class="x" data-unlink="${esc(l.id)}" aria-label="Unlink ${esc(pr.name)}">×</button></div>`}).join("")||`<div class="empty">Nothing linked yet. Link the tasks and projects that move this goal.</div>`}
-    <form class="p-add" data-glink="${esc(g.id)}"><label class="sr" for="glink">Link a task or project</label><select id="glink" name="x"><option value="">Link a task or project…</option><optgroup label="Projects">${S.projects.filter(x=>!x.archivedAt).map(x=>`<option value="project:${esc(x.id)}">${esc(fullName(x))}</option>`).join("")}</optgroup><optgroup label="Open tasks">${sortT(S.tasks.filter(open)).slice(0,300).map(x=>`<option value="task:${esc(x.id)}">${esc(trunc(x.title,80))}</option>`).join("")}</optgroup></select><button class="btn" type="submit">Link</button></form></section>`;
+    <form class="p-add" data-glink="${esc(g.id)}"><label class="sr" for="glink">Link a task or project</label><select id="glink" name="x"><option value="">Link a task or project…</option><optgroup label="Projects">${S.projects.filter(x=>!gone(x)).map(x=>`<option value="project:${esc(x.id)}">${esc(fullName(x))}</option>`).join("")}</optgroup><optgroup label="Open tasks">${sortT(S.tasks.filter(open)).slice(0,300).map(x=>`<option value="task:${esc(x.id)}">${esc(trunc(x.title,80))}</option>`).join("")}</optgroup></select><button class="btn" type="submit">Link</button></form></section>`;
   const th=(S.focus_themes||[]).filter(f=>f.goalId===g.id).sort((a,b)=>String(b.day).localeCompare(String(a.day))).slice(0,6),hs=(S.habits||[]).filter(x=>x.goalId===g.id);
   if(th.length||hs.length)h+=`<section><div class="sh"><h2>Serving it</h2></div><div class="p-projs">${th.map(f=>`<span class="lk tag"><i>${f.span==="week"?"Week":"Day"} theme</i>${esc(f.title)} · ${esc(nice(f.day))}</span>`).join("")}${hs.map(x=>`<button class="lk tag" data-edithabit="${esc(x.id)}"><i>Habit</i>${esc(x.title)}</button>`).join("")}</div></section>`;
   return h}
@@ -2644,7 +2657,7 @@ function renderView(){
   }
   else if(S.view==="project"&&isWs(proj(S.pid))){
     const p=proj(S.pid);const kids=kidsOf(p.id);const ids=fam(p.id);const all=S.tasks.filter(t=>ids.includes(t.projectId));
-    h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">${crumbs(p)}Workspace · ${esc(topOf(p).area||"")} · ${kids.length} projects${ids.length-1>kids.length?` (${ids.length-1} with theirs)`:""}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-newsub="${esc(p.id)}">Add project</button><button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
+    h+=`<div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">${crumbs(p)}Workspace · ${esc(topOf(p).area||"")} · ${kids.length} projects${ids.length-1>kids.length?`, ${ids.length-1} in all`:""}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${depthOf(p)<MAXD-1?`<button class="btn" data-newsub="${esc(p.id)}">Add project</button>`:""}<button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button><button class="btn" data-editproj="${esc(p.id)}">Edit</button></div></div>`;
     h+=pausedNote(p)+briefBlock(p.id)+projPeople(ids);
     h+=quick(`Add a task to ${esc(p.name)}`);
     h+=sec("Overdue",sortT(all.filter(overdue)),{cls:"danger"});
@@ -2657,7 +2670,7 @@ function renderView(){
   else if(S.view==="project"){
     const inbox=S.pid==="__inbox";const p=proj(S.pid);const par=parentOf(p);
     const ts=S.tasks.filter(t=>inbox?!proj(t.projectId):t.projectId===S.pid);
-    h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${p?.archivedAt?`<button class="crumb" data-go="archive">Archived</button> · `:""}${inbox?"Tasks without a project":par?`${crumbs(p)}${esc(topOf(p).area||"")}`:esc(p?.area||"")}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${p&&!p.archivedAt?`<button class="btn" data-newsub="${esc(p.id)}">Add project</button>`:""}${p?`<button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button>`:""}${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
+    h+=`<div class="head"><div><h1>${esc(inbox?"Unsorted":p?.name||"Project")}</h1><div class="sub">${p?.archivedAt?`<button class="crumb" data-go="archive">Archived</button> · `:""}${inbox?"Tasks without a project":par?`${crumbs(p)}${esc(topOf(p).area||"")}`:esc(p?.area||"")}</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${p&&!gone(p)&&depthOf(p)<MAXD-1?`<button class="btn" data-newsub="${esc(p.id)}">Add project</button>`:""}${p?`<button class="btn" data-pause="${esc(p.id)}" aria-pressed="${!!p.pausedAt}">${p.pausedAt?"Resume":"Pause"}</button>`:""}${p?`<button class="btn" data-editproj="${esc(p.id)}">Edit project</button>`:""}</div></div>`;
     if(p)h+=pausedNote(p)+briefBlock(p.id)+projPeople([p.id]);
     h+=quick(`Add a task${p?` to ${esc(p.name)}`:""}`);
     h+=sec("Suggested by Claude",sortT(ts.filter(sugg)));
@@ -2798,7 +2811,9 @@ function brainPanel(){
 /* ---------- today filters ---------- */
 (()=>{try{const s=JSON.parse(localStorage.getItem("hub.today")||"{}");Object.assign(S,{tf:s.tf||"",tsub:s.tsub||"",tgroup:!!s.tgroup,tsort:s.tsort||"priority"})}catch{Object.assign(S,{tf:"",tsub:"",tgroup:false,tsort:"priority"})}})();
 function saveTF(){try{localStorage.setItem("hub.today",JSON.stringify({tf:S.tf,tsub:S.tsub,tgroup:S.tgroup,tsort:S.tsort}))}catch{}}
-const crumbs=p=>chain(p).slice(0,-1).map(x=>`<button class="crumb" data-proj="${esc(x.id)}">${esc(x.name)}</button> · `).join("");
+const crumbs=p=>{const up=chain(p).slice(0,-1);const b=x=>`<button class="crumb" data-proj="${esc(x.id)}">${esc(x.name)}</button> · `;
+  if(up.length<=3)return up.map(b).join("");const mid=up.slice(1,-2);
+  return b(up[0])+`<button class="crumb" data-proj="${esc(mid[mid.length-1].id)}" title="${esc(mid.map(x=>x.name).join(" › "))}" aria-label="Up to ${esc(mid[mid.length-1].name)} (${mid.length} more level${mid.length===1?"":"s"})">…</button> · `+up.slice(-2).map(b).join("")};
 const topOf=p=>chain(p)[0]||p;
 const kidOn=(ws,p)=>{const c=chain(p),i=c.findIndex(x=>x.id===ws.id);return i<0?null:c[i+1]||ws}; // the child of ws that p sits under (ws itself for its own tasks)
 function tfilter(t){if(!S.tf)return true;const p=proj(t.projectId);if(S.tf==="__none")return!p;if(!p)return false;if(S.tsub)return S.tsub===S.tf?p.id===S.tsub:chain(p).some(x=>x.id===S.tsub);return topOf(p).id===S.tf}
@@ -3079,7 +3094,7 @@ document.addEventListener("change",e=>{if(e.target.dataset?.whenpick&&e.target.v
 let editing=null;
 function projOptions(sel){const o=(p,l)=>`<option value="${esc(p.id)}" ${p.id===sel?"selected":""}>${esc(l)}</option>`;
   const arch=proj(sel)?.archivedAt?o(proj(sel),proj(sel).name+" (archived)"):"";
-  return `<option value="">Unsorted</option>`+arch+AREAS.map(a=>{const ps=tops(a);return ps.length?`<optgroup label="${a}">${ps.map(p=>o(p,p.name)+desc(p.id).map(k=>o(k,"\u00a0\u00a0".repeat(depthOf(k))+"\u2014 "+k.name)).join("")).join("")}</optgroup>`:""}).join("")}
+  return `<option value="">Unsorted</option>`+arch+AREAS.map(a=>{const ps=tops(a);return ps.length?`<optgroup label="${a}">${ps.map(p=>o(p,p.name)+desc(p.id).map(k=>o(k,ind(depthOf(k))+k.name)).join("")).join("")}</optgroup>`:""}).join("")}
 function openTask(t){
   editing=t;const f=document.getElementById("taskForm");f.elements.private.checked=!!t?.private;
   document.getElementById("taskDlgTitle").textContent=t?"Edit task":"New task";
@@ -3164,7 +3179,7 @@ async function mergeInto(t,srcs){
   toast(srcs.length===1?`Merged into “${trunc(t.title,40)}”`:`${cap(word(srcs.length))} tasks merged into this one`)}
 // shared picker for the merge and theme dialogs: a ticked list of open tasks, filtered by a search box
 function pickRows(list,sel){return list.map(x=>`<label><input type="checkbox" value="${esc(x.id)}" ${sel.has(x.id)?"checked":""}><span>${esc(x.title)}<small>${esc(fullName(proj(x.projectId)))} · ${esc(whenTxt(x))}</small></span></label>`).join("")}
-const qMatch=(x,q)=>!q||(x.title+" "+fullName(proj(x.projectId))).toLowerCase().includes(q);
+const qMatch=(x,q)=>!q||(x.title+" "+fullPath(proj(x.projectId))).toLowerCase().includes(q);
 let mergeT=null,mSel=new Set();
 function openMerge(t){if(!t)return;mergeT=t;mSel=new Set();document.getElementById("mergeInto").textContent=t.title;document.getElementById("mergeQ").value="";drawMerge();document.getElementById("mergeDlg").showModal()}
 function drawMerge(){const t=mergeT,q=document.getElementById("mergeQ").value.trim().toLowerCase(),top=topId(t.projectId);
@@ -3184,7 +3199,7 @@ document.getElementById("mergeDone").addEventListener("click",async()=>{const t=
 /* themes: "close all the automation tasks". Words in the title pre-tick matching tasks until you tick one yourself */
 const THEMEW=new Set("close finish clear wrap things tasks stuff everything today ship sort".split(" "));
 function themeMatches(title){const ws=[...kwOf(title)].filter(w=>!THEMEW.has(w)).map(w=>w.slice(0,Math.min(w.length,6)));if(!ws.length)return[];
-  return S.tasks.filter(x=>open(x)&&[...kwOf(x.title+" "+fullName(proj(x.projectId)))].some(k=>ws.some(w=>k.startsWith(w)))).map(x=>x.id)}
+  return S.tasks.filter(x=>open(x)&&[...kwOf(x.title+" "+fullPath(proj(x.projectId)))].some(k=>ws.some(w=>k.startsWith(w)))).map(x=>x.id)}
 let themeE=null,themeSp="day",tSel=new Set(),tAuto=true;
 function openTheme(f,sp="day"){themeE=f;themeSp=f?.span||sp;const fm=document.getElementById("themeForm");fm.title.value=f?.title||"";fm.elements.goalId.innerHTML=goalOpts(f?.goalId);document.getElementById("themeQ").value="";
   tSel=new Set(f?.taskIds||[]);tAuto=!f;document.getElementById("themeDlgTitle").textContent=f?"Edit theme":themeSp==="week"?"Theme for this week":"High-impact theme";document.getElementById("delTheme").hidden=!f;
@@ -3298,7 +3313,7 @@ document.getElementById("delNote").addEventListener("click",async()=>{if(!editin
 /* links: [[ in a note or task body links it to a person, project, note, task or topic; links live in S.links */
 function wikiItems(){const out=[];
   for(const r of persons())out.push({t:r.virtual?"note":"person",id:r.id,label:r.name,sub:"Person"+(r.role?` · ${r.role}`:"")});
-  for(const p of S.projects)if(!p.archivedAt)out.push({t:"project",id:p.id,label:p.name,sub:"Project"+(parentOf(p)?` · ${fullName(parentOf(p))}`:"")});
+  for(const p of S.projects)if(!gone(p))out.push({t:"project",id:p.id,label:p.name,sub:"Project"+(parentOf(p)?` · ${fullName(parentOf(p))}`:"")});
   for(const n of S.notes)if(n.kind!=="person")out.push({t:"note",id:n.id,label:n.title,sub:KIND[n.kind]?.l||"Note"});
   for(const x of S.tasks)if(open(x))out.push({t:"task",id:x.id,label:x.title,sub:"Task"+(proj(x.projectId)?` · ${proj(x.projectId).name}`:"")});
   for(const e of topics())out.push({t:"topic",id:e.tag,label:topicName(e.tag),sub:"Topic"});
@@ -3482,8 +3497,8 @@ function findLocal(q){const w=q.toLowerCase().split(/\s+/).filter(Boolean);if(!w
   const dd=d=>d?istFmt(d,{day:"numeric",month:"short"}):"";
   const docs=[];const add=(x,title,text,at)=>docs.push({x,ti:String(title||"").toLowerCase(),tx:(title+" "+text).toLowerCase(),at});
   for(const t of S.tasks){const st=(Array.isArray(t.steps)?t.steps:[]).map(x=>x.text).join(" ");
-    add({g:"Tasks",type:"task",id:t.id,title:t.title,sub:fullName(proj(t.projectId))+" · "+({todo:"To do",doing:"Started",waiting:"Waiting",suggested:"Suggested",done:"Done"}[t.status]||""),c:proj(t.projectId)?.color,b:open(t)?3:t.status==="done"?0:1},t.title,[t.notes,t.resumeNote,st,t.waitingOn,fullName(proj(t.projectId))].join(" "),t.updatedAt||t.createdAt)}
-  for(const n of S.notes){const at=n.updatedAt||n.createdAt;add({g:"Notes",type:"note",id:n.id,title:n.title,sub:(KIND[n.kind]?.l||"Note")+(at?" · "+dd(at):"")+" · "+snip(n.body||n.url||fullName(proj(n.projectId))),c:KIND[n.kind]?.c,b:1},n.title,[n.body,n.url,(n.tags||[]).join(" "),fullName(proj(n.projectId))].join(" "),at)}
+    add({g:"Tasks",type:"task",id:t.id,title:t.title,sub:fullName(proj(t.projectId))+" · "+({todo:"To do",doing:"Started",waiting:"Waiting",suggested:"Suggested",done:"Done"}[t.status]||""),c:proj(t.projectId)?.color,b:open(t)?3:t.status==="done"?0:1},t.title,[t.notes,t.resumeNote,st,t.waitingOn,fullPath(proj(t.projectId))].join(" "),t.updatedAt||t.createdAt)}
+  for(const n of S.notes){const at=n.updatedAt||n.createdAt;add({g:"Notes",type:"note",id:n.id,title:n.title,sub:(KIND[n.kind]?.l||"Note")+(at?" · "+dd(at):"")+" · "+snip(n.body||n.url||fullName(proj(n.projectId))),c:KIND[n.kind]?.c,b:1},n.title,[n.body,n.url,(n.tags||[]).join(" "),fullPath(proj(n.projectId))].join(" "),at)}
   for(const r of persons())if(!r.virtual)add({g:"People",type:"person",id:r.id,title:r.name,sub:[r.role,r.org].filter(Boolean).join(", ")||(r.circles||[]).map(c=>CIRC[c]||c).join(", "),c:"var(--accent)",b:2},r.name,[r.aliases.join(" "),r.emails.join(" "),r.org,r.role,r.howMet].join(" "),r.lastContactAt);
   for(const x of S.sources)add({g:"Calls",type:"call",id:x.id,pid:x.projectId,title:callTitle(x),sub:(x.occurredAt?dd(x.occurredAt)+" · ":"")+snip(x.summary),b:0},x.title,x.summary,x.occurredAt);
   for(const[pid,b] of Object.entries(S.briefs)){const p=proj(pid);if(p)add({g:"Project briefs",type:"brief",id:pid,pid,title:fullName(p),sub:snip(b.body),c:p.color,b:0},p.name,b.body,b.updatedAt)}
@@ -3532,7 +3547,7 @@ let editingP=null,pColor=COLORS[0];
 function openProj(p,parentId){
   editingP=p;const f=document.getElementById("projForm");const el=f.elements;
   const curPar=p?p.parentId:parentId;
-  const no=new Set(p?fam(p.id):[]);const po=x=>no.has(x.id)?"":`<option value="${esc(x.id)}" ${x.id===curPar?"selected":""}>${esc("\u00a0\u00a0".repeat(depthOf(x))+(depthOf(x)?"\u2014 ":"")+x.name)}</option>`;
+  const no=new Set(p?fam(p.id):[]);const po=x=>no.has(x.id)?"":`<option value="${esc(x.id)}" ${x.id===curPar?"selected":""}>${esc(ind(depthOf(x))+x.name)}</option>`;
   el.parentId.innerHTML=`<option value="">None (top level)</option>`+AREAS.map(a=>{const ps=tops(a).filter(x=>!no.has(x.id));return ps.length?`<optgroup label="${a}">${ps.map(x=>po(x)+desc(x.id).map(po).join("")).join("")}</optgroup>`:""}).join("");
   el.parentId.disabled=false;
   document.getElementById("projDlgTitle").textContent=p?"Edit project":"New project";
@@ -3545,6 +3560,8 @@ document.getElementById("projForm").addEventListener("submit",async e=>{
   const f=e.target;const name=f.name.value.trim();if(!name)return;
   const par=f.elements.parentId.value||null;
   if(editingP&&par&&fam(editingP.id).includes(par)){toast("A project can't sit inside itself.");return}
+  const below=editingP?Math.max(0,...desc(editingP.id).map(k=>depthOf(k)-depthOf(editingP))):0;
+  if(par&&depthOf(proj(par))+2+below>MAXD){toast(`That would go ${depthOf(proj(par))+2+below} levels deep; ${MAXD} is the most.`);return}
   const data={name,area:par?(topOf(proj(par))?.area||f.area.value):f.area.value,parentId:par,color:pColor,lifeArea:f.elements.lifeArea.value||null,updatedAt:now()};
   // a moved workspace takes its whole branch along; keep the branch's area in step with its new home
   if(editingP)for(const k of desc(editingP.id))if((k.area||"")!==data.area)S.db.doc("projects/"+k.id).update({area:data.area,updatedAt:now()}).catch(()=>{});

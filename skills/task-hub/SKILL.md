@@ -75,7 +75,7 @@ The app has five places: **Today, Inbox, Plan, Projects, Notes**. Older names in
 - **Creating a project (only after he says yes):**
   - `id` is a lowercase-hyphen slug; prefix sub-projects with the parent's id style (e.g. `zenara-events`).
   - `area` must be exactly `Career`, `Products` or `Life`. Any other value hides the project in the app.
-  - `parent_id` can be any project: nesting goes as deep as needed (13 Nov 2026), e.g. Tharavad (`group-hq`) › Faceless YouTube › Kitchen Table Numbers, and Tharavad › Small Fish (`account-finder`) › GTM & research. `project_path(id)` gives the full path, `project_tree(id)` a project plus everything under it; `project_context`, `brain_search`, `whats_new` and call prep cover the whole branch.
+  - `parent_id` can be any project: nesting goes as deep as needed (13 Nov 2026), e.g. Tharavad (`group-hq`) › Faceless YouTube › Kitchen Table Numbers, and Tharavad › Small Fish (`account-finder`) › GTM & research. At most 7 levels. `project_path(id)` gives the full path, `project_tree(id)` a project plus everything under it; `project_context`, `brain_search`, `whats_new` and call prep cover the whole branch.
   - `color` comes from `#2F6DB5 #C4412F #3E8A57 #E0A21A #7A4FB0 #1F8A8A #D0662A #5E6E68 #B0407A`; `order` is 99.
 - Never delete projects. Deleting one moves its tasks and notes to Unsorted.
 - **Paused projects** (`projects.paused_at` set; Fyule since 9 Nov 2026): tasks keep their dates, but the app treats nothing in them as due or overdue and keeps them off Today and This week. File into them as usual, but don't set dates, stars or `today_date` on their tasks. "Pause X" / "resume X": set or clear `paused_at` (any level; everything under a paused project is paused too).
