@@ -1,6 +1,6 @@
 # Status
 
-**Last updated:** 13 Nov 2026 (multi-level project nesting; Small Fish and Faceless YouTube moved under Tharavad)
+**Last updated:** 13 Nov 2026 (Life OS life admin: sold vehicles archived; multi-level project nesting; Small Fish and Faceless YouTube moved under Tharavad)
 
 ## Current state
 - **Multi-level nesting (13 Nov):** projects nest to any depth. App helpers `chain()` (root … p), `desc()`, `fam()`, `depthOf()`, `kidOn()`; `fullName` is the whole path; the sidebar opens every level on the path; workspace sections include their sub-branches; crumbs show the whole path; any project can be paused (everything below follows); the project editor's "Inside workspace" lists the whole tree (never the project's own branch) and a moved branch takes its area along; deleting a middle workspace moves its projects up one level. SQL: `project_tree(id)`, `project_tree_any(ids)`, `project_path(id)`; `project_context`, `brain_search`, `whats_new`, `whats_new_brief`, `call_prep`, `hub_digest` now cover a whole branch. Data: `account-finder` (Small Fish) and `faceless-youtube` now sit under `group-hq` (Tharavad); the meeting agent (`agent_config` and `agents/meeting-agent.md`) walks down to the deepest fitting project. `topics_due` still groups by the direct parent. Test: `tests/nest.mjs`.
@@ -91,7 +91,7 @@
 - Vimal: Cabo and "Card-game group" are person notes, not people (change their type in Notes if you like). Dhananjay (DJ) is merged.
 - Vimal (task, due 2 Nov, "at some point"): write each area's standard (Life › an area › Edit), set 3–5 goals for Q4, add 2–3 habits, start the evening check-in.
 - Suggested to Vimal: export 2–3 WhatsApp chats (Export Chat › Without Media) for people and open-loop extraction; not the whole iCloud backup.
-- Build phase 3: guided reviews (Sunday life review, monthly, quarterly, yearly), life admin with renewal tasks, area metrics, and the agent changes (nightly daily_log.summary, review drafts, renewals, area-status suggestions, stalled goals).
+- Life OS phase 3 is built and live (26 Oct, `fd106e7`): reviews, Life admin with renewals, numbers per area; 9 AM lead STEP 7 (`agent_config` `lead-7-life-os`) and the nightly sweep's day summary. Life admin seeded from Drive and Gmail (IDs, policies, subscriptions). Still to do: Capture → Log, and a "Not renewing" choice on renewal tasks (see Known issues). Vimal: add the Axis Max Life premium date and the HDFC ERGO policy date when issued.
 - Phase 4 needs Vimal: create a Telegram bot (BotFather) and paste its key; create the private repo `ambalam-vault` and give Claude access.
 0. Vimal: paste the owner rule into the 4 session-bound production runs (This Weigh, So Anyway Why ×2, Romantasy). Their prompts can only be edited from their own sessions; the exact text is in Task Hub task "Paste the owner rule into the 4 production-run sessions" (due 26 Oct).
 1. Skill re-uploaded by Vimal on 24 Oct (zip with `reference/`, which the old copy lacked). Confirm in a new chat that it mentions `due_firm`.
@@ -101,6 +101,7 @@
 4. Next in `docs/second-brain.md`: More ways in (#6) or Safety (#7). Ask Ambalam (#5) is skipped.
 
 ## Known issues
+- **Renewal tasks always roll forward:** marking a "Renew …" task done moves its record to the next date, even when the thing wasn't renewed (the sold car on 27 Oct rolled to Aug 2027 until it was archived on 13 Nov). Until a "Not renewing" choice exists, archive the record instead of ticking the task.
 - **Hourly agent session sync:** Claude_Code_Remote isn't attached to the hourly scheduled task, so the topic-session push happens once a day in the 9 AM lead. Gmail, Linear and Supabase_Connector were attached on 23 Oct.
 - **Share target:** not tested on a real Android phone (no installability check run). iOS has no share target; use a Shortcut or the bookmarklet with `?url=`.
 - **Tap targets:** the step checkboxes in the editor draw at 22px. On phone their tap area is extended to 44px with an invisible overlay, so the drawn box still reports as small.
