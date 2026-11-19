@@ -41,7 +41,7 @@ await setup(p);
 const secOf=h=>p.evaluate(h=>{const s=[...document.querySelectorAll('#view section')].find(x=>x.querySelector('h2')?.textContent.trim().startsWith(h));return s?[...s.querySelectorAll('.task')].map(x=>x.dataset.tid):[]},h);
 console.log('only hard deadlines are overdue:', await p.evaluate(()=>{const g=id=>S.tasks.find(x=>x.id===id);return overdue(g('h1'))&&!overdue(g('s1'))&&lapsed(g('s1'))&&!lapsed(g('h1'))}));
 // 9 Nov: soft dates that passed wait in Inbox ("Past its date"), not on Today
-await p.evaluate(()=>{S.showBrief=true;S.tmode='list';render()}); await p.waitForTimeout(100);
+await p.evaluate(()=>{S.tmode='list';render()}); await p.waitForTimeout(100);
 const lateIds=()=>p.evaluate(()=>inboxItems().filter(x=>x.k==='late').map(x=>x.id));
 const left=await lateIds(),todo=await p.evaluate(()=>[...document.querySelectorAll('#view .tlist .task')].map(x=>x.dataset.tid));
 console.log('soft-late tasks in Inbox, not on Today:', JSON.stringify(left), left.includes('s1')&&left.includes('s2')&&!todo.includes('s1')&&todo.includes('td'));
@@ -56,7 +56,8 @@ console.log('paused project stays off Today:', await p.evaluate(()=>!document.qu
 // 9 Nov: the sidebar lists only projects that moved this week
 console.log('sidebar marks it paused:', await p.evaluate(()=>{S.tasks.find(x=>x.id==='fy1').updatedAt=new Date().toISOString();render();return document.querySelector('aside [data-proj="fy"]')?.textContent.includes('paused')}));
 console.log('needs attention: 2+ weeks past, once:', await p.evaluate(()=>attentionLine().includes('past its date for 2+ weeks')));
-console.log('brief offers the triage:', await p.evaluate(()=>!!document.querySelector('.brief [data-triage="late"]')&&document.querySelector('.brief').textContent.includes('3 tasks past their dates')||document.querySelector('.brief').textContent.includes('Three tasks past their dates')));
+await p.evaluate(()=>{S.tmode='brief';render()}); await p.waitForTimeout(100);
+console.log('brief offers the triage:', await p.evaluate(()=>!!document.querySelector('.bf [data-triage="late"]')&&document.querySelector('.bf').textContent.includes('Sort three tasks past their dates')));
 // triage
 await p.click('[data-triage="late"]'); await p.waitForTimeout(200);
 console.log('triage opens on the oldest:', await p.evaluate(()=>document.getElementById('triDlg').open&&document.getElementById('triH').textContent==='Soft three weeks late'&&TR.ids.join()==='s2,s1,h1'));
@@ -88,12 +89,12 @@ console.log('Resume brings its tasks back:', await p.evaluate(()=>DB.projects.fi
 await p.click('[data-pause="fy"]'); await p.waitForTimeout(300);
 console.log('Pause again:', await p.evaluate(()=>!!DB.projects.find(x=>x.id==='fy').paused_at&&!onToday(S.tasks.find(x=>x.id==='fy2'))));
 // Friday wrap: overdue zero
-await p.evaluate(()=>{S.view='today';S.day_briefs=[{id:'b1',day:T(),edition:'friday',items:[],feedback:{}}];DB.day_briefs=S.day_briefs;S.tasks.push({id:'z1',title:'Soft late again',projectId:'zen',status:'todo',priority:'med',due:addDays(T(),-2),steps:[],activity:[],blockedBy:[]});render()}); await p.waitForTimeout(200);
-console.log('Friday: overdue zero line with Triage:', await p.evaluate(()=>{const s=[...document.querySelectorAll('.brief .bsec')].find(x=>x.querySelector('h3').textContent==='Your week');return!!s&&s.textContent.includes('Close the week at overdue zero: 1 left')}));
+await p.evaluate(()=>{S.view='today';S.tmode='brief';S.day_briefs=[{id:'b1',day:T(),edition:'friday',items:[],feedback:{}}];DB.day_briefs=S.day_briefs;S.tasks.push({id:'z1',title:'Soft late again',projectId:'zen',status:'todo',priority:'med',due:addDays(T(),-2),steps:[],activity:[],blockedBy:[]});render()}); await p.waitForTimeout(200);
+console.log('Friday: overdue zero line with Triage:', await p.evaluate(()=>{const s=[...document.querySelectorAll('.bf .bsec')].find(x=>x.querySelector('h3').textContent==='Your week');return!!s&&s.textContent.includes('Close the week at overdue zero: 1 left')}));
 await p.screenshot({path:new URL('out/triage.png',import.meta.url).pathname});
 // phone
 const m=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:2}); m.on('pageerror',e=>errs.push(e.message)); m.on('dialog',d=>d.accept());
-await setup(m); await m.evaluate(()=>{S.showBrief=true;S.tmode='list';render()});
+await setup(m); await m.evaluate(()=>{S.tmode='brief';render()});
 await m.click('#view [data-triage="late"]'); await m.waitForTimeout(200);
 console.log('phone: triage buttons 44px, no sideways scroll:', await m.evaluate(()=>[...document.querySelectorAll('#triBody .tri-acts .btn')].every(x=>x.getBoundingClientRect().height>=44)&&document.getElementById('triBody').scrollWidth<=document.getElementById('triBody').clientWidth+1));
 await m.screenshot({path:new URL('out/triage-phone.png',import.meta.url).pathname});

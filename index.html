@@ -860,13 +860,45 @@ a.tool{display:inline-flex;align-items:center;text-decoration:none}
   .hrow{grid-template-columns:minmax(0,1fr) auto;}.hrow .hds{grid-column:1/-1;order:3}.hacts{grid-column:1/-1;order:4}.hacts .tool{min-height:44px}
   .logw{grid-template-columns:1fr}.lc-d{min-height:52px;padding:6px}.gi .x{width:44px;height:44px}.gk{margin-left:10px}}
 /* the brief (top of Today), looking ahead, saved prompts, meeting countdown */
-.brief{margin:4px 0 24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l)}
-.brief>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:16px 20px;min-height:44px}
-.brief>summary::-webkit-details-marker{display:none}
-.brief>summary b{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.35}
-.brief>summary::after{content:"Show";font-size:12px;color:var(--accent);font-weight:500}
-.brief[open]>summary::after{content:"Hide"}
-.brief-b{padding:0 20px 14px;display:flex;flex-direction:column;gap:14px}
+/* the morning page (Today, mornings and the brief chip) */
+.bf{max-width:980px}
+.bf-h{display:flex;gap:22px;align-items:flex-start;margin:4px 0 30px;padding:26px 28px;background:var(--accent-soft);border-radius:var(--radius-xl)}
+.bf-date{flex:none;display:flex;flex-direction:column;align-items:center;line-height:1;color:var(--accent);font-family:var(--display)}
+.bf-date b{font-size:64px;font-weight:800;letter-spacing:-.04em}.bf-date span{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-top:4px}
+.bf-hb h1{font-family:var(--display);font-size:clamp(34px,5vw,52px);font-weight:800;letter-spacing:-.03em;line-height:1.02;margin:4px 0 10px;color:var(--ink)}
+.bf-sub{font-family:var(--serif);font-style:italic;font-size:18px;line-height:1.45;color:var(--muted);margin:0;max-width:640px}
+.bf-k{font-family:var(--serif);font-style:italic;font-weight:400;font-size:26px;letter-spacing:-.01em;margin:0;color:var(--ink);line-height:1.2}
+.bf-s,.bf-push{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:12px 36px;padding:26px 0;border-top:1px solid var(--line)}
+.bf-push{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:26px 28px;margin-bottom:6px;box-shadow:var(--soft)}
+.bf h3{font-size:17px;font-weight:600;line-height:1.35;margin:0;color:var(--ink);display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.bf p{margin:6px 0 0;font-size:15px;line-height:1.6;color:var(--muted);max-width:640px}
+.bf-tt{border:0;background:none;padding:0;font:inherit;color:inherit;text-align:left;text-decoration:none;cursor:pointer}
+button.bf-tt:hover,a.bf-tt:hover{text-decoration:underline;text-underline-offset:3px}
+.bf h3 em{font-family:var(--serif);font-weight:400;color:var(--faint);font-size:16px}
+.bf-src{font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 7px;border-radius:6px;background:var(--sunken);color:var(--muted);text-decoration:none;align-self:center}
+a.bf-src:hover{color:var(--accent)}.bf-src.hard{background:var(--danger-soft);color:var(--danger)}
+.bf-pa{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.bf-lets{border:0;border-radius:999px;background:var(--strong);color:var(--on-strong);font:600 15px var(--sans);padding:11px 20px;min-height:44px;cursor:pointer;transition:transform .2s var(--spring)}
+.bf-lets:hover{transform:translateY(-1px) rotate(-1deg)}
+.bf-td,.bf-up{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:22px}
+.bf-td li,.bf-up li{display:flex;gap:16px;align-items:flex-start}
+.bf-tick{flex:none;width:30px;height:30px;padding:0;border:0;background:none;color:var(--control);cursor:pointer;margin-top:-2px;border-radius:50%}
+.bf-tick svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6}.bf-tick svg path{opacity:0;stroke:var(--ok);stroke-width:2.2}
+.bf-tick:hover{color:var(--ok)}.bf-tick:hover svg path{opacity:1}.bf-tick.ghost{cursor:default}
+.bf-n{flex:none;width:30px;font-family:var(--mono);font-size:13px;color:var(--faint);padding-top:3px}
+.bf-acts{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.bf-fb,.bf-go{border:0;background:none;padding:2px 0;font:500 13px var(--sans);color:var(--faint);cursor:pointer;text-decoration:none}
+.bf-fb:hover{color:var(--accent)}.bf-go{color:var(--accent);font-size:14px;display:inline-block;margin-top:10px}
+.bf-more,.bf-free{color:var(--muted);font-size:14px}
+.bf-day{display:grid;grid-template-columns:minmax(200px,300px) 1fr;gap:10px 26px}
+.bf-tl{display:flex;flex-direction:column;gap:2px}
+.bf-ti{display:flex;gap:14px;align-items:baseline;text-align:left;border:0;background:none;border-radius:12px;padding:10px 12px;font:500 15px var(--sans);color:var(--ink);cursor:pointer}
+.bf-ti:hover{background:var(--sunken)}.bf-ti[aria-selected="true"]{background:var(--accent-soft)}.bf-ti.past{color:var(--faint)}
+.bf-tm{flex:none;min-width:58px;font-family:var(--mono);font-size:13px;color:var(--faint);font-weight:400}
+.bf-dd{padding:10px 0}.bf-dd h3 .bf-tm{min-width:0}
+.bf-wk{display:block}.bf .bf-wk .bsec h3{display:block;font-family:var(--serif);font-style:italic;font-weight:400;font-size:26px;text-transform:none;letter-spacing:-.01em;color:var(--ink);margin:0 0 10px}
+.bf-push+.bf-s{border-top:0}
+.bf-f{display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:28px 0 8px;border-top:1px solid var(--line)}
 .bsec h3{margin:0 0 4px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
 .bsec ul{list-style:none;margin:0;padding:0}
 .bi{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
@@ -881,8 +913,7 @@ button.bi-t:hover,a.bi-t:hover{text-decoration:underline;text-underline-offset:3
 .btag.active{background:var(--accent-soft);color:var(--accent)}
 .bi-a{display:flex;gap:4px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .bi-more{margin:4px 0 0;font-size:13px;color:var(--muted)}
-.bsec .act,.brief-f .act{display:inline-block;border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:4px 0}
-.brief-f{display:flex;gap:18px;flex-wrap:wrap;border-top:1px dashed var(--line-strong);padding-top:8px}
+.bsec .act{display:inline-block;border:0;background:none;color:var(--accent);font-weight:500;font-size:13px;padding:4px 0}
 .ahead{margin-bottom:24px;background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--radius-l);padding:12px 8px 12px}
 .ahead .sh{padding:0 8px 2px}
 .ahead-l{display:flex;flex-wrap:wrap;gap:6px;padding:0 8px}
@@ -896,9 +927,13 @@ button.bi-t:hover,a.bi-t:hover{text-decoration:underline;text-underline-offset:3
 .nc-ag b{color:var(--ink);font-weight:600}
 .nc-a{display:flex;gap:16px;flex-wrap:wrap}
 @media (max-width:820px){
-  .brief>summary{padding:14px 14px}.brief-b{padding:0 14px 12px}.btag{min-width:52px}
+  .btag{min-width:52px}
+  .bf-h{padding:20px 18px;gap:14px;border-radius:var(--radius-l)}.bf-date b{font-size:44px}.bf-sub{font-size:16px}
+  .bf-s,.bf-push,.bf-day{grid-template-columns:1fr}.bf-push{padding:20px 18px}.bf-k{font-size:23px}
+  .bf-tick{width:44px;height:44px;margin:-8px -7px 0}.bf-tick svg{width:30px;height:30px}.bf-td li,.bf-up li{gap:10px}
+  .bf-ti{min-height:44px;align-items:center}.bf-dd{border-top:1px dashed var(--line-strong)}
   .bi{flex-wrap:wrap}.bi-a{flex:1 1 100%;min-width:0;justify-content:flex-start;padding-left:68px}
-  .bi-a .tool,.ahead-l .tool,.pk-skills .tool,.bsec .act,.brief-f .act,.pk-skills>summary,.nc-a .more{min-height:44px}
+  .bi-a .tool,.ahead-l .tool,.pk-skills .tool,.bsec .act,.bf-fb,.bf-go,.bf-ti,.pk-skills>summary,.nc-a .more{min-height:44px}
   .bi-t{min-height:28px}
 }
 .duec.was,.ritem span.was,.meta .was{color:var(--muted)}
@@ -1472,7 +1507,7 @@ function inboxView(){
   const cnt=k=>k==="all"?all.length:all.filter(x=>x.k===k).length;
   let h=`<div class="head"><div><div class="eyebrow">Inbox</div><h1>Decide, one at a time.</h1><div class="sub">Nothing here is on Today until you say where it goes.</div></div><div class="right in-prog"><div class="bar" aria-hidden="true"><i style="width:${n0+left?Math.max(2,Math.round(n0/(n0+left)*100)):0}%"></i></div><span>${n0} decided · ${left} left${left?` · ~${Math.max(1,Math.round(left*5/60))} min`:""}</span></div></div>`;
   h+=`<div class="inbox"><div class="in-src" role="tablist" aria-label="Where it came from">${[["all","Everything"],...Object.entries(IK).map(([k,[l]])=>[k,l])].filter(([k])=>k==="all"||cnt(k)).map(([k,l])=>`<button role="tab" data-ik="${k}" aria-selected="${(S.ik||"all")===k}">${l}<span>${cnt(k)}</span></button>`).join("")}<p>Agents and chats still add tasks as before. Suggestions and anything past its date wait here, with unfiled notes and calls, so Today only holds what you chose.</p></div><div class="in-main">`;
-  if(!c)h+=`<div class="in-empty"><b>This pile is clear.</b><span>Today only holds what you chose.</span></div>`;
+  if(!c)h+=`<div class="in-empty"><b>This pile is clear. Lovely!</b><span>Today only holds what you chose.</span></div>`;
   else{const[kl,kc]=IK[c.k],x=c.t||c.n||c.s,p=proj(x.projectId);
     h+=`<article class="in-card" aria-labelledby="inH"><div class="in-top"><span class="in-k ${kc}">${kl}</span>${p?`<span class="proj"><span class="dot" style="background:${esc(p.color||"var(--faint)")}"></span>${esc(fullName(p))}</span>`:""}<span class="in-n">${pool.indexOf(c)+1+n0} of ${left+n0}</span></div>`;
     h+=`<h2 id="inH">${esc(c.t?c.t.title:c.n?c.n.title:callTitle(c.s))}</h2><p class="in-why">${esc(inboxWhy(c))}</p>`;
@@ -1494,7 +1529,7 @@ async function inAct(a){const c=inboxPool()[0];if(!c)return;
   if(a==="today"&&sugg(t)&&t.waitingOn){st.status="waiting";Object.assign(st,{waitingSince:now(),followUps:0,followUpOn:nextWork(T(),1)})}
   const P={today:{...st,todayDate:T(),...past},week:{...st,weekOf:wk,todayDate:null,...past},next:{...st,weekOf:addDays(wk,7),todayDate:null,...past},none:{...st,todayDate:null,weekOf:null,...(soft?{due:null,dueFirm:false,dueTime:null}:{})},done:{status:"done",doneAt:now()}}[a];
   S.inLog=[...(S.inLog||[]),{title:t.title,to:INL[a]}].slice(-3);S.inDone=(S.inDone||0)+1;S.inSkip=(S.inSkip||[]).filter(x=>x!==t.id);
-  if(a==="drop"){try{await S.db.doc("tasks/"+t.id).delete()}catch{toast("Couldn't drop that.")}return}
+  if(a==="drop"){try{await S.db.doc("tasks/"+t.id).delete()}catch{toast("Hmm, couldn't drop that. Mind trying again?")}return}
   await upd(t.id,{...P,activity:actLog(t,`Inbox: ${INL[a].toLowerCase()}${lapsed(t)?` (was for ${nice(t.due)})`:""}`)})}
 /* Today: in the morning, plan the day (a draft from the 9 AM lead's picks and today's dates); during the day, one list; in the evening, close the day */
 function planInit(){const t=T(),base=S.tasks.filter(x=>open(x)&&!bot(x)&&!parked(x)&&!waiting(x)&&!slip(x)&&(hiTask(x)||x.todayDate===t||x.due===t||startNow(x)||(doing(x)&&!stalled(x))));
@@ -1504,12 +1539,12 @@ const wantPlan=()=>S.view==="today"&&(S.tmode==="plan"||(S.tmode!=="list"&&!flag
 function planDayView(){if(!S.pd||S.pd.day!==T())planInit();
   const t=T(),P=S.pd,live=id=>S.tasks.find(x=>x.id===id&&open(x)),ids=P.ids.filter(live),d=parse(t),u=usualDay(),n=ids.length,over=u&&n>u;
   const fixed=[...S.tasks.filter(x=>slip(x)&&!bot(x)).sort((a,b)=>dueMs(a)-dueMs(b)).map(x=>({w:hm(x)?clock(hm(x)):"Today",t:`${x.title} (hard deadline)`,hard:1})),...callsToday().map(({s,p})=>({w:istFmt(p.next_at,{hour:"numeric",minute:"2-digit"}),t:s.name}))];
-  let h=`<header class="thead pd-h"><div><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))} · Plan the day</div><h1>Here’s a draft. Keep what fits.</h1><p class="sub">The 9 AM lead’s picks and what’s dated today. Add or remove tasks, star up to 3, then start the day.</p></div><div class="pd-go"><button class="btn primary" data-pdgo>Start the day with ${n}</button><button class="act" data-pdskip>Just show my list</button></div></header>`;
+  let h=`<header class="thead pd-h"><div><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))} · Plan the day</div><h1>Good morning! Here’s a draft. Keep what feels right.</h1><p class="sub">The 9 AM lead’s picks and what’s dated today. Add or remove tasks, star up to 3, then start the day.</p></div><div class="pd-go"><button class="btn primary" data-pdgo>Start the day with ${n}</button><button class="act" data-pdskip>Just show my list</button></div></header>`;
   h+=`<div class="pd-cap${over?" over":""}"><b>${n} planned</b><span class="bar" aria-hidden="true"><i style="width:${Math.min(100,Math.round(n/Math.max(u*1.33,n,1)*100))}%"></i></span><span>${u?over?`You finish about ${u} on a usual day. Drop ${n-u} or keep them as stretch.`:`Fits your usual day of about ${u}.`:"Keep it short: the list is what you commit to."}</span></div>`;
   h+=`<div class="pd"><section class="pd-list" aria-label="Today's draft">`;
   if(fixed.length)h+=`<div class="pd-fixed"><span class="eyebrow">Fixed today</span>${fixed.map(f=>`<div><span class="${f.hard?"late":"acc"}">${esc(f.w)}</span><span>${esc(f.t)}</span></div>`).join("")}</div>`;
   h+=ids.map(id=>{const x=live(id),p=proj(x.projectId),on=P.stars.includes(id),xid=esc(id);
-    return `<div class="pd-row"><button class="pd-star" data-pdstar="${xid}" aria-pressed="${on}" aria-label="${on?"Remove star":"Star as a focus for today"}: ${esc(x.title)}">${STAR}</button><div class="body"><span class="pd-t">${esc(x.title)}</span><span class="pd-m"><span class="dot" style="background:${esc(p?.color||"var(--faint)")}"></span>${esc(p?.name||"Unsorted")}${pdWhy(x)?` · ${esc(pdWhy(x))}`:""}</span></div><button class="pd-x" data-pdrm="${xid}" aria-label="Take ${esc(x.title)} off today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`}).join("")||`<div class="empty">Nothing in the draft yet. Add from the right.</div>`;
+    return `<div class="pd-row"><button class="pd-star" data-pdstar="${xid}" aria-pressed="${on}" aria-label="${on?"Remove star":"Star as a focus for today"}: ${esc(x.title)}">${STAR}</button><div class="body"><span class="pd-t">${esc(x.title)}</span><span class="pd-m"><span class="dot" style="background:${esc(p?.color||"var(--faint)")}"></span>${esc(p?.name||"Unsorted")}${pdWhy(x)?` · ${esc(pdWhy(x))}`:""}</span></div><button class="pd-x" data-pdrm="${xid}" aria-label="Take ${esc(x.title)} off today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`}).join("")||`<div class="empty">A blank page. Add what matters from the right.</div>`;
   h+=`<p class="pd-note">The star is today’s focus, up to 3. Anything you take off goes back to its week, not to Inbox. <button class="act" data-newtheme="day">+ Theme for today</button></p>`;
   {const cy=hiCarry("day");if(cy){const names=[...cy.th.map(f=>f.title),...cy.ts.map(x=>x.title)];h+=`<p class="hi-carry">Not finished from earlier: ${esc(names.slice(0,3).map(x=>trunc(x,40)).join("; "))}${names.length>3?` and ${names.length-3} more`:""}.<button class="act" data-hicarry="day">Carry to today</button></p>`}}
   h+=`</section><section class="pd-cand" aria-label="Could also go on today">`;
@@ -1526,38 +1561,39 @@ async function pdGo(){const t=T(),P=S.pd;if(!P)return;const live=id=>S.tasks.fin
     if(Object.keys(patch).length)await upd(id,patch)}
   for(const id of P.orig.filter(id=>!P.ids.includes(id))){const x=live(id);if(!x)continue;const soft=!firm(x);
     await upd(id,{todayDate:null,highlightDay:null,...(soft&&x.due===t?{due:null,dueFirm:false,weekOf:x.weekOf||week()[0]}:{}),activity:actLog(x,"Plan the day: taken off today")})}
-  flagSet(PLANK);S.tmode="list";render();document.querySelector("main").scrollTo(0,0);toast(`Day planned: ${word(n)} task${n===1?"":"s"}`)}
+  flagSet(PLANK);S.tmode="list";render();document.querySelector("main").scrollTo(0,0);toast(`Day planned: ${word(n)} task${n===1?"":"s"}. Have a lovely day!`)}
 const STAR=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>`;
+const CHEERS=["Done! Nice one.","Ticked off. Lovely work.","Done. One less thing to carry.","Done! Keep it rolling.","Nicely done. That feels good."];
+const cheer=()=>CHEERS[Math.floor(Math.random()*CHEERS.length)];
 const tOrd=x=>x.status==="done"?9:slip(x)?0:hiTask(x)?1:doing(x)?2:blocked(x)?5:waiting(x)?4:3;
-function todayView(){if(wantPlan())return planDayView();
+function todayView(){if(wantBrief())return briefView();if(wantPlan())return planDayView();
   const t=T(),d=parse(t),ts=todayList(),dn=S.tasks.filter(x=>doneOn(x,t)&&!bot(x));
   const list=[...ts.sort((a,b)=>tOrd(a)-tOrd(b)||(slip(a)&&slip(b)?dueMs(a)-dueMs(b):0)||(PR[a.priority||"med"]-PR[b.priority||"med"])||byAge(a,b)),...dn];
   const n=ts.length,hard=ts.filter(slip),tm=hard.filter(hm).sort((a,b)=>dueMs(a)-dueMs(b))[0];
-  const line=n?`${cap(word(n))} left today.${hard.length?` ${hard.length===1?"One has":cap(word(hard.length))+" have"} a hard deadline${tm?`, the first by ${clock(hm(tm))}`:""}.`:""}`:dn.length?"All done. Close the day when you’re ready.":"Nothing on today yet.";
+  const line=n?`${cap(word(n))} to go today. You’ve got this.${hard.length?` ${hard.length===1?"One has":cap(word(hard.length))+" have"} a hard deadline${tm?`, the first by ${clock(hm(tm))}`:""}.`:""}`:dn.length?"All done! Take a bow, then close the day when you’re ready.":"A clear day so far. Lovely.";
   let h=`<header class="thead"><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))}</div><h1>${esc(line)}</h1><div class="tprog"><div class="bar" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="${n+dn.length}" aria-valuenow="${dn.length}"><i style="width:${n+dn.length?Math.round(dn.length/(n+dn.length)*100):0}%"></i></div><span>${dn.length} of ${n+dn.length} done</span></div></header>`;
   // one line of chips instead of the blocks that used to sit above the list
   const nx=seriesSorted().map(s=>({s,at:S.prep[s.id]?.next_at})).find(x=>x.at&&new Date(x.at)>Date.now()-90*6e4&&iso(new Date(x.at))===t),ni=inboxN(),qn=quickList().length;
   const ch=[];
   if(nx)ch.push(`<button class="tchip acc" data-cs="${esc(nx.s.id)}"><b>Up next</b> ${esc(nx.s.name)}, ${esc(istFmt(nx.at,{hour:"numeric",minute:"2-digit"}))}</button>`);
   if(ni)ch.push(`<button class="tchip warn" data-go="inbox">${ni} in Inbox</button>`);
-  ch.push(`<button class="tchip" data-showbrief aria-expanded="${!!S.showBrief}">Brief</button>`);
+  ch.push(`<button class="tchip" data-tmode="brief">${esc(edName(briefOf()?.edition||edOf(),parse(t)))}</button>`);
   for(const f of themesOn(t,"day")){const l=themeTasks(f),k=l.filter(x=>x.status==="done").length;ch.push(`<button class="tchip${themeDone(f)?" ok":""}" data-themeedit="${esc(f.id)}" title="Today's theme">${esc(trunc(f.title,48))} · ${l.length?`${k} of ${l.length} closed`:themeDone(f)?"done":"open"}</button>`)}
   if(qn)ch.push(`<button class="tchip" data-sprint>${qn} two-minute task${qn===1?"":"s"}</button>`);
   ch.push(`<button class="tchip" data-tmode="plan">Plan the day</button>`);
   if(evening()||(!n&&dn.length))ch.push(flagOn(CLOSEK)?`<span class="tchip ok">Day closed</span>`:`<button class="tchip strong" data-go="close">Close the day</button>`);
   h+=`<div class="tchips">${ch.join("")}</div>`;
   {const s=seriesSorted().find(x=>{const a=S.prep[x.id]?.next_at,ms=a&&new Date(a)-Date.now();return a&&ms<60*6e4&&ms>-90*6e4});if(s)h+=nextCallCard()}
-  if(S.showBrief)h+=dayBrief();
-  h+=`<section class="tlist" aria-label="Today's list">${list.map(row).join("")||`<div class="empty">Your list for today is clear. <button class="act" data-tmode="plan">Plan the day</button> or add something below.</div>`}</section>`;
+  h+=`<section class="tlist" aria-label="Today's list">${list.map(row).join("")||`<div class="empty">Your list for today is clear, and that feels good. <button class="act" data-tmode="plan">Plan the day</button> or add something below.</div>`}</section>`;
   h+=quick("Add to today");
   const botN=S.tasks.filter(x=>open(x)&&bot(x)).length;
-  h+=`<p class="tfoot">Finished tasks stay crossed off until tomorrow.${botN?` ${cap(word(botN))} agent job${botN===1?" is":"s are"} under <button class="act" data-go="agents">Plan › Agents</button>.`:""}</p>`;
+  h+=`<p class="tfoot">Finished tasks stay crossed off until tomorrow, so you can enjoy them.${botN?` ${cap(word(botN))} agent job${botN===1?" is":"s are"} under <button class="act" data-go="agents">Plan › Agents</button>.`:""}</p>`;
   return h}
 /* the evening: settle what's left, a check-in, and up to 3 stars for the next working day */
 function closeView(){const t=T(),d=parse(t),left=todayList().filter(x=>!waiting(x)),dn=S.tasks.filter(x=>doneOn(x,t)&&!bot(x)),cd=S.cd||(S.cd={}),nx=tmrw(),nxn=parse(nx).toLocaleDateString("en-GB",{weekday:"long"});
   const hardAll=S.tasks.filter(x=>!bot(x)&&x.due===t&&(x.dueFirm||x.dueTime)),hardMet=hardAll.filter(x=>x.status==="done").length;
   const later=week()[6]>=addDays(nx,1)?"Later this week":"Next week";
-  let h=`<header class="thead"><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))} · Close the day</div><h1>Close the day. About a minute.</h1><p class="sub">${dn.length} of ${dn.length+left.length} done${hardAll.length?`, ${hardMet===hardAll.length?(hardAll.length===1?"and the hard deadline is met":"and every hard deadline is met"):`${hardAll.length-hardMet} hard deadline${hardAll.length-hardMet===1?"":"s"} still open`}`:""}. ${left.length?`${cap(word(left.length))} left.`:"Nothing left."}</p><button class="act" data-go="today">Back to the list</button></header>`;
+  let h=`<header class="thead"><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))} · Close the day</div><h1>Nicely done today. Let’s close it up.</h1><p class="sub">${dn.length} of ${dn.length+left.length} done${hardAll.length?`, ${hardMet===hardAll.length?(hardAll.length===1?"and the hard deadline is met":"and every hard deadline is met"):`${hardAll.length-hardMet} hard deadline${hardAll.length-hardMet===1?"":"s"} still open`}`:""}. ${left.length?`${cap(word(left.length))} left.`:"Nothing left."}</p><button class="act" data-go="today">Back to the list</button></header>`;
   const step=(i,title,body,extra="")=>`<section class="cd"><h2><span class="cd-n">${i}</span>${title}${extra}</h2>${body}</section>`;let i=0;
   if(left.length)h+=step(++i,"What’s left goes somewhere",left.map(x=>`<div class="cd-row"><span>${esc(x.title)}</span><div role="radiogroup" aria-label="Where ${esc(x.title)} goes">${[["tomorrow",nxn==="Monday"?"Monday":"Tomorrow"],["later",later],["none","No date"],["done","Already done"]].map(([k,l])=>`<button type="button" role="radio" aria-checked="${cd[x.id]===k}" data-cd="${esc(x.id)}" data-v="${k}">${l}</button>`).join("")}</div></div>`).join("")+`<p class="pd-note">Anything you leave unpicked stays where it is.</p>`);
   const l=logOf(t),cur=S.ci||{energy:l?.energy||null,mood:l?.mood||null},F=S.cdF||{};
@@ -1575,7 +1611,7 @@ async function closeDay(){const t=T(),nx=tmrw(),cd=S.cd||{},wk=week();let n=0;
     await upd(id,{...patch,activity:actLog(x,`Close the day: ${v==="tomorrow"?"tomorrow":v==="later"?"later this week":"no date"}`)})}
   const l=logOf(t),F=S.cdF||{},ci=S.ci||{},data={};
   if(ci.energy)data.energy=ci.energy;if(ci.mood)data.mood=ci.mood;if(F.line!=null)data.line=F.line.trim()||null;if(F.win!=null)data.win=F.win.trim()||null;
-  if(Object.keys(data).length)try{await saveLog(t,data)}catch{toast("Couldn't save the check-in.")}
+  if(Object.keys(data).length)try{await saveLog(t,data)}catch{toast("Hmm, couldn't save the check-in. Mind trying again?")}
   flagSet(CLOSEK);S.cd={};S.cdF={};S.ci=null;S.view="today";render();document.querySelector("main").scrollTo(0,0);toast(n?`Day closed. ${cap(word(n))} task${n===1?"":"s"} placed.`:"Day closed.")}
 /* Plan: one place for the week, waiting, calls, agents and reviews (goals, areas, habits, the log and life admin live under Review) */
 function planTabs(){const cur=planTab(S.view),wn=S.tasks.filter(waiting).length,an=S.tasks.filter(x=>open(x)&&bot(x)).length;
@@ -1777,7 +1813,7 @@ const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 function todayHead(n,done){
   const d=parse(T()),hr=+new Date().toLocaleString("en-US",{timeZone:"Asia/Kolkata",hour:"numeric",hourCycle:"h23"});
   const hi=hr<12?"Good morning.":hr<17?"Good afternoon.":"Good evening.";
-  const line=n?`${cap(word(n))} thing${n===1?"":"s"} today.`:"Nothing left for today.";
+  const line=n?`${cap(word(n))} thing${n===1?"":"s"} today. You’ve got this.`:"Nothing left for today. Lovely.";
   const tot=n+done,pct=tot?Math.round(done/tot*100):0;
   return `<header class="thead"><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))}</div><h1>${hi} ${line}</h1><div class="tprog"><div class="bar" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}"><i style="width:${pct}%"></i></div><span>${done} of ${tot} done</span></div></header>`}
 // tasks the focus block shows, so the lists below can leave them out
@@ -1873,7 +1909,7 @@ function triOpen(mode="late"){TR.mode=mode;TR.i=0;TR.n={};
   triDraw();const d=document.getElementById("triDlg");if(!d.open)d.showModal()}
 function triDraw(){const el=document.getElementById("triBody"),t=TR.i<TR.ids.length&&S.tasks.find(x=>x.id===TR.ids[TR.i]);
   const moved=Object.values(TR.n).reduce((a,b)=>a+b,0),sum=Object.entries(TR.n).map(([k,v])=>`${v} ${TRL[k].toLowerCase()}`).join(" · ");
-  if(!t){el.innerHTML=`<h3 id="triH">${moved?`Sorted ${word(moved)}.`:"Nothing to sort."}</h3><p class="dlg-sub">${esc(sum)||"All clear."}${TR.mode==="late"&&!triList().length?" Overdue zero.":""}</p><div class="foot"><span class="spacer"></span><button class="btn primary" data-close>Close</button></div>`;return}
+  if(!t){el.innerHTML=`<h3 id="triH">${moved?`Sorted ${word(moved)}.`:"Nothing to sort."}</h3><p class="dlg-sub">${esc(sum)||"All clear."}${TR.mode==="late"&&!triList().length?" Overdue zero. Feels good, right?":""}</p><div class="foot"><span class="spacer"></span><button class="btn primary" data-close>Close</button></div>`;return}
   const p=proj(t.projectId),k=t.due?daysBetween(t.due,T()):0;
   const when=t.due?(t.due<T()?`${firm(t)?"Hard deadline missed":"Was for"} ${nice(t.due)} · ${k} day${k===1?"":"s"} ago`:`Due ${nice(t.due)}`):t.weekOf?"Planned this week":"No date";
   const b=(a,l,cls="")=>`<button class="btn ${cls}" data-tri="${a}">${l}</button>`;
@@ -1890,7 +1926,7 @@ async function triAct(a){const id=TR.ids[TR.i];if(!id)return;const t=S.tasks.fin
   if(a==="none"&&!soft&&!confirm(`“${t.title}” is a hard deadline. Remove its date?`)){TR.i--;return}
   const patch=a==="today"?{todayDate:T(),...nd}:a==="week"?{weekOf:week()[0],todayDate:null,...nd}:a==="next"?{weekOf:addDays(week()[0],7),todayDate:null,...nd,...(TR.mode==="week"?{due:soft?null:t.due}:{})}:a==="none"?{due:null,dueFirm:false,dueTime:null,weekOf:null,todayDate:null}:null;
   TR.n[a]=(TR.n[a]||0)+1;triDraw();
-  if(a==="drop"){try{await S.db.doc("tasks/"+id).delete()}catch{toast("Couldn't drop that task.")}}
+  if(a==="drop"){try{await S.db.doc("tasks/"+id).delete()}catch{toast("Hmm, couldn't drop that task. Mind trying again?")}}
   else await upd(id,{...patch,activity:actLog(t,`Triage: ${TRL[a].toLowerCase()}${t.due&&soft&&a!=="today"?` (was for ${nice(t.due)})`:""}`)});
   // the last one: redraw the summary once its save has landed, so "overdue zero" is right
   if(TR.i>=TR.ids.length&&document.getElementById("triDlg").open)triDraw()}
@@ -1903,8 +1939,6 @@ const owes=t=>open(t)&&!!t.owedTo&&!bot(t);
 const youOwe=()=>S.tasks.filter(owes).sort(byAge);
 const briefOf=(d=T())=>(S.day_briefs||[]).find(b=>b.day===d)||null;
 const edOf=(d=T())=>{const w=parse(d).getDay();return w===1?"monday":w===5?"friday":"daily"};
-const ED={daily:"Morning brief",monday:"Monday brief",friday:"Friday wrap"};
-const BTAG={needs_you:"Needs you",awaiting:"Awaiting reply",active:"Active"};
 const LEADRE=/^Marked high impact by daily routine:?\s*/;
 // a star the 9 AM lead set in the last day, so the brief can ask whether it was a good pick
 const leadPick=t=>hiTask(t)&&open(t)&&(Array.isArray(t.activity)?t.activity:[]).some(a=>LEADRE.test(a?.text||"")&&Date.now()-new Date(a.at||0)<24*36e5);
@@ -1929,48 +1963,99 @@ const httpsUrl=u=>/^https:\/\//.test(String(u||""));
 // one line: a tag, the text (a link to its task, note or source), why, and actions
 function bLi(tag,cls,main,why="",acts=""){return `<li class="bi">${tag?`<span class="btag ${cls}">${tag}</span>`:""}<div>${main}${why?`<span class="bi-w">${why}</span>`:""}</div>${acts?`<span class="bi-a">${acts}</span>`:""}</li>`}
 const bT=(attr,text)=>attr?`<button class="bi-t" ${attr}>${esc(text)}</button>`:`<span class="bi-t">${esc(text)}</span>`;
-function bItem(b,x){const rid=x.ref_id,rt=x.ref_type;
-  const attr=rt==="task"&&S.tasks.some(t=>t.id===rid)?`data-peek="${esc(rid)}"`:rt==="note"&&S.notes.some(n=>n.id===rid)?`data-editnote="${esc(rid)}"`:"";
-  const main=attr?bT(attr,x.text):httpsUrl(x.url)?`<a class="bi-t" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>`:bT("",x.text);
-  const src=attr&&httpsUrl(x.url)?` · <a href="${esc(x.url)}" target="_blank" rel="noopener">Source</a>`:"";
-  const fb=(v,l,ti)=>`<button class="tool" data-bfb="${v}" data-b="${esc(b.id)}" data-k="${esc(x.key)}" aria-label="${l}: ${esc(x.text)}" title="${ti}">${l}</button>`;
-  return bLi(BTAG[x.tag]||"",esc(x.tag||""),main,esc(x.why||"")+src,fb("done","Done","Handled")+fb("later","Not now","Hide it for today")+fb("no","Not useful","Hide it, and the 9 AM lead skips things like this"))}
 const bSec=(title,lis,extra="")=>`<div class="bsec" role="group" aria-label="${title}"><h3>${title}</h3><ul>${lis.join("")}</ul>${extra}</div>`;
-const BK="ambalam.brief.v1";
-const briefShut=()=>{try{return localStorage.getItem(BK)===T()}catch{return false}};
-function dayBrief(){if(S.day&&S.day!==T())return"";
-  const t=T(),b=briefOf(t),ed=b?.edition||edOf(t),items=bItems(b),of=s=>items.filter(x=>(x.section||"needs_you")===s).map(x=>bItem(b,x));
-  const owe=youOwe(),moved=sinceYesterday(),picks=S.tasks.filter(leadPick),slipN=S.tasks.filter(x=>slip(x)&&!bot(x)).length;
-  const calls=seriesSorted().map(s=>({s,p:S.prep[s.id]})).filter(x=>x.p?.next_at&&iso(new Date(x.p.next_at))===t&&new Date(x.p.next_at)>Date.now()-90*6e4);
-  const parts=[];
-  const ny=[...of("needs_you"),...owe.slice(0,8).map(x=>bLi("Owed","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),`${esc(x.owedTo)} is waiting · added ${esc(ago(x.createdAt||now()))}`,`<button class="tool" data-quickdone="${esc(x.id)}" aria-label="Done: ${esc(x.title)}">Done</button>`))];
-  {const tl_=triList(),lg=tl_.filter(lapsedLong).length;if(tl_.length)ny.push(bLi("Decide","needs_you",`<button class="bi-t" data-triage="late">${cap(word(tl_.length))} task${tl_.length===1?"":"s"} past ${tl_.length===1?"its date":"their dates"}</button>`,lg?`${lg} for over 2 weeks. Today, a week, or no date?`:"Today, a week, or no date? About 10 seconds each.",`<button class="tool" data-triage="late">Triage</button>`))}
-  if(ny.length)parts.push(bSec("Needs you",ny,owe.length>8?`<p class="bi-more">And ${owe.length-8} more you owe.</p>`:""));
-  const yd=[...(slipN?[bLi("Hard","needs_you",bT("",`${cap(word(slipN))} hard deadline${slipN===1?"":"s"} today`),"In “Can't slip” below")]:[]),
-    ...calls.map(({s,p})=>bLi(esc(istFmt(p.next_at,{hour:"numeric",minute:"2-digit"})),"active",bT(`data-cs="${esc(s.id)}"`,s.name),`${agendaOf(p).length} to raise · ${p.asks.length+p.inputs.length} to ask`)),...of("ahead")];
-  if(yd.length)parts.push(bSec("Your day",yd));
-  if(picks.length)parts.push(bSec("Picked for you",picks.map(x=>bLi("★","active",bT(`data-peek="${esc(x.id)}"`,x.title),esc(leadWhy(x)||"Starred by the 9 AM lead"),`<button class="tool" data-hino="${esc(x.id)}" aria-label="Not useful: ${esc(x.title)}" title="Unstar it and tell the 9 AM lead it was a poor pick">Not useful</button>`))));
-  const up=[...of("updates"),...moved.slice(0,6).map(({p,cs})=>bLi(String(cs.length),"active",bT(`data-proj="${esc(p.id)}"`,p.name),esc(cs.slice(0,2).map(c=>trunc(c.summary,70)).join(" · "))))];
-  if(up.length)parts.push(bSec(parse(t).getDay()===1?"Since Friday":"Since yesterday",up));
-  if(ed==="monday"){const L=lastWeekBits(),N=thisWeekBits();
-    parts.push(bSec("Last week",[bLi("Done","active",bT("",`${L.done.length} task${L.done.length===1?"":"s"} done`),L.slipped.length?`${L.slipped.length} slipped: ${esc(L.slipped.slice(0,3).map(x=>trunc(x.title,40)).join("; "))}`:"Nothing slipped"),
-      ...L.slipped.slice(0,3).map(x=>bLi("Slipped","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),`was due ${esc(nice(x.due))}`))]));
-    const cp=capLine();
-    const tw=[...(cp?[cp]:[]),...N.th.map(f=>{const l=themeTasks(f),d=l.filter(x=>x.status==="done").length;return bLi("Focus","active",bT(`data-themeedit="${esc(f.id)}"`,f.title),l.length?`${d} of ${l.length} closed`:"")}),
+/* The morning page (after Dia's brief, 19 Nov): it opens Today once a day in the morning, before Plan the day; later the Brief chip brings it back.
+   Five parts: one thing Claude can push forward with you, top to-dos (tick to finish), your day as a timeline, new updates, and on Monday or Friday your week.
+   The 9 AM lead's day_briefs row adds headline, push (with a prompt), to-dos, timeline items and updates; without it the app builds every part itself. */
+const BREADK="ambalam.briefread";
+const wantBrief=()=>S.view==="today"&&(S.tmode==="brief"||(!S.tmode&&!S.noAutoPlan&&!flagOn(BREADK)&&!flagOn(PLANK)&&istHour()>=5&&istHour()<14));
+const edName=(ed,d)=>ed==="friday"?"Friday wrap":`${d.toLocaleDateString("en-GB",{weekday:"long"})} brief`;
+const ED={daily:"brief",monday:"Monday brief",friday:"Friday wrap"};
+// where an agent item came from, for the little label after its title
+const bSrcOf=x=>{const s=String(x?.source||"").toLowerCase(),u=String(x?.url||"");
+  return s==="linear"||/linear\.app/.test(u)?"Linear":s==="gmail"||s==="email"||/mail\.google/.test(u)?"Gmail":s==="calendar"||/calendar\.google/.test(u)?"Calendar":s==="slack"||/slack\.com/.test(u)?"Slack":s==="call"?"Call":s?cap(s):""};
+const bSrc=(x,label)=>{const l=label||bSrcOf(x);if(!l)return"";return httpsUrl(x?.url)?`<a class="bf-src" href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="Open in ${esc(l)}">${esc(l)}</a>`:`<span class="bf-src">${esc(l)}</span>`};
+const bRef=x=>x?.ref_type==="task"?S.tasks.find(t=>t.id===x.ref_id):null;
+const bAttr=x=>{const t=bRef(x);return t?`data-peek="${esc(t.id)}"`:x?.ref_type==="note"&&S.notes.some(n=>n.id===x.ref_id)?`data-editnote="${esc(x.ref_id)}"`:""};
+const bTitle=(attr,text,url)=>attr?`<button class="bf-tt" ${attr}>${esc(text)}</button>`:httpsUrl(url)?`<a class="bf-tt" href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>`:`<span class="bf-tt">${esc(text)}</span>`;
+const bFb=(b,x,set="ln")=>{const f=(v,l,ti)=>`<button class="bf-fb" data-bfb="${v}" data-b="${esc(b.id)}" data-k="${esc(x.key)}" aria-label="${l}: ${esc(x.text)}" title="${ti}">${l}</button>`;
+  return (set.includes("l")?f("later","Not now","Hide it for today"):"")+(set.includes("n")?f("no","Not useful","Hide it, and the 9 AM lead skips things like this"):"")};
+const tick=(attr,label)=>`<button class="bf-tick" ${attr} aria-label="${esc(label)}" title="Done"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.6L16 9.6"/></svg></button>`;
+const snip=t=>trunc(String(t?.resumeNote||t?.notes||"").replace(/\s+/g," ").trim(),180);
+// the one thing to push forward: the lead's pick, else stalled work, else someone waiting, else a starred task
+function pushPick(b){const x=bItems(b).find(i=>i.section==="push");
+  if(x){const t=bRef(x);return{x,t,title:x.text,body:x.body||x.why||"",prompt:x.prompt||"",url:x.url}}
+  const c=S.tasks.filter(t=>open(t)&&!bot(t)&&!parked(t)&&!waiting(t)&&!blocked(t)&&!sugg(t)),pri=t=>PR[t.priority||"med"];
+  const st=c.filter(stalled).sort((a,b)=>pri(a)-pri(b)||byAge(a,b))[0],ow=c.filter(owes).sort(byAge)[0],hi=c.filter(hiTask)[0],t=st||ow||hi;if(!t)return null;
+  const body=t===st?`You started this ${ago(t.startedAt||t.updatedAt||now())} and it has gone quiet.${t.resumeNote?` You left it at: “${trunc(t.resumeNote,120)}”.`:""} Claude can pick it up with you and get it moving again.`
+    :t===ow?`${t.owedTo} is waiting on this. Claude can draft it with you, so it's off your plate before lunch.`
+    :`${leadPick(t)&&leadWhy(t)?cap(leadWhy(t))+". ":""}Claude can work through it with you, step by step.`;
+  return{t,title:t.title,body,prompt:"",url:""}}
+function pushPrompt(b){const p=pushPick(b);if(!p)return"";
+  if(p.t)return claudePrompt(p.t,p.prompt||null);
+  return ["Use the task-hub skill.","",p.title,p.body?`Context: ${p.body}`:"",p.url?`Source: ${p.url}`:"","",p.prompt||"Help me move this forward: propose a short plan, then do the work with me. Never send anything without asking."].filter((l,i,a)=>l||a[i-1]).join("\n")}
+// your day: calls, hard times and the lead's calendar items, by time (IST)
+const hhmm=s=>{const m=String(s||"").match(/^\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?\b/i);if(!m)return null;let h=+m[1];const mi=+(m[2]||0),ap=(m[3]||"").toLowerCase();
+  if(!m[2]&&!ap)return null;if(ap.startsWith("p")&&h<12)h+=12;if(ap.startsWith("a")&&h===12)h=0;return h<24&&mi<60?h*60+mi:null};
+const minClock=n=>clock(`${Math.floor(n/60)}:${n%60}`);
+const istMin=d=>{const s=new Date(d).toLocaleString("en-GB",{timeZone:"Asia/Kolkata",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});const[h,m]=s.split(":").map(Number);return h*60+m};
+function dayLine(b){const t=T(),its=bItems(b).filter(x=>x.section==="ahead"),L=[];
+  for(const{s,p}of callsToday()){const pts=agendaOf(p);L.push({m:istMin(p.next_at),title:s.name,kind:"call",
+    body:pts.length?`${pts.length} point${pts.length===1?"":"s"} to raise: ${pts.slice(0,3).map(a=>trunc(a.text,60)).join("; ")}.`:"Nothing on the agenda yet. A quick prep makes it a breeze.",act:`<button class="bf-go" data-cs="${esc(s.id)}">Prep me →</button>`})}
+  for(const x of S.tasks.filter(x=>firm(x)&&!bot(x)&&x.due===t&&hm(x))){const[h,mi]=hm(x).split(":").map(Number);
+    L.push({m:h*60+mi,title:x.title,kind:"hard",body:`A hard deadline${proj(x.projectId)?` for ${proj(x.projectId).name}`:""}. ${snip(x)||"Get it in on time and the rest of the day is yours."}`,act:`<button class="bf-go" data-peek="${esc(x.id)}">Open it →</button>`})}
+  for(const x of its){const m=hhmm(x.at)??hhmm(x.text);const title=String(x.text).replace(/^\s*\d{1,2}(:\d{2})?\s*(am|pm|a|p)?\.?\s*[–—:-]?\s*/i,m==null?"$&":"");
+    L.push({m,title:title||x.text,kind:"agent",x,body:x.body||x.why||"",act:(httpsUrl(x.url)?`<a class="bf-go" href="${esc(x.url)}" target="_blank" rel="noopener">Open in ${esc(bSrcOf(x)||"source")} →</a>`:"")})}
+  return L.sort((a,b)=>(a.m??1e4)-(b.m??1e4))}
+function happyLine(d,push,line){const wd=d.toLocaleDateString("en-GB",{weekday:"long"}),first=line.find(x=>x.m!=null),now_=istMin(Date.now());
+  const shape=!line.length?"a wide-open day":first&&first.m>now_+120?`a clear run until ${minClock(first.m)}`:line.length===1?`one thing on the clock`:`${word(line.length)} things on the clock`;
+  const p=push?.t?proj(push.t.projectId):null;
+  return `${wd} with ${shape}. ${p?`Plenty of room for ${p.name} to feel the love.`:"Plenty of room to make good things happen."}`}
+function briefView(){if(!S.tmode){S.tmode="brief";flagSet(BREADK)}
+  const t=T(),d=parse(t),b=briefOf(t),ed=b?.edition||edOf(t),items=bItems(b),of=s=>items.filter(x=>(x.section||"needs_you")===s);
+  const push=pushPick(b),line=dayLine(b),pushId=push?.t?.id;
+  const by=b?`9 AM lead, ${istFmt(b.updatedAt||b.createdAt||now(),{hour:"numeric",minute:"2-digit"})}`:istFmt(now(),{hour:"numeric",minute:"2-digit"});
+  let h=`<header class="bf-h"><div class="bf-date" aria-hidden="true"><b>${esc(d.getDate())}</b><span>${esc(d.toLocaleDateString("en-GB",{month:"short"}))}</span></div><div class="bf-hb"><div class="eyebrow">${esc(by)}</div><h1>${esc(edName(ed,d))}</h1><p class="bf-sub">${esc(b?.headline||happyLine(d,push,line))}</p></div></header>`;
+  // 1. push your work forward
+  if(push)h+=`<section class="bf-push" aria-label="Push your work forward"><h2 class="bf-k">Push your work forward</h2><div><h3>${bTitle(push.t?`data-peek="${esc(push.t.id)}"`:"",push.title,push.url)}${push.x?bSrc(push.x):""}</h3>${push.body?`<p>${esc(push.body)}</p>`:""}<div class="bf-pa"><button class="bf-lets" data-bpush>Let’s do it →</button>${push.x?bFb(b,push.x,"l"):""}</div></div></section>`;
+  // 2. top to-dos: tick to finish
+  const td=[];
+  for(const x of of("needs_you")){const r=bRef(x);if(r&&(r.id===pushId||!open(r)))continue;
+    td.push({tick:tick(`data-bfb="done" data-b="${esc(b.id)}" data-k="${esc(x.key)}"`,`Done: ${x.text}`),title:bTitle(bAttr(x),x.text,x.url)+bSrc(x),body:x.body||x.why||"",acts:bFb(b,x)})}
+  for(const x of S.tasks.filter(x=>slip(x)&&!bot(x)&&!(x.due===t&&hm(x)))){
+    td.push({tick:tick(`data-quickdone="${esc(x.id)}"`,`Done: ${x.title}`),title:bTitle(`data-peek="${esc(x.id)}"`,x.title)+`<span class="bf-src hard">Hard deadline</span>`,body:x.due<t?`It was due ${nice(x.due)}. Finish it or agree a new date, and it stops following you around.`:`Due today${proj(x.projectId)?` for ${proj(x.projectId).name}`:""}. ${snip(x)}`})}
+  const owe=youOwe().filter(x=>x.id!==pushId);
+  for(const x of owe.slice(0,4))td.push({tick:tick(`data-quickdone="${esc(x.id)}"`,`Done: ${x.title}`),title:bTitle(`data-peek="${esc(x.id)}"`,x.title),body:`${x.owedTo} is waiting on you (asked ${ago(x.createdAt||now())}). ${snip(x)}`.trim()});
+  for(const x of S.tasks.filter(x=>leadPick(x)&&x.id!==pushId&&!owes(x)))td.push({tick:tick(`data-quickdone="${esc(x.id)}"`,`Done: ${x.title}`),title:bTitle(`data-peek="${esc(x.id)}"`,x.title)+`<span class="bf-src">★ Picked for you</span>`,body:cap(leadWhy(x)||"The 9 AM lead thinks this one counts today."),acts:`<button class="bf-fb" data-hino="${esc(x.id)}" aria-label="Not useful: ${esc(x.title)}" title="Unstar it and tell the 9 AM lead it was a poor pick">Not useful</button>`});
+  {const n=triList().length;if(n)td.push({tick:`<span class="bf-tick ghost" aria-hidden="true"></span>`,title:`<button class="bf-tt" data-triage="late">Sort ${word(n)} task${n===1?"":"s"} past ${n===1?"its date":"their dates"}</button>`,body:"Today, a week, or no date? About ten seconds each, and your lists feel lighter.",acts:`<button class="bf-fb" data-triage="late">Sort them</button>`})}
+  if(td.length)h+=`<section class="bf-s" aria-label="Top to-dos"><h2 class="bf-k">Top to-dos</h2><ul class="bf-td">${td.map(r=>`<li>${r.tick}<div><h3>${r.title}</h3>${r.body?`<p>${esc(r.body)}</p>`:""}${r.acts?`<div class="bf-acts">${r.acts}</div>`:""}</div></li>`).join("")}</ul>${owe.length>4?`<p class="bf-more">And ${word(owe.length-4)} more people waiting. They’re in Plan the day.</p>`:""}</section>`;
+  // 3. your day
+  {const nowM=istMin(Date.now()),sel=Math.min(S.bdsel??Math.max(0,line.findIndex(x=>x.m==null||x.m>=nowM-30)),Math.max(0,line.length-1)),cur=line[sel];
+    h+=`<section class="bf-s" aria-label="Your day"><h2 class="bf-k">Your day</h2>`+(line.length?`<div class="bf-day"><div class="bf-tl" role="tablist" aria-label="Today's times">${line.map((x,i)=>`<button role="tab" class="bf-ti${x.m!=null&&x.m<nowM-60?" past":""}" data-bdsel="${i}" aria-selected="${i===sel}"><span class="bf-tm">${x.m==null?"Any time":esc(minClock(x.m))}</span><span>${esc(x.title)}</span></button>`).join("")}</div>
+      <div class="bf-dd" role="tabpanel"><h3>${esc(cur.title)}${cur.m!=null?` <span class="bf-tm">${esc(minClock(cur.m))}</span>`:""}</h3>${cur.body?`<p>${esc(cur.body)}</p>`:""}${cur.act||""}${cur.x?`<div class="bf-acts">${bFb(b,cur.x)}</div>`:""}</div></div>`:`<p class="bf-free">Nothing on the clock today. The whole day is yours.</p>`)+`</section>`}
+  // 4. new updates, numbered
+  const up=[...of("updates"),...of("heads_up")].map(x=>{const r=bRef(x),p=proj(x.project_id)||(r&&proj(r.projectId));return{title:bTitle(bAttr(x),x.text,x.url),proj:x.project||p?.name||(x.section==="heads_up"?"Heads up":""),body:x.body||x.why||"",src:bSrc(x),acts:bFb(b,x)}});
+  for(const{p,cs}of sinceYesterday().slice(0,Math.max(0,5-up.length)))up.push({title:bTitle(`data-proj="${esc(p.id)}"`,trunc(cs[0].summary,90)),proj:p.name,body:cs.length>1?`Also: ${cs.slice(1,4).map(c=>trunc(c.summary,70)).join(" · ")}${cs.length>4?`, and ${cs.length-4} more`:""}.`:""});
+  if(up.length)h+=`<section class="bf-s" aria-label="New updates"><h2 class="bf-k">${parse(t).getDay()===1?"Since Friday":"New updates"}</h2><ol class="bf-up">${up.map((u,i)=>`<li><span class="bf-n" aria-hidden="true">${String(i+1).padStart(2,"0")}</span><div><h3>${u.title}${u.proj?` <em>${esc(u.proj)}</em>`:""}${u.src||""}</h3>${u.body?`<p>${esc(u.body)}</p>`:""}${u.acts?`<div class="bf-acts">${u.acts}</div>`:""}</div></li>`).join("")}</ol></section>`;
+  // 5. your week (Monday and Friday)
+  if(ed==="monday"){const L=lastWeekBits(),N=thisWeekBits(),cp=capLine();
+    const rows=[bLi("Last week","active",bT("",L.done.length?`${L.done.length} task${L.done.length===1?"":"s"} done. Nice work.`:"A quiet week. This one is a fresh start."),L.slipped.length?`${L.slipped.length} slipped: ${esc(L.slipped.slice(0,3).map(x=>trunc(x.title,40)).join("; "))}`:"Nothing slipped."),
+      ...L.slipped.slice(0,3).map(x=>bLi("Slipped","awaiting",bT(`data-peek="${esc(x.id)}"`,x.title),`was due ${esc(nice(x.due))}`)),...(cp?[cp]:[]),
+      ...N.th.map(f=>{const l=themeTasks(f),k=l.filter(x=>x.status==="done").length;return bLi("Focus","active",bT(`data-themeedit="${esc(f.id)}"`,f.title),l.length?`${k} of ${l.length} closed`:"")}),
       ...N.hard.map(x=>bLi("Hard","needs_you",bT(`data-peek="${esc(x.id)}"`,x.title),esc(nice(x.due))+(hm(x)?` by ${esc(clock(hm(x)))}`:""))),
-      ...N.calls.map(c=>bLi("Call","active",bT(`data-cs="${esc(c.s.id)}"`,c.s.name),esc(nextTxt(c.at).txt))),
-      ...N.renew.map(r=>bLi("Renew","awaiting",bT("",r.title),esc(nice(r.renewsOn))))];
-    parts.push(bSec("This week",tw.length?tw:[bLi("","",bT("","No week focus yet"),"The 9 AM lead sets it this morning, or set it yourself in This week")],`<button class="act" data-go="week">Open This week</button>`))}
-  if(ed==="friday"){const W=weekWrap();
-    parts.push(bSec("Your week",[bLi("Moved","active",bT("",`${W.done.length} task${W.done.length===1?"":"s"} done`),esc(W.by.slice(0,4).map(([k,n])=>`${k} ${n}`).join(" · "))),
-      ...W.dec.slice(0,4).map(n=>bLi("Decided","active",bT(`data-editnote="${esc(n.id)}"`,n.title))),
+      ...N.calls.map(c=>bLi("Call","active",bT(`data-cs="${esc(c.s.id)}"`,c.s.name),esc(nextTxt(c.at).txt))),...N.renew.map(r=>bLi("Renew","awaiting",bT("",r.title),esc(nice(r.renewsOn))))];
+    if(!N.th.length)rows.push(bLi("Focus","",bT("","No week focus yet"),"Pick one or two themes in This week and the week gets a shape."));
+    h+=`<section class="bf-s bf-wk" aria-label="Your week">`+bSec("Your week",rows,`<button class="act" data-go="week">Open This week</button>`)+`</section>`}
+  if(ed==="friday"){const W=weekWrap(),n=triList().length;
+    h+=`<section class="bf-s bf-wk" aria-label="Your week">`+bSec("Your week",[bLi("Moved","active",bT("",`${W.done.length} task${W.done.length===1?"":"s"} done this week`),esc(W.by.slice(0,4).map(([k,n])=>`${k} ${n}`).join(" · "))),
+      ...W.dec.slice(0,4).map(x=>bLi("Decided","active",bT(`data-editnote="${esc(x.id)}"`,x.title))),
       bLi("Follow up","awaiting",bT(`data-go="followups"`,`${W.fu.length} waiting on others · ${W.owe.length} you owe`)),
-      (()=>{const n=triList().length;return n?bLi("Zero","needs_you",`<button class="bi-t" data-triage="late">Close the week at overdue zero: ${n} left</button>`,"Each one: today, next week, no date, or drop.",`<button class="tool" data-triage="late">Triage</button>`):bLi("Zero","active",bT("","Overdue zero"),"Nothing past its date. The week is clean.")})()],`<button class="act" data-bskill="week">Weekly wrap in Claude</button>`))}
-  const hu=of("heads_up");if(hu.length)parts.push(bSec("Heads up",hu));
-  const nNeed=ny.length+slipN,auto=[nNeed?`${cap(word(nNeed))} need${nNeed===1?"s":""} you`:"Nothing needs you",calls.length?`${word(calls.length)} call${calls.length===1?"":"s"}`:"",moved.length?`${word(moved.length)} project${moved.length===1?"":"s"} moved`:""].filter(Boolean).join(" · ");
-  const by=b?` · 9 AM lead, ${esc(istFmt(b.updatedAt||b.createdAt||now(),{hour:"numeric",minute:"2-digit"}))}`:"";
-  return `<details class="brief" data-brief${briefShut()?"":" open"}><summary><span class="eyebrow">${ED[ed]}${by}</span><b>${esc(b?.headline||auto+".")}</b></summary><div class="brief-b">${parts.join("")||`<p class="bi-more">Nothing new since yesterday.</p>`}<div class="brief-f"><button class="act" data-bskill="plan">Plan my day in Claude</button><button class="act" data-bskill="wrap">Daily wrap in Claude</button></div></div></details>`}
-document.addEventListener("toggle",e=>{const d=e.target;if(d.matches?.("details.pk-sibs"))S.sibOpen=d.open;if(d.matches?.("details[data-brief]"))try{localStorage.setItem(BK,d.open?"":T())}catch{}},true);
+      n?bLi("Zero","needs_you",`<button class="bi-t" data-triage="late">Close the week at overdue zero: ${n} left</button>`,"Each one: today, next week, no date, or drop.",`<button class="tool" data-triage="late">Sort them</button>`):bLi("Zero","active",bT("","Overdue zero"),"Nothing past its date. What a clean week.")],
+      `<button class="act" data-bskill="week">Weekly wrap in Claude</button>`)+`</section>`}
+  const planned=flagOn(PLANK);
+  h+=`<footer class="bf-f"><button class="btn primary" data-tmode="${planned?"list":"plan"}">${planned?"Open my list →":"Plan the day →"}</button>${planned?"":`<button class="act" data-tmode="list">Straight to my list</button>`}</footer>`;
+  return `<div class="bf">${h}</div>`}
+document.addEventListener("toggle",e=>{if(e.target.matches?.("details.pk-sibs"))S.sibOpen=e.target.open},true);
 // "Looking ahead": in the evening, pick up to 3 tasks for the next working day; they open it as high impact, and the 9 AM lead leaves your picks alone
 function lookAhead(){const ev=S.forceEvening??istHour()>=18;if(!ev||(S.day&&S.day!==T()))return"";const n=tmrw(),picked=S.tasks.filter(x=>open(x)&&x.highlightDay===n);
   const cand=sortT(S.tasks.filter(x=>open(x)&&!sugg(x)&&!bot(x)&&!waiting(x)&&!blocked(x)&&x.highlightDay!==n&&(doing(x)||(x.due&&x.due<=addDays(n,2))||x.todayDate===n||wkTask(x)||leftover(x)||onToday(x)))).slice(0,6);
@@ -2007,7 +2092,7 @@ async function refileSeg(segId){const g=S.segs.find(x=>x.id===segId);const sel=d
   const clash=S.segs.find(x=>x.sourceId===g.sourceId&&x.projectId===to);
   let r;if(clash){r=await sb.from("source_segments").update({summary:clash.summary+"\n\n"+g.summary}).eq("id",clash.id);if(!r.error)r=await sb.from("source_segments").delete().eq("id",g.id)}
   else r=await sb.from("source_segments").update({project_id:to}).eq("id",g.id);
-  if(r.error){toast("Couldn't move that call.",false);return}
+  if(r.error){toast("Hmm, couldn't move that call. Mind trying again?",false);return}
   if(s){const rel=new Set([...(s.relatedProjects||[]),to]);rel.delete(from);let pid=s.projectId===from?to:s.projectId;rel.delete(pid);
     await sb.from("sources").update({project_id:pid,related_projects:[...rel]}).eq("id",s.id)}
   const ns=S.notes.filter(n=>n.sourceId===g.sourceId&&n.projectId===from);
@@ -2016,7 +2101,7 @@ async function refileSeg(segId){const g=S.segs.find(x=>x.id===segId);const sel=d
 async function teachRule(segId){const g=S.segs.find(x=>x.id===segId);const sel=document.querySelector(`[data-refsel="${CSS.escape(segId)}"]`);const to=sel?.value||g?.projectId;if(!to)return;
   const pat=(prompt(`Always route calls that mention… (a name or keyword) to ${proj(to)?.name}:`)||"").trim();if(!pat)return;
   const{error}=await sb.from("routing_rules").insert({pattern:pat,project_id:to,note:"Added from the app"});
-  toast(error?(error.code==="23505"?"That rule already exists.":"Couldn't save that rule."):`Calls mentioning “${pat}” will go to ${proj(to)?.name}`,false)}
+  toast(error?(error.code==="23505"?"That rule already exists.":"Hmm, couldn't save that rule. Mind trying again?"):`Calls mentioning “${pat}” will go to ${proj(to)?.name}`,false)}
 const istFmt=(iso,o)=>new Date(iso).toLocaleString(undefined,{timeZone:"Asia/Kolkata",...o});
 /* feed freshness: a second brain is only as good as what keeps flowing in, so say when a feed stops */
 /* the hourly agent runs 18:05–23:05 IST, so a feed is stale only after a whole day without a successful read */
@@ -2266,7 +2351,7 @@ function hStreak(h){const t=T();
 function hStreakTxt(h){const s=hStreak(h);if(h.cadence==="weekly")return `${hWeek(h)} of ${h.perWeek||1} this week`+(s.n>1?` · ${s.n} weeks`:"");return s.n?`${s.n}-day streak`:"Start today"}
 async function hToggle(id,d=T(),skip=false){const h=(S.habits||[]).find(x=>x.id===id);if(!h)return;const l=hLog(h,d);
   try{if(skip){if(l)await S.db.doc("habit_logs/"+l.id).update({done:false,skipped:!l.skipped});else await S.db.collection("habit_logs").add({habitId:id,day:d,done:false,skipped:true});return}
-    if(l&&l.done)await S.db.doc("habit_logs/"+l.id).delete();else if(l)await S.db.doc("habit_logs/"+l.id).update({done:true,skipped:false});else await S.db.collection("habit_logs").add({habitId:id,day:d,done:true})}catch{toast("Couldn't save that.")}}
+    if(l&&l.done)await S.db.doc("habit_logs/"+l.id).delete();else if(l)await S.db.doc("habit_logs/"+l.id).update({done:true,skipped:false});else await S.db.collection("habit_logs").add({habitId:id,day:d,done:true})}catch{toast("Hmm, couldn't save that. Mind trying again?")}}
 function habitRow(){const hs=habitsOn().filter(h=>hDue(h,T()));if(!hs.length)return(S.habits||[]).length?"":`<p class="hb-empty">No habits yet. <button class="act" data-go="habits">Add one</button> to tick it off here each day.</p>`;
   const dn=hs.filter(h=>hLog(h,T())?.done).length;
   return `<section class="hb" aria-label="Habits"><div class="sh"><h2>Habits · ${dn} of ${hs.length}</h2><button class="act" data-go="habits">All habits</button></div><div class="hb-row">${hs.map(h=>{const l=hLog(h,T()),on=!!l?.done;
@@ -2420,7 +2505,7 @@ async function rollRepeats(){if(repRolling)return;repRolling=true;try{for(const 
     if(has)continue;
     const lead=t.startDate&&t.due?Math.round((parse(t.due)-parse(t.startDate))/864e5):null;
     await addTask({title:t.title,projectId:pid,priority:t.priority||"med",due:next,dueFirm:!!t.dueFirm,dueTime:t.dueTime||null,startDate:lead>0?addDays(next,-lead):null,effortDays:t.effortDays||null,quick:t.quick??null,owner:t.owner||"me",private:!!t.private,notes:t.notes||null,repeat:rep,
-      steps:(Array.isArray(t.steps)?t.steps:[]).map(x=>({text:x.text,done:false})),blockedBy:[],activity:[{at:now(),by:"you",text:`${REP[rep]}; follows the one done ${dShort(iso2(new Date(t.doneAt||Date.now())))}`}]});toast(`Done. The next one is on ${nice(next)}.`)}}
+      steps:(Array.isArray(t.steps)?t.steps:[]).map(x=>({text:x.text,done:false})),blockedBy:[],activity:[{at:now(),by:"you",text:`${REP[rep]}; follows the one done ${dShort(iso2(new Date(t.doneAt||Date.now())))}`}]});toast(`Done! The next one is on ${nice(next)}.`)}}
   catch{}finally{repRolling=false}}
 function recRow(r){const a=areaOf(r.areaId),t=recTask(r),k=recLeft(r),late=k!=null&&k<0;
   return `<div class="rec"><button class="lk" data-editrec="${esc(r.id)}"><b>${esc(r.title)}</b><span>${esc([RK[r.kind]||"Other",a?.name,r.amount!=null?`${r.currency||"INR"} ${numTxt(r.amount)}`:"",r.everyMonths?`every ${r.everyMonths===12?"year":r.everyMonths+" months"}`:""].filter(Boolean).join(" · "))}</span></button>
@@ -2464,7 +2549,7 @@ function areaFlags(a){const why=[],hs=habitsOn().filter(h=>h.areaId===a.id);
   for(const r of recLive().filter(r=>r.areaId===a.id&&recLeft(r)!=null&&recLeft(r)<0))why.push(`${r.title} is late`);
   return why}
 function rvAreas(){return `<div class="rv-areas">${areaList().map(a=>{const f=areaFlags(a);return `<div class="rv-area"><div><b>${esc(a.name)}</b><span>${esc(a.standard&&!/^\[/.test(a.standard)?a.standard:"No standard written yet")}</span>${f.length?`<span class="warn">Maybe Watch: ${esc(f.join("; "))}</span>`:""}</div><div class="seg2" role="radiogroup" aria-label="${esc(a.name)}">${Object.entries(AST).map(([k,v])=>`<button role="radio" aria-checked="${a.status===k}" data-astatus="${k}" data-aid="${esc(a.id)}" class="as-${v.c}">${v.l}</button>`).join("")}</div></div>`}).join("")}</div>`}
-const rvList=(xs,f,empty="Nothing here.")=>xs.length?`<ul class="pk-list">${xs.slice(0,12).map(f).join("")}${xs.length>12?`<li class="note">and ${xs.length-12} more</li>`:""}</ul>`:`<p class="note">${empty}</p>`;
+const rvList=(xs,f,empty="Nothing here. All clear!")=>xs.length?`<ul class="pk-list">${xs.slice(0,12).map(f).join("")}${xs.length>12?`<li class="note">and ${xs.length-12} more</li>`:""}</ul>`:`<p class="note">${empty}</p>`;
 const rvGoals=gs=>gs.length?`<div class="gls">${gs.map(goalLine).join("")}</div>`:`<p class="note">No goals for this period. <button class="act" data-newgoal="quarter">Set one</button></p>`;
 function rvStepBody(r,key){const a=r.periodStart,b=rvEnd(r.kind,a),done=S.tasks.filter(t=>t.status==="done"&&inRange(t.doneAt,a,b)),logs=(S.daily_log||[]).filter(l=>inRange(l.day,a,b)),hs=habitsOn();
   const es=logs.filter(l=>l.energy),avg=es.length?Math.round(es.reduce((n,l)=>n+l.energy,0)/es.length*10)/10:null;
@@ -2500,7 +2585,7 @@ function reviewPage(id){const r=(S.reviews||[]).find(x=>x.id===id);if(!r)return 
   return h}
 function reviewsView(){const due=rvDue(),past=(S.reviews||[]).filter(r=>!due.some(d=>d.row?.id===r.id)).sort((a,b)=>String(b.periodStart).localeCompare(String(a.periodStart))||a.kind.localeCompare(b.kind));
   let h=`<div class="head"><div><div class="eyebrow">LIVE</div><h1>Reviews</h1><div class="sub">Sunday for the week, the 1st for the month, the first fortnight of a quarter, and the last week of December. The Friday work review stays separate.</div></div></div>`;
-  h+=due.length?`<section><div class="sh"><h2>Ready now</h2></div>${due.map(d=>`<div class="rec"><span class="lk"><b>${esc(RV[d.kind].l)}</b><span>${esc(rvName(d.kind,d.start))} · ${esc(RV[d.kind].m)}${d.row?.status==="in_progress"?" · started":d.row?" · draft ready":""}</span></span><span></span><span class="hacts"><button class="btn primary" data-rvstart="${d.kind}" data-s="${esc(d.start)}">${d.row?.status==="in_progress"?"Carry on":"Start"}</button></span></div>`).join("")}</section>`:`<div class="empty">Nothing due right now. The weekly review opens on Sunday.</div>`;
+  h+=due.length?`<section><div class="sh"><h2>Ready now</h2></div>${due.map(d=>`<div class="rec"><span class="lk"><b>${esc(RV[d.kind].l)}</b><span>${esc(rvName(d.kind,d.start))} · ${esc(RV[d.kind].m)}${d.row?.status==="in_progress"?" · started":d.row?" · draft ready":""}</span></span><span></span><span class="hacts"><button class="btn primary" data-rvstart="${d.kind}" data-s="${esc(d.start)}">${d.row?.status==="in_progress"?"Carry on":"Start"}</button></span></div>`).join("")}</section>`:`<div class="empty">You’re all caught up. The weekly review opens on Sunday.</div>`;
   h+=`<section><div class="sh"><h2>Start one now</h2></div><div class="p-projs">${Object.entries(RV).map(([k,v])=>`<button class="lk tag" data-rvstart="${k}" data-s="${esc(rvPeriod(k))}"><i>${esc(v.l)}</i>${esc(rvName(k,rvPeriod(k)))}</button>`).join("")}</div></section>`;
   if(past.length)h+=`<section><div class="sh"><h2>Past reviews</h2><span class="n">${past.length}</span></div>${past.map(r=>`<button class="nrow" data-review="${esc(r.id)}"><span class="nb"><b>${esc(RV[r.kind].l)} · ${esc(rvName(r.kind,r.periodStart))}</b><span>${esc(r.status==="done"?"Done"+(r.doneAt?" "+nice(iso(new Date(r.doneAt))):""):r.status==="skipped"?"Skipped":"Started")}${(r.answers||{}).change?.note?` · Change: ${esc(r.answers.change.note)}`:""}</span></span></button>`).join("")}</section>`;
   return h}
@@ -2547,7 +2632,7 @@ function renderView(){
     h+=quick("Add something to finish this week");
     const days=S.day?[S.day]:w;
     h+=sec("Overdue",sortT(openW.filter(overdue)),{cls:"danger"});
-    for(const d of days){const l=sortT(openW.filter(x=>!overdue(x)&&(x.due===d||(!x.due&&x.todayDate===d))));if(l.length||d===t)h+=sec(d===t?"Today":esc(nice(d)),l,{empty:"Nothing scheduled."})}
+    for(const d of days){const l=sortT(openW.filter(x=>!overdue(x)&&(x.due===d||(!x.due&&x.todayDate===d))));if(l.length||d===t)h+=sec(d===t?"Today":esc(nice(d)),l,{empty:"Nothing scheduled. Breathing room."})}
     if(!S.day)h+=sec("Anytime this week",sortT(openW.filter(x=>!overdue(x)&&!inWeek(x.due)&&!inWeek(x.todayDate))),{empty:"Tap Week on any task to add it here."});
     h+=sec("Finished this week",S.tasks.filter(x=>doneThisWeek(x)&&!wIds.has(x.id)));
   }
@@ -2567,14 +2652,14 @@ function renderView(){
   else if(S.view==="suggested"){
     const ss=S.tasks.filter(sugg);
     h+=`<div class="head"><div><h1>Suggested by Claude</h1><div class="sub">Next steps Claude recommended in your chats. Accept to add them to your list.</div></div>${ss.length?`<div class="right"><button class="btn" data-acceptall>Accept all</button></div>`:""}</div>`;
-    if(!ss.length)h+=`<div class="empty">No suggestions waiting. New ones appear here as you chat.</div>`;
+    if(!ss.length)h+=`<div class="empty">All caught up! New suggestions appear here as you chat.</div>`;
     for(const p of S.projects)h+=sec(esc(fullName(p)),sortT(ss.filter(t=>t.projectId===p.id)));
     h+=sec("Unsorted",sortT(ss.filter(t=>!proj(t.projectId))));
   }
   else if(S.view==="agents"){
     const as=S.tasks.filter(x=>open(x)&&bot(x));
     h+=`<div class="head"><div><h1>Run by agents</h1><div class="sub">Work your scheduled Claude runs do themselves. It stays off Today and This week, but anything overdue still shows in Needs attention.</div></div></div>`;
-    if(!as.length)h+=`<div class="empty">No agent tasks open. Mark a task "Agent's job" in its quick look to move it here.</div>`;
+    if(!as.length)h+=`<div class="empty">The agents are all caught up. Mark a task "Agent's job" in its quick look to move it here.</div>`;
     for(const p of S.projects)h+=sec(esc(fullName(p)),sortT(as.filter(t=>t.projectId===p.id)));
     h+=sec("Unsorted",sortT(as.filter(t=>!proj(t.projectId))));
   }
@@ -2590,7 +2675,7 @@ function renderView(){
     const later=w.filter(x=>!fuDue(x)&&!chase(x));const g=new Map();
     for(const x of later){const k=x.waitingOn||"Someone";if(!g.has(k))g.set(k,[]);g.get(k).push(x)}
     for(const k of [...g.keys()].sort())h+=sec(`Waiting on ${esc(k)}`,g.get(k).sort((a,b)=>(a.followUpOn||"").localeCompare(b.followUpOn||"")));
-    if(!w.length)h+=`<div class="empty">Nothing waiting on anyone. Use Hand off on a task when you send it to someone.</div>`;
+    if(!w.length)h+=`<div class="empty">Nobody to chase. Lovely. Use Hand off on a task when you send it to someone.</div>`;
     h+=inputsBlock(null,{form:true});
   }
   else if(S.view==="calls"){
@@ -2786,7 +2871,7 @@ function brainPanel(){
       <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-addnote="${esc(p.id)}">Add note</button><button class="btn" data-proj="${esc(p.id)}">Open project</button></div>
       ${subList}
       ${people.length?`<h4>People</h4>${people.map(noteItem).join("")}`:""}
-      ${subs.length&&!ts.length?"":`<h4>${subs.length?"General tasks":"Open tasks"} (${ts.length})</h4>${ts.length?ts.map(row).join(""):`<div class="empty">No open tasks.</div>`}`}
+      ${subs.length&&!ts.length?"":`<h4>${subs.length?"General tasks":"Open tasks"} (${ts.length})</h4>${ts.length?ts.map(row).join(""):`<div class="empty">No open tasks. All clear!</div>`}`}
       ${rest.length?`<h4>Notes, ideas and decisions</h4>${rest.map(noteItem).join("")}`:""}`;
   }
   if(id.startsWith("n:")){
@@ -2806,7 +2891,7 @@ function brainPanel(){
   }
   const o=S.tasks.filter(open),late=o.filter(overdue).length;
   const recent=S.notes.slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,6);
-  return `<div class="k">Everything</div><h3>Your world</h3><div class="about">${S.projects.length} projects, ${o.length} open tasks${late?` (${late} overdue)`:""}, ${S.notes.length} notes. Tap a project to open its branch, tap again to fold it.</div><h4>Latest notes</h4>${recent.map(noteItem).join("")||`<div class="empty">No notes yet.</div>`}`;
+  return `<div class="k">Everything</div><h3>Your world</h3><div class="about">${S.projects.length} projects, ${o.length} open tasks${late?` (${late} overdue)`:""}, ${S.notes.length} notes. Tap a project to open its branch, tap again to fold it.</div><h4>Latest notes</h4>${recent.map(noteItem).join("")||`<div class="empty">No notes yet. Capture the first good idea.</div>`}`;
 }
 /* ---------- today filters ---------- */
 (()=>{try{const s=JSON.parse(localStorage.getItem("hub.today")||"{}");Object.assign(S,{tf:s.tf||"",tsub:s.tsub||"",tgroup:!!s.tgroup,tsort:s.tsort||"priority"})}catch{Object.assign(S,{tf:"",tsub:"",tgroup:false,tsort:"priority"})}})();
@@ -2853,7 +2938,7 @@ function allList(){
     project:(a,b)=>(proj(a.projectId)?fullName(proj(a.projectId)):"~").localeCompare(proj(b.projectId)?fullName(proj(b.projectId)):"~")||dk(a).localeCompare(dk(b)),
     recent:(a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||""))}[S.sort];
   l=l.slice().sort(cmp);
-  return l.length?`<section><div class="sh"><h2>${l.length} task${l.length===1?"":"s"}</h2></div>${l.map(row).join("")}</section>`:`<div class="empty">${q?"No tasks match that search.":"Nothing here."}</div>`;
+  return l.length?`<section><div class="sh"><h2>${l.length} task${l.length===1?"":"s"}</h2></div>${l.map(row).join("")}</section>`:`<div class="empty">${q?"No tasks match that search.":"Nothing here. All clear!"}</div>`;
 }
 function render(){if(!S.ready.p||!S.ready.t)return;PM.k="";const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();renderPeek();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
 
@@ -2870,7 +2955,7 @@ function carryBump(t,patch){const td=T();let c=false;
   if(patch.due&&t.due&&t.due<td&&patch.due>t.due)c=true;
   return c?{carryCount:(t.carryCount||0)+1}:{}}
 async function upd(id,patch){const cur=S.tasks.find(x=>x.id===id);const extra=cur?carryBump(cur,patch):{};try{await S.db.doc("tasks/"+id).update({...patch,...extra,updatedAt:now()});return true}catch(e){toast(e.code==="invalid_argument"?"You can view this list but not change it.":navigator.onLine===false?"You're offline, so that change didn't save. It's been put back.":"That change didn't save, so it's been put back. Try again.",false,true);return false}}
-async function addTask(data){try{await S.db.collection("tasks").add({status:"todo",priority:"med",createdAt:now(),updatedAt:now(),source:"hub",...data})}catch(e){toast(e.code==="quota_exceeded"?"Storage is full. Delete some finished tasks first.":"Couldn't add that task. Try again.")}}
+async function addTask(data){try{await S.db.collection("tasks").add({status:"todo",priority:"med",createdAt:now(),updatedAt:now(),source:"hub",...data})}catch(e){toast(e.code==="quota_exceeded"?"Storage is full. Delete some finished tasks first.":"Hmm, couldn't add that task. Mind trying again?")}}
 
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
@@ -2885,14 +2970,15 @@ document.addEventListener("click",async e=>{
   if(b.dataset.in){await inAct(b.dataset.in);return}
   if("inundo" in b.dataset){S.inLog=(S.inLog||[]).slice(0,-1);S.inDone=Math.max(0,(S.inDone||0)-1);HIST.run("undo");return}
   if(b.dataset.notefile){const sel=document.querySelector(`[data-notesel="${CSS.escape(b.dataset.notefile)}"]`);if(!sel?.value){toast("Pick a project first",false);return}
-    try{await S.db.doc("notes/"+b.dataset.notefile).update({projectId:sel.value});S.inDone=(S.inDone||0)+1;toast(`Filed under ${proj(sel.value)?.name}`)}catch{toast("Couldn't file that note.")}return}
-  if(b.dataset.tmode){S.tmode=b.dataset.tmode;if(S.tmode==="plan")S.pd=null;S.view="today";render();document.querySelector("main").scrollTo(0,0);return}
+    try{await S.db.doc("notes/"+b.dataset.notefile).update({projectId:sel.value});S.inDone=(S.inDone||0)+1;toast(`Filed under ${proj(sel.value)?.name}`)}catch{toast("Hmm, couldn't file that note. Mind trying again?")}return}
+  if(b.dataset.tmode){S.tmode=b.dataset.tmode;if(S.tmode==="plan")S.pd=null;if(S.tmode==="brief")S.bdsel=null;S.view="today";render();document.querySelector("main").scrollTo(0,0);return}
   if("pdskip" in b.dataset){flagSet(PLANK);S.tmode="list";render();return}
   if("pdgo" in b.dataset){await pdGo();return}
   if(b.dataset.pdstar){const P=S.pd,id=b.dataset.pdstar;if(!P)return;if(P.stars.includes(id))P.stars=P.stars.filter(x=>x!==id);else if(P.stars.length>=3){toast("Three is plenty. Unstar one first.",false);return}else P.stars.push(id);render();return}
   if(b.dataset.pdrm){const P=S.pd;if(!P)return;P.ids=P.ids.filter(x=>x!==b.dataset.pdrm);P.stars=P.stars.filter(x=>x!==b.dataset.pdrm);render();return}
   if(b.dataset.pdadd){const P=S.pd;if(!P)return;if(!P.ids.includes(b.dataset.pdadd))P.ids.push(b.dataset.pdadd);render();return}
-  if("showbrief" in b.dataset){S.showBrief=!S.showBrief;if(S.showBrief)try{localStorage.setItem(BK,"")}catch{}render();return}
+  if(b.dataset.bdsel){S.bdsel=+b.dataset.bdsel;paint();return}
+  if("bpush" in b.dataset){const q=pushPrompt(briefOf());if(q)await openClaude(q,"Opened Claude. Have fun with it!");return}
   if(b.dataset.cd){S.cd=S.cd||{};S.cd[b.dataset.cd]=S.cd[b.dataset.cd]===b.dataset.v?undefined:b.dataset.v;if(!S.cd[b.dataset.cd])delete S.cd[b.dataset.cd];render();return}
   if("closeday" in b.dataset){await closeDay();return}
   if("find" in b.dataset){openFind();return}
@@ -2911,51 +2997,51 @@ document.addEventListener("click",async e=>{
     const a=(prompt(`What came back for:\n${i.question}\n\n(The number, claim or answer. A task to update every doc that uses it is created automatically.)`)||"").trim();if(!a)return;
     const{error}=await sb.from("inputs").update({status:"received",answer:a}).eq("id",i.id);
     const n=S.iuses.filter(u=>u.inputId===i.id&&u.status==="pending").length;
-    toast(error?"Couldn't save that.":n?`Got it. “Update ${n} place${n===1?"":"s"}” is on Today.`:"Got it.",false);soon();return}
+    toast(error?"Hmm, couldn't save that. Mind trying again?":n?`Got it. “Update ${n} place${n===1?"":"s"}” is on Today.`:"Got it.",false);soon();return}
   if(b.dataset.idrop){const i=S.inputs.find(x=>x.id===b.dataset.idrop);if(!i||!confirm(`Stop tracking “${i.question}”?`))return;
-    const{error}=await sb.from("inputs").update({status:"dropped"}).eq("id",i.id);toast(error?"Couldn't update that.":"No longer tracked",false);soon();return}
+    const{error}=await sb.from("inputs").update({status:"dropped"}).eq("id",i.id);toast(error?"Hmm, couldn't update that. Mind trying again?":"No longer tracked",false);soon();return}
   if(b.dataset.iuse){const i=S.inputs.find(x=>x.id===b.dataset.iuse);if(!i)return;
     const doc=(prompt(`Which doc also uses “${i.question}”?`)||"").trim();if(!doc)return;const loc=(prompt("Where in it? (section, slide…) Optional")||"").trim();
     const{error}=await sb.from("input_uses").insert({input_id:i.id,doc,location:loc,project_id:i.projectId});
-    toast(error?"Couldn't add that.":`Tracked. Mark the spot in the doc with [[NEEDS:${i.key}]]`,false);soon();return}
+    toast(error?"Hmm, couldn't add that. Mind trying again?":`Tracked. Mark the spot in the doc with [[NEEDS:${i.key}]]`,false);soon();return}
   if(b.dataset.briefx){const id=b.dataset.briefx;S.bopenB.has(id)?S.bopenB.delete(id):S.bopenB.add(id);render();return}
   if(b.dataset.refile){await refileSeg(b.dataset.refile);return}
   if(b.dataset.rule){await teachRule(b.dataset.rule);return}
   if(b.dataset.filecall){const sel=document.querySelector(`[data-filesel="${CSS.escape(b.dataset.filecall)}"]`);if(!sel?.value){toast("Pick a project first",false);return}
-    const{error}=await sb.from("sources").update({project_id:sel.value}).eq("id",b.dataset.filecall);toast(error?"Couldn't file that call.":`Filed under ${proj(sel.value)?.name}. Its brief updates on the next agent run.`,false);soon();return}
+    const{error}=await sb.from("sources").update({project_id:sel.value}).eq("id",b.dataset.filecall);toast(error?"Hmm, couldn't file that call. Mind trying again?":`Filed under ${proj(sel.value)?.name}. Its brief updates on the next agent run.`,false);soon();return}
   if(b.dataset.steps){const id=b.dataset.steps;S.sopen.has(id)?S.sopen.delete(id):S.sopen.add(id);render();return}
   if(b.dataset.step){const t=S.tasks.find(x=>x.id===b.dataset.step);if(!t)return;const i=+b.dataset.i;
     const st=(t.steps||[]).map((x,j)=>j===i?{...x,done:!x.done}:x);await upd(t.id,{steps:st});
     toast(st[i].done?(st.every(x=>x.done)?"All steps done. Tick the task when you're ready.":"Step done"):"Step reopened");return}
   if(b.dataset.cs){S.view="calls";S.cs=b.dataset.cs;S.pid=null;S.day=null;try{history.replaceState(null,"","#call/"+S.cs)}catch{}render();document.querySelector("main").scrollTo(0,0);return}
-  if(b.dataset.acov){try{await S.db.doc("agenda_items/"+b.dataset.acov).update({status:"covered",coveredAt:now()});toast("Covered")}catch{toast("Couldn't update that.")}return}
-  if(b.dataset.adrop){try{await S.db.doc("agenda_items/"+b.dataset.adrop).update({status:"dropped"});toast("Removed from the agenda")}catch{toast("Couldn't update that.")}return}
+  if(b.dataset.acov){try{await S.db.doc("agenda_items/"+b.dataset.acov).update({status:"covered",coveredAt:now()});toast("Covered")}catch{toast("Hmm, couldn't update that. Mind trying again?")}return}
+  if(b.dataset.adrop){try{await S.db.doc("agenda_items/"+b.dataset.adrop).update({status:"dropped"});toast("Removed from the agenda")}catch{toast("Hmm, couldn't update that. Mind trying again?")}return}
   if(b.dataset.prepall){const id=b.dataset.prepall;S.prepAll.has(id)?S.prepAll.delete(id):S.prepAll.add(id);render();return}
   if(b.dataset.copyprep){const{data,error}=await sb.rpc("call_prep_md",{s:b.dataset.copyprep});
-    if(error||!data){toast("Couldn't build the text.",false);return}
+    if(error||!data){toast("Hmm, couldn't build the text. Mind trying again?",false);return}
     try{await navigator.clipboard.writeText(data);toast("Prep copied. Paste it into your notes or the meeting chat.",false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
   if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;if(b.dataset.ikgo)S.ik=b.dataset.ikgo;if(S.view==="today"&&b.closest("#side,#tabs"))S.tmode=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.areaGo){S.view="area";S.area=b.dataset.areaGo;S.pid=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.goal){S.view="goal";S.goal=b.dataset.goal;S.pid=null;setPeek(null);render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.newgoal){openGoal(null,{horizon:b.dataset.newgoal,area:b.dataset.garea,parent:b.dataset.parent,period:b.dataset.gperiod});return}
-  if(b.dataset.rvstart){try{await rvStart(b.dataset.rvstart,b.dataset.s)}catch{toast("Couldn't start that review.")}return}
+  if(b.dataset.rvstart){try{await rvStart(b.dataset.rvstart,b.dataset.s)}catch{toast("Hmm, couldn't start that review. Mind trying again?")}return}
   if(b.dataset.review){S.view="review";S.review=b.dataset.review;render();document.querySelector("main").scrollTo(0,0);return}
-  if(b.dataset.rvstep){const r=(S.reviews||[]).find(x=>x.id===S.review);if(r)try{await S.db.doc("reviews/"+r.id).update({step:+b.dataset.rvstep})}catch{toast("Couldn't save that.")}return}
-  if(b.dataset.gcarry){try{await S.db.doc("goals/"+b.dataset.gcarry).update({periodStart:b.dataset.q});toast(`Carried to ${qName(b.dataset.q)}`)}catch{toast("Couldn't save that.")}return}
-  if(b.dataset.rvarch){const p=proj(b.dataset.rvarch);if(p)try{await S.db.doc("projects/"+p.id).update({archivedAt:now()});toast(`${p.name} archived`)}catch{toast("Couldn't archive that.")}return}
+  if(b.dataset.rvstep){const r=(S.reviews||[]).find(x=>x.id===S.review);if(r)try{await S.db.doc("reviews/"+r.id).update({step:+b.dataset.rvstep})}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(b.dataset.gcarry){try{await S.db.doc("goals/"+b.dataset.gcarry).update({periodStart:b.dataset.q});toast(`Carried to ${qName(b.dataset.q)}`)}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(b.dataset.rvarch){const p=proj(b.dataset.rvarch);if(p)try{await S.db.doc("projects/"+p.id).update({archivedAt:now()});toast(`${p.name} archived`)}catch{toast("Hmm, couldn't archive that. Mind trying again?")}return}
   if("newrec" in b.dataset){openRec(null,b.dataset.newrec||null);return}
   if(b.dataset.editrec){openRec(recLive().find(r=>r.id===b.dataset.editrec));return}
-  if(b.dataset.rectask){const r=recLive().find(x=>x.id===b.dataset.rectask);if(r)try{const t=await renewTask(r);if(t)toast(`Task added: ${t.title}`)}catch{toast("Couldn't add that task.")}return}
+  if(b.dataset.rectask){const r=recLive().find(x=>x.id===b.dataset.rectask);if(r)try{const t=await renewTask(r);if(t)toast(`Task added: ${t.title}`)}catch{toast("Hmm, couldn't add that task. Mind trying again?")}return}
   if("newmetric" in b.dataset){openMetric(null,b.dataset.newmetric||null);return}
   if(b.dataset.editmetric){openMetric((S.metrics||[]).find(m=>m.id===b.dataset.editmetric));return}
   if(b.dataset.editgoal){openGoal(goalById(b.dataset.editgoal));return}
-  if(b.dataset.gstatus){const st=b.dataset.gstatus;try{await S.db.doc("goals/"+b.dataset.gid).update({status:st,doneAt:st==="done"?now():null});toast(st==="done"?"Goal achieved":st==="dropped"?"Goal dropped. It stays in history.":st==="paused"?"Goal paused":"Goal active again")}catch{toast("Couldn't save that.")}return}
+  if(b.dataset.gstatus){const st=b.dataset.gstatus;try{await S.db.doc("goals/"+b.dataset.gid).update({status:st,doneAt:st==="done"?now():null});toast(st==="done"?"Goal achieved":st==="dropped"?"Goal dropped. It stays in history.":st==="paused"?"Goal paused":"Goal active again")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
   if("gshow" in b.dataset){S.gShowAll=!S.gShowAll;render();return}
   if(b.dataset.habit){await hToggle(b.dataset.habit);return}
   if(b.dataset.hskip){await hToggle(b.dataset.hskip,T(),true);return}
   if("newhabit" in b.dataset){openHabit(null,b.dataset.newhabit||null);return}
   if(b.dataset.edithabit){openHabit((S.habits||[]).find(x=>x.id===b.dataset.edithabit));return}
-  if(b.dataset.astatus){try{await S.db.doc("life_areas/"+b.dataset.aid).update({status:b.dataset.astatus,statusSetBy:"you",reviewedAt:now()});toast(`Marked ${AST[b.dataset.astatus].l}`)}catch{toast("Couldn't save that.")}return}
+  if(b.dataset.astatus){try{await S.db.doc("life_areas/"+b.dataset.aid).update({status:b.dataset.astatus,statusSetBy:"you",reviewedAt:now()});toast(`Marked ${AST[b.dataset.astatus].l}`)}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
   if(b.dataset.editarea){openArea(areaOf(b.dataset.editarea));return}
   if("editcompass" in b.dataset){openCompass();return}
   if(b.dataset.logm){S.logMonth=b.dataset.logm;S.logDay=null;render();return}
@@ -2965,15 +3051,15 @@ document.addEventListener("click",async e=>{
   if(b.dataset.ci){S.ci={...(S.ci||{energy:logOf(T())?.energy||null,mood:logOf(T())?.mood||null}),[b.dataset.ci]:+b.dataset.v};render();return}
   if("more" in b.dataset&&b.closest("#tabs")){openMore();return}
   if(b.dataset.wl){wikiOpen(b.dataset.wl);return}
-  if(b.dataset.linkrel){try{await S.db.collection("links").add({fromType:"note",fromId:b.dataset.from,toType:"note",toId:b.dataset.linkrel,kind:"related"});const n=S.notes.find(x=>x.id===b.dataset.from);document.getElementById("noteLinks").innerHTML=noteLinksHtml(n);toast("Linked")}catch{toast("Couldn't link that.")}return}
+  if(b.dataset.linkrel){try{await S.db.collection("links").add({fromType:"note",fromId:b.dataset.from,toType:"note",toId:b.dataset.linkrel,kind:"related"});const n=S.notes.find(x=>x.id===b.dataset.from);document.getElementById("noteLinks").innerHTML=noteLinksHtml(n);toast("Linked")}catch{toast("Hmm, couldn't link that. Mind trying again?")}return}
   if(b.dataset.hiderel){const h=hiddenRel();h.add(b.dataset.from+"|"+b.dataset.hiderel);try{localStorage.setItem(HIDEREL,JSON.stringify([...h]))}catch{}const n=S.notes.find(x=>x.id===b.dataset.from);document.getElementById("noteLinks").innerHTML=noteLinksHtml(n);return}
   if(b.dataset.pmode){S.pmode=b.dataset.pmode;render();return}
   if(b.dataset.pf!==undefined&&b.classList.contains("chip")){S.pf=b.dataset.pf;render();return}
   if("editperson" in b.dataset){openPerson(b.dataset.editperson?personById(b.dataset.editperson):null);return}
-  if(b.dataset.ptalk){const r=personById(b.dataset.ptalk);if(!r)return;try{if(r.virtual)await S.db.collection("people").add({name:r.name,role:r.role||null,noteId:r.noteId,lastContactAt:now()});else await S.db.doc("people/"+r.id).update({lastContactAt:now()});toast(`Noted: you talked to ${pFirstName(r.name)} today`)}catch{toast("Couldn't save that.")}return}
-  if(b.dataset.pok){try{await S.db.doc("people/"+b.dataset.pok).update({status:"active"});toast("Kept")}catch{toast("Couldn't save that.")}return}
-  if(b.dataset.pno){try{await S.db.doc("people/"+b.dataset.pno).update({status:"archived"});toast("Removed from People")}catch{toast("Couldn't save that.")}return}
-  if(b.dataset.unlink){try{await S.db.doc("links/"+b.dataset.unlink).delete();toast("Link removed")}catch{toast("Couldn't remove that link.")}return}
+  if(b.dataset.ptalk){const r=personById(b.dataset.ptalk);if(!r)return;try{if(r.virtual)await S.db.collection("people").add({name:r.name,role:r.role||null,noteId:r.noteId,lastContactAt:now()});else await S.db.doc("people/"+r.id).update({lastContactAt:now()});toast(`Noted: you talked to ${pFirstName(r.name)} today`)}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(b.dataset.pok){try{await S.db.doc("people/"+b.dataset.pok).update({status:"active"});toast("Kept")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(b.dataset.pno){try{await S.db.doc("people/"+b.dataset.pno).update({status:"archived"});toast("Removed from People")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(b.dataset.unlink){try{await S.db.doc("links/"+b.dataset.unlink).delete();toast("Link removed")}catch{toast("Hmm, couldn't remove that link. Mind trying again?")}return}
   if(b.dataset.person){S.view="person";S.person=b.dataset.person;S.pid=null;S.day=null;setPeek(null);const fd=document.getElementById("findDlg");if(fd.open)fd.close();render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.topic){S.view="topic";S.topic=b.dataset.topic;S.pid=null;S.day=null;setPeek(null);const fd=document.getElementById("findDlg");if(fd.open)fd.close();render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.proj){S.view="project";S.pid=b.dataset.proj;S.day=null;render();document.querySelector("main").scrollTo(0,0);return}
@@ -3007,7 +3093,7 @@ document.addEventListener("click",async e=>{
   if("newtheme" in b.dataset){openTheme(null,b.dataset.newtheme||"day");return}
   if(b.dataset.themeedit){openTheme(S.focus_themes.find(f=>f.id===b.dataset.themeedit));return}
   if(b.dataset.themedone){const f=S.focus_themes.find(x=>x.id===b.dataset.themedone);if(!f)return;
-    try{await S.db.doc("focus_themes/"+f.id).update({doneAt:f.doneAt?null:now()});toast(f.doneAt?"Theme done":"Theme reopened")}catch{toast("Couldn't update that theme.",false,true)}return}
+    try{await S.db.doc("focus_themes/"+f.id).update({doneAt:f.doneAt?null:now()});toast(f.doneAt?"Theme done":"Theme reopened")}catch{toast("Hmm, couldn't update that theme. Mind trying again?",false,true)}return}
   if("hicarry" in b.dataset){const sp=b.dataset.hicarry||"day",F=FOCUS[sp],k=F.key(),c=hiCarry(sp);if(!c)return;
     for(const x of c.ts)await upd(x.id,{[F.f]:k});
     for(const f of c.th)try{await S.db.doc("focus_themes/"+f.id).update({day:k})}catch{}
@@ -3015,16 +3101,16 @@ document.addEventListener("click",async e=>{
     toast(sp==="day"?"Carried to today":"Carried to this week");return}
   if(b.dataset.done){const t=S.tasks.find(x=>x.id===b.dataset.done);if(!t)return;
     if(t.status==="done"){await upd(t.id,{status:"todo",doneAt:null});return}
-    if(sugg(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
-    if(doing(t)){await upd(t.id,{status:"done",doneAt:now()});toast("Marked done");return}
+    if(sugg(t)){await upd(t.id,{status:"done",doneAt:now()});toast(cheer());return}
+    if(doing(t)){await upd(t.id,{status:"done",doneAt:now()});toast(cheer());return}
     await startTask(t);return}
-  if(b.dataset.quickdone){await upd(b.dataset.quickdone,{status:"done",doneAt:now()});toast("Marked done");return}
+  if(b.dataset.quickdone){await upd(b.dataset.quickdone,{status:"done",doneAt:now()});toast(cheer());return}
   if(b.dataset.handoff){openHandoff(S.tasks.find(x=>x.id===b.dataset.handoff));return}
   if(b.dataset.chased){const x=S.tasks.find(y=>y.id===b.dataset.chased);if(!x)return;const n=(x.followUps||0)+1;const nx=nextWork(T(),gapAfter(n));await upd(x.id,{followUps:n,followUpOn:nx});toast(`Logged. Next nudge ${nice(nx)}${n>=3?" (time to escalate)":""}`);return}
   if(b.dataset.backtome){await upd(b.dataset.backtome,{status:"todo",todayDate:T(),followUpOn:null});toast("Back on your list for today");return}
   if(b.dataset.park){openResume(S.tasks.find(x=>x.id===b.dataset.park),"park");return}
   if(b.dataset.rnote){openResume(S.tasks.find(x=>x.id===b.dataset.rnote),"note");return}
-  if(b.dataset.drop){if(!confirm("Drop this task? It will be deleted."))return;try{await S.db.doc("tasks/"+b.dataset.drop).delete();toast("Dropped")}catch{toast("Couldn't drop that task.")}return}
+  if(b.dataset.drop){if(!confirm("Drop this task? It will be deleted."))return;try{await S.db.doc("tasks/"+b.dataset.drop).delete();toast("Dropped")}catch{toast("Hmm, couldn't drop that task. Mind trying again?")}return}
   if(b.dataset.tog){const t=S.tasks.find(x=>x.id===b.dataset.id);if(!t)return;
     if(b.dataset.tog==="today")await upd(t.id,{todayDate:t.todayDate===T()?null:T()});
     else await upd(t.id,{weekOf:t.weekOf===week()[0]?null:week()[0]});return}
@@ -3035,17 +3121,17 @@ document.addEventListener("click",async e=>{
   if(b.dataset.accept){const t=S.tasks.find(x=>x.id===b.dataset.accept);
     if(t?.waitingOn){await upd(t.id,{status:"waiting",waitingSince:now(),followUps:0,followUpOn:nextWork(T(),1)});toast(`Waiting on ${t.waitingOn}; follow up ${nice(nextWork(T(),1))}`);return}
     await upd(b.dataset.accept,{status:"todo"});toast("Added to your list");return}
-  if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Couldn't dismiss that suggestion.")}return}
+  if(b.dataset.dismiss){try{await S.db.doc("tasks/"+b.dataset.dismiss).delete();toast("Suggestion dismissed")}catch{toast("Hmm, couldn't dismiss that suggestion. Mind trying again?")}return}
   if("acceptall" in b.dataset){for(const t of S.tasks.filter(sugg))await upd(t.id,{status:"todo"});toast("All suggestions added");return}
   if(b.dataset.triage){triOpen(b.dataset.triage);return}
   if(b.dataset.tri){await triAct(b.dataset.tri);return}
   if(b.dataset.pause){const p=proj(b.dataset.pause);if(!p)return;const on=!p.pausedAt;
-    try{await S.db.doc("projects/"+p.id).update({pausedAt:on?now():null});PZ.k=null;paint();toast(on?`${p.name} paused. Its tasks keep their dates but stay off Today and This week.`:`${p.name} resumed`)}catch{toast("Couldn't change that.")}return}
+    try{await S.db.doc("projects/"+p.id).update({pausedAt:on?now():null});PZ.k=null;paint();toast(on?`${p.name} paused. Its tasks keep their dates but stay off Today and This week.`:`${p.name} resumed`)}catch{toast("Hmm, couldn't change that. Mind trying again?")}return}
   if(b.dataset.bfb){const r=(S.day_briefs||[]).find(x=>x.id===b.dataset.b);if(!r)return;const v=b.dataset.bfb,k=b.dataset.k,it=bItems(r).find(x=>x.key===k);
     try{await S.db.doc("day_briefs/"+r.id).update({feedback:{...(r.feedback||{}),[k]:v}});
       if(v==="done"&&it?.ref_type==="task"){const t=S.tasks.find(x=>x.id===it.ref_id);if(t&&open(t))await upd(t.id,{status:"done",doneAt:now()})}
-      toast(v==="done"?"Done":v==="later"?"Hidden for today":"Hidden. The 9 AM lead will skip things like this.")}catch{toast("Couldn't save that.")}return}
-  if(b.dataset.hino){const t=S.tasks.find(x=>x.id===b.dataset.hino);if(!t)return;await upd(t.id,{highlightDay:null,activity:actLog(t,"Routine pick rejected: not useful")});toast("Unstarred. The 9 AM lead will see it was a poor pick.");return}
+      toast(v==="done"?cheer():v==="later"?"Hidden for today. Enjoy the quiet.":"Got it. The 9 AM lead will skip things like this.")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(b.dataset.hino){const t=S.tasks.find(x=>x.id===b.dataset.hino);if(!t)return;await upd(t.id,{highlightDay:null,activity:actLog(t,"Routine pick rejected: not useful")});toast("Unstarred. Thanks! The 9 AM lead will pick better next time.");return}
   if(b.dataset.ahead){const t=S.tasks.find(x=>x.id===b.dataset.ahead);if(!t)return;const n=tmrw();
     if(t.highlightDay===n){await upd(t.id,{highlightDay:null});return}
     if(S.tasks.filter(x=>open(x)&&x.highlightDay===n).length>=3){toast("Three is plenty. Unpick one first.",false);return}
@@ -3066,20 +3152,20 @@ document.addEventListener("click",async e=>{
 });
 document.addEventListener("submit",async e=>{
   if(e.target.dataset.chatform){e.preventDefault();const u=e.target.elements.u.value.trim();if(u&&!/^https:\/\/claude\.ai\//.test(u)){toast("That isn't a claude.ai link",false);return}
-    try{await upd(e.target.dataset.chatform,{chatUrl:u||null});toast(u?"Saved. Continue in Claude reopens this chat.":"Chat link removed")}catch{toast("Couldn't save that.")}return}
+    try{await upd(e.target.dataset.chatform,{chatUrl:u||null});toast(u?"Saved. Continue in Claude reopens this chat.":"Chat link removed")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
   if(e.target.dataset.paddform){e.preventDefault();const f=e.target.elements,pid=f.pid.value,role=f.role.value.trim()||null;if(!pid||!proj(pid)){toast("Pick a project first",false);return}
     try{const id=await realPerson(personById(e.target.dataset.paddform));if(!id)return;
       if((S.links||[]).some(l=>l.fromType==="person"&&l.fromId===id&&l.toType==="project"&&l.toId===pid&&l.kind==="member")){toast("Already in that project",false);return}
-      await S.db.collection("links").add({fromType:"person",fromId:id,toType:"project",toId:pid,kind:"member",note:role});toast(`Added to ${proj(pid).name}`)}catch{toast("Couldn't add that.")}return}
+      await S.db.collection("links").add({fromType:"person",fromId:id,toType:"project",toId:pid,kind:"member",note:role});toast(`Added to ${proj(pid).name}`)}catch{toast("Hmm, couldn't add that. Mind trying again?")}return}
   if(e.target.id==="agendaAdd"){e.preventDefault();const f=e.target.elements;const t=f.t.value.trim();if(!t)return;
-    try{await S.db.collection("agenda_items").add({seriesId:e.target.dataset.series,kind:f.k.value,text:t});toast("Added to the agenda")}catch{toast("Couldn't add that.")}return}
+    try{await S.db.collection("agenda_items").add({seriesId:e.target.dataset.series,kind:f.k.value,text:t});toast("Added to the agenda")}catch{toast("Hmm, couldn't add that. Mind trying again?")}return}
   if(e.target.id==="inputAdd"){e.preventDefault();const f=e.target.elements;const q=f.q.value.trim();if(!q)return;
     let key=q.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").split("-").slice(0,4).join("-")||"input";
     if(S.inputs.some(x=>x.key===key))key+="-"+Date.now().toString(36).slice(-3);
     const pid=S.view==="project"&&proj(S.pid)?S.pid:null;
     const{data,error}=await sb.from("inputs").insert({key,question:q,owner:f.who.value.trim()||null,project_id:pid}).select().single();
     if(!error&&f.doc.value.trim())await sb.from("input_uses").insert({input_id:data.id,doc:f.doc.value.trim(),project_id:pid});
-    toast(error?"Couldn't track that.":`Tracking it. Mark the spot in the doc with [[NEEDS:${key}]]`,false);e.target.reset();soon();return}
+    toast(error?"Hmm, couldn't track that. Mind trying again?":`Tracking it. Mark the spot in the doc with [[NEEDS:${key}]]`,false);e.target.reset();soon();return}
   if(e.target.id!=="quick")return;e.preventDefault();
   const f=e.target;const raw=f.q.value.trim();if(!raw)return;
   const data={...tagParse(raw),projectId:f.p.value||null};
@@ -3136,9 +3222,9 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
   if(st==="doing"&&(!editing||editing.status!=="doing"))data.startedAt=now();
   if(!data.title)return;
   if(editing){if(st==="done"&&editing.status!=="done")data.doneAt=now();if(st!=="done")data.doneAt=null;await upd(editing.id,data);toast("Task saved")}
-  else{if(st==="done")data.doneAt=now();await addTask(data);toast("Task added")}
+  else{if(st==="done")data.doneAt=now();await addTask(data);toast("Task added. Nice.")}
 });
-document.getElementById("delTask").addEventListener("click",async()=>{if(!editing)return;if(!confirm("Delete this task?"))return;try{await S.db.doc("tasks/"+editing.id).delete();toast("Task deleted")}catch{toast("Couldn't delete that task.")}document.getElementById("taskDlg").close()});
+document.getElementById("delTask").addEventListener("click",async()=>{if(!editing)return;if(!confirm("Delete this task?"))return;try{await S.db.doc("tasks/"+editing.id).delete();toast("Task deleted")}catch{toast("Hmm, couldn't delete that task. Mind trying again?")}document.getElementById("taskDlg").close()});
 
 /* merge and tick off: when one task's work closes others (often the same project on other dates) */
 const whenTxt=x=>[doing(x)?"started":waiting(x)?`waiting on ${x.waitingOn||"someone"}`:"",overdue(x)?"overdue":planOf(x)?nice(planOf(x)):"no date"].filter(Boolean).join(" · ");
@@ -3175,7 +3261,7 @@ async function mergeInto(t,srcs){
   for(const f of (S.focus_themes||[]).filter(f=>(f.taskIds||[]).some(id=>ids.has(id))))
     try{await S.db.doc("focus_themes/"+f.id).update({taskIds:[...new Set(f.taskIds.map(id=>ids.has(id)?t.id:id))]})}catch{}
   try{await Promise.all(srcs.map(s=>S.db.doc("tasks/"+s.id).retire({status:"done",doneAt:now(),supersededBy:t.id,activity:actLog(s,`Merged into “${t.title}”`)})))}
-  catch{toast("Some of that didn't save. Try again.",false,true);return}
+  catch{toast("Some of that didn't save. Mind trying again?",false,true);return}
   toast(srcs.length===1?`Merged into “${trunc(t.title,40)}”`:`${cap(word(srcs.length))} tasks merged into this one`)}
 // shared picker for the merge and theme dialogs: a ticked list of open tasks, filtered by a search box
 function pickRows(list,sel){return list.map(x=>`<label><input type="checkbox" value="${esc(x.id)}" ${sel.has(x.id)?"checked":""}><span>${esc(x.title)}<small>${esc(fullName(proj(x.projectId)))} · ${esc(whenTxt(x))}</small></span></label>`).join("")}
@@ -3215,9 +3301,9 @@ document.getElementById("themeQ").addEventListener("input",drawTheme);
 document.getElementById("themeList").addEventListener("change",e=>{const c=e.target;if(c.type!=="checkbox")return;tAuto=false;c.checked?tSel.add(c.value):tSel.delete(c.value);drawTheme()});
 document.getElementById("themeForm").addEventListener("submit",async e=>{const title=e.target.title.value.trim();if(!title)return;const taskIds=[...tSel].filter(id=>S.tasks.some(x=>x.id===id)),goalId=e.target.elements.goalId.value||null;
   try{if(themeE)await S.db.doc("focus_themes/"+themeE.id).update({title,taskIds,goalId});else await S.db.collection("focus_themes").add({day:FOCUS[themeSp].key(),span:themeSp,title,taskIds,goalId});
-    toast(themeE?"Theme saved":taskIds.length?`Theme set for ${themeSp==="week"?"this week":"today"}, covering ${word(taskIds.length)} task${taskIds.length===1?"":"s"}`:`Theme set for ${themeSp==="week"?"this week":"today"}`)}catch{toast("Couldn't save that theme. Try again.",false,true)}});
+    toast(themeE?"Theme saved":taskIds.length?`Theme set for ${themeSp==="week"?"this week":"today"}, covering ${word(taskIds.length)} task${taskIds.length===1?"":"s"}`:`Theme set for ${themeSp==="week"?"this week":"today"}`)}catch{toast("Hmm, couldn't save that theme. Mind trying again?",false,true)}});
 document.getElementById("delTheme").addEventListener("click",async()=>{if(!themeE)return;document.getElementById("themeDlg").close();
-  try{await S.db.doc("focus_themes/"+themeE.id).delete();toast("Theme removed")}catch{toast("Couldn't remove that theme.",false,true)}});
+  try{await S.db.doc("focus_themes/"+themeE.id).delete();toast("Theme removed")}catch{toast("Hmm, couldn't remove that theme. Mind trying again?",false,true)}});
 
 /* started state */
 async function startTask(t){
@@ -3306,10 +3392,10 @@ function openNote(n,pid){
 document.getElementById("noteForm").addEventListener("submit",async e=>{
   const f=e.target.elements;const data={kind:f.kind.value,projectId:f.projectId.value||null,title:f.title.value.trim(),body:f.body.value.trim(),url:f.url.value.trim()||null,private:f.private.checked};
   if(!data.title)return;
-  try{let nid=editingN?.id;if(editingN)await S.db.doc("notes/"+editingN.id).update(data);else nid=(await S.db.collection("notes").add({...data,source:"hub"}))?.id;toast("Note saved");await syncMentions("note",nid,data.body,f.body._wiki)}catch{toast("Couldn't save that note. Try again.")}
+  try{let nid=editingN?.id;if(editingN)await S.db.doc("notes/"+editingN.id).update(data);else nid=(await S.db.collection("notes").add({...data,source:"hub"}))?.id;toast("Note saved");await syncMentions("note",nid,data.body,f.body._wiki)}catch{toast("Hmm, couldn't save that note. Mind trying again?")}
 });
 document.getElementById("delNote").addEventListener("click",async()=>{if(!editingN)return;if(!confirm("Delete this note?"))return;
-  try{await S.db.doc("notes/"+editingN.id).delete();if(S.bsel==="n:"+editingN.id)S.bsel="root";toast("Note deleted")}catch{toast("Couldn't delete that note.")}document.getElementById("noteDlg").close()});
+  try{await S.db.doc("notes/"+editingN.id).delete();if(S.bsel==="n:"+editingN.id)S.bsel="root";toast("Note deleted")}catch{toast("Hmm, couldn't delete that note. Mind trying again?")}document.getElementById("noteDlg").close()});
 /* links: [[ in a note or task body links it to a person, project, note, task or topic; links live in S.links */
 function wikiItems(){const out=[];
   for(const r of persons())out.push({t:r.virtual?"note":"person",id:r.id,label:r.name,sub:"Person"+(r.role?` · ${r.role}`:"")});
@@ -3387,7 +3473,7 @@ document.getElementById("goalForm").addEventListener("change",gSync);
 document.getElementById("goalForm").addEventListener("submit",async e=>{const f=e.target.elements,title=f.title.value.trim();if(!title)return;const hz=f.horizon.value;
   const data={title,why:f.why.value.trim()||null,horizon:hz,areaId:f.areaId.value||null,parentId:hz==="quarter"?f.parentId.value||null:null,measure:f.measure.value,target:f.measure.value==="number"&&f.target.value!==""?+f.target.value:null,unit:f.unit.value.trim()||null,metricId:f.measure.value==="number"?f.metricId.value||null:null};
   const m=data.metricId&&metricsOf().find(x=>x.id===data.metricId);if(m&&mLast(m))data.current=+mLast(m).value;
-  try{if(editingG)await S.db.doc("goals/"+editingG.id).update(data);else{const row=await S.db.collection("goals").add({...data,periodStart:goalPer||(hz==="year"?yStart():qStart()),status:"active"});if(row){S.view="goal";S.goal=row.id;render()}}toast("Goal saved")}catch{toast("Couldn't save that goal. Try again.")}});
+  try{if(editingG)await S.db.doc("goals/"+editingG.id).update(data);else{const row=await S.db.collection("goals").add({...data,periodStart:goalPer||(hz==="year"?yStart():qStart()),status:"active"});if(row){S.view="goal";S.goal=row.id;render()}}toast("Goal saved")}catch{toast("Hmm, couldn't save that goal. Mind trying again?")}});
 function openHabit(h,area){editingH=h;const f=document.getElementById("habitForm").elements;document.getElementById("habitDlgTitle").textContent=h?"Edit habit":"New habit";
   f.title.value=h?.title||"";f.cadence.value=h?.cadence||"daily";f.perWeek.value=String(h?.perWeek||3);f.partOfDay.value=h?.partOfDay||"day";f.areaId.innerHTML=areaOpts(h?.areaId||area);f.goalId.innerHTML=goalOpts(h?.goalId);
   const st=document.getElementById("stopHabit");st.hidden=!h;st.textContent=h?.active===false?"Start again":"Stop this habit";hSync();document.getElementById("habitDlg").showModal()}
@@ -3395,46 +3481,46 @@ function hSync(){const f=document.getElementById("habitForm").elements;f.perWeek
 document.getElementById("habitForm").addEventListener("change",hSync);
 document.getElementById("habitForm").addEventListener("submit",async e=>{const f=e.target.elements,title=f.title.value.trim();if(!title)return;
   const data={title,cadence:f.cadence.value,perWeek:f.cadence.value==="weekly"?+f.perWeek.value:null,partOfDay:f.partOfDay.value,areaId:f.areaId.value||null,goalId:f.goalId.value||null};
-  try{if(editingH)await S.db.doc("habits/"+editingH.id).update(data);else await S.db.collection("habits").add({...data,active:true});toast("Habit saved")}catch{toast("Couldn't save that habit.")}});
-document.getElementById("stopHabit").addEventListener("click",async()=>{if(!editingH)return;const on=editingH.active===false;try{await S.db.doc("habits/"+editingH.id).update({active:on});toast(on?"Habit restarted":"Habit stopped. Its history stays.")}catch{toast("Couldn't save that.")}document.getElementById("habitDlg").close()});
+  try{if(editingH)await S.db.doc("habits/"+editingH.id).update(data);else await S.db.collection("habits").add({...data,active:true});toast("Habit saved")}catch{toast("Hmm, couldn't save that habit. Mind trying again?")}});
+document.getElementById("stopHabit").addEventListener("click",async()=>{if(!editingH)return;const on=editingH.active===false;try{await S.db.doc("habits/"+editingH.id).update({active:on});toast(on?"Habit restarted":"Habit stopped. Its history stays.")}catch{toast("Hmm, couldn't save that. Mind trying again?")}document.getElementById("habitDlg").close()});
 function openArea(a){editingA=a;const f=document.getElementById("areaForm").elements;document.getElementById("areaDlgTitle").textContent=a.name;f.standard.value=a.standard&&!/^\[/.test(a.standard)?a.standard:"";f.statusNote.value=a.statusNote||"";document.getElementById("areaDlg").showModal()}
-document.getElementById("areaForm").addEventListener("submit",async e=>{if(!editingA)return;const f=e.target.elements;try{await S.db.doc("life_areas/"+editingA.id).update({standard:f.standard.value.trim()||null,statusNote:f.statusNote.value.trim()||null,reviewedAt:now()});toast("Saved")}catch{toast("Couldn't save that.")}});
+document.getElementById("areaForm").addEventListener("submit",async e=>{if(!editingA)return;const f=e.target.elements;try{await S.db.doc("life_areas/"+editingA.id).update({standard:f.standard.value.trim()||null,statusNote:f.statusNote.value.trim()||null,reviewedAt:now()});toast("Saved")}catch{toast("Hmm, couldn't save that. Mind trying again?")}});
 function openRec(r,area){editingRec=r;const f=document.getElementById("recForm").elements;document.getElementById("recDlgTitle").textContent=r?r.title:"New life admin item";
   f.title.value=r?.title||"";f.kind.value=r?.kind||"document";f.areaId.innerHTML=areaOpts(r?.areaId||area);f.renewsOn.value=r?.renewsOn||"";f.everyMonths.value=r?.everyMonths?String(r.everyMonths):"";
   if(r?.everyMonths&&f.everyMonths.value!==String(r.everyMonths)){f.everyMonths.insertAdjacentHTML("beforeend",`<option value="${+r.everyMonths}">Every ${+r.everyMonths} months</option>`);f.everyMonths.value=String(r.everyMonths)}
   f.amount.value=r?.amount??"";f.currency.value=r?.currency||"INR";f.remindDays.value=r?.remindDays??30;f.url.value=r?.url||"";f.notes.value=r?.notes||"";document.getElementById("archRec").hidden=!r;document.getElementById("recDlg").showModal()}
 document.getElementById("recForm").addEventListener("submit",async e=>{const f=e.target.elements,title=f.title.value.trim();if(!title)return;
   const data={title,kind:f.kind.value,areaId:f.areaId.value||null,renewsOn:f.renewsOn.value||null,everyMonths:f.everyMonths.value?+f.everyMonths.value:null,amount:f.amount.value===""?null:+f.amount.value,currency:f.currency.value.trim()||"INR",remindDays:f.remindDays.value===""?30:Math.max(0,+f.remindDays.value),url:f.url.value.trim()||null,notes:f.notes.value.trim()||null};
-  try{if(editingRec){await S.db.doc("records/"+editingRec.id).update(data);const t=recTask(editingRec);if(t&&open(t)&&data.renewsOn&&t.due!==data.renewsOn)await upd(t.id,{due:data.renewsOn})}else await S.db.collection("records").add(data);toast("Saved")}catch{toast("Couldn't save that.")}});
-document.getElementById("archRec").addEventListener("click",async()=>{if(!editingRec)return;try{await S.db.doc("records/"+editingRec.id).update({archivedAt:now()});toast("Archived. It stays in the export.")}catch{toast("Couldn't archive that.")}document.getElementById("recDlg").close()});
+  try{if(editingRec){await S.db.doc("records/"+editingRec.id).update(data);const t=recTask(editingRec);if(t&&open(t)&&data.renewsOn&&t.due!==data.renewsOn)await upd(t.id,{due:data.renewsOn})}else await S.db.collection("records").add(data);toast("Saved")}catch{toast("Hmm, couldn't save that. Mind trying again?")}});
+document.getElementById("archRec").addEventListener("click",async()=>{if(!editingRec)return;try{await S.db.doc("records/"+editingRec.id).update({archivedAt:now()});toast("Archived. It stays in the export.")}catch{toast("Hmm, couldn't archive that. Mind trying again?")}document.getElementById("recDlg").close()});
 function openMetric(m,area){editingM=m;const f=document.getElementById("metricForm").elements;document.getElementById("metricDlgTitle").textContent=m?m.name:"Track a number";
   f.name.value=m?.name||"";f.unit.value=m?.unit||"";f.target.value=m?.target??"";f.better.value=m?.better||"up";f.areaId.innerHTML=areaOpts(m?.areaId||area);document.getElementById("stopMetric").hidden=!m;document.getElementById("metricDlg").showModal()}
 document.getElementById("metricForm").addEventListener("submit",async e=>{const f=e.target.elements,name=f.name.value.trim();if(!name)return;
   const data={name,unit:f.unit.value.trim()||null,target:f.target.value===""?null:+f.target.value,better:f.better.value,areaId:f.areaId.value||null};
-  try{if(editingM)await S.db.doc("metrics/"+editingM.id).update(data);else await S.db.collection("metrics").add({...data,active:true});toast("Saved")}catch{toast("Couldn't save that.")}});
-document.getElementById("stopMetric").addEventListener("click",async()=>{if(!editingM)return;try{await S.db.doc("metrics/"+editingM.id).update({active:false});toast("Stopped. Its history stays.")}catch{toast("Couldn't save that.")}document.getElementById("metricDlg").close()});
+  try{if(editingM)await S.db.doc("metrics/"+editingM.id).update(data);else await S.db.collection("metrics").add({...data,active:true});toast("Saved")}catch{toast("Hmm, couldn't save that. Mind trying again?")}});
+document.getElementById("stopMetric").addEventListener("click",async()=>{if(!editingM)return;try{await S.db.doc("metrics/"+editingM.id).update({active:false});toast("Stopped. Its history stays.")}catch{toast("Hmm, couldn't save that. Mind trying again?")}document.getElementById("metricDlg").close()});
 function openCompass(){const c=(S.compass||[])[0]||{},f=document.getElementById("compassForm").elements;f.vision.value=c.vision||"";f.values.value=(Array.isArray(c.values)?c.values:[]).map(v=>v.why?`${v.name}: ${v.why}`:v.name||v).join("\n");f.notDoing.value=(c.notDoing||[]).join("\n");document.getElementById("compassDlg").showModal()}
 document.getElementById("compassForm").addEventListener("submit",async e=>{const f=e.target.elements,lines=v=>v.split("\n").map(x=>x.trim()).filter(Boolean);
   const data={vision:f.vision.value.trim()||null,values:lines(f.values.value).map(l=>{const i=l.indexOf(":");return i>0?{name:l.slice(0,i).trim(),why:l.slice(i+1).trim()}:{name:l}}),notDoing:lines(f.notDoing.value)};
-  try{const c=(S.compass||(S.compass=[]))[0]||(S.compass[0]={id:1});await S.db.doc("compass/1").update(data);Object.assign(c,data);render();toast("Compass saved")}catch{toast("Couldn't save the compass.")}});
+  try{const c=(S.compass||(S.compass=[]))[0]||(S.compass[0]={id:1});await S.db.doc("compass/1").update(data);Object.assign(c,data);render();toast("Compass saved. Steady as she goes.")}catch{toast("Hmm, couldn't save the compass. Mind trying again?")}});
 function openLog(d){logD=d;const l=logOf(d),f=document.getElementById("logForm").elements;document.getElementById("logDlgTitle").textContent=parse(d).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
   f.energy.value=l?.energy?String(l.energy):"";f.mood.value=l?.mood?String(l.mood):"";f.line.value=l?.line||"";f.win.value=l?.win||"";f.lesson.value=l?.lesson||"";f.body.value=l?.body||"";document.getElementById("logDlg").showModal()}
 document.getElementById("logForm").addEventListener("submit",async e=>{if(!logD)return;const f=e.target.elements;
-  try{await saveLog(logD,{energy:f.energy.value?+f.energy.value:null,mood:f.mood.value?+f.mood.value:null,line:f.line.value.trim()||null,win:f.win.value.trim()||null,lesson:f.lesson.value.trim()||null,body:f.body.value.trim()||null});toast("Saved")}catch{toast("Couldn't save that day.")}});
+  try{await saveLog(logD,{energy:f.energy.value?+f.energy.value:null,mood:f.mood.value?+f.mood.value:null,line:f.line.value.trim()||null,win:f.win.value.trim()||null,lesson:f.lesson.value.trim()||null,body:f.body.value.trim()||null});toast("Saved")}catch{toast("Hmm, couldn't save that day. Mind trying again?")}});
 document.addEventListener("submit",async e=>{
   if(e.target.id==="ciForm"){e.preventDefault();const f=e.target.elements,c=S.ci||{},l=logOf(T());
-    try{await saveLog(T(),{energy:c.energy??l?.energy??null,mood:c.mood??l?.mood??null,line:f.line.value.trim()||null,win:f.win.value.trim()||null});S.ci=null;S.ciEdit=false;render();toast("Today is saved in your Log")}catch{toast("Couldn't save that.")}return}
-  if(e.target.dataset.mlog){e.preventDefault();try{await logMetric(e.target.dataset.mlog,e.target.elements.v.value);toast("Logged")}catch{toast("Couldn't save that.")}return}
+    try{await saveLog(T(),{energy:c.energy??l?.energy??null,mood:c.mood??l?.mood??null,line:f.line.value.trim()||null,win:f.win.value.trim()||null});S.ci=null;S.ciEdit=false;render();toast("Today is saved in your Log. Rest well.")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
+  if(e.target.dataset.mlog){e.preventDefault();try{await logMetric(e.target.dataset.mlog,e.target.elements.v.value);toast("Logged")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
   if(e.target.dataset.rvnote){e.preventDefault();const r=(S.reviews||[]).find(x=>x.id===e.target.dataset.rvnote);if(!r)return;const k=e.target.dataset.key,go=e.submitter?.value,note=e.target.elements.note.value.trim();
     const answers={...(r.answers||{}),[k]:{...((r.answers||{})[k]||{}),note:note||null,seen:true}},fin=go==="finish";
     try{await S.db.doc("reviews/"+r.id).update(fin?{answers,status:"done",doneAt:r.doneAt||now()}:{answers,step:+go,status:r.status==="done"?"done":"in_progress"});
-      if(fin){toast(`${RV[r.kind].l} done`);S.view="life";render()}else document.querySelector("main").scrollTo(0,0)}catch{toast("Couldn't save that step.")}return}
+      if(fin){toast(`${RV[r.kind].l} done`);S.view="life";render()}else document.querySelector("main").scrollTo(0,0)}catch{toast("Hmm, couldn't save that step. Mind trying again?")}return}
   if(e.target.dataset.rvtheme){e.preventDefault();const f=e.target.elements,title=f.t.value.trim();if(!title)return;
-    try{await S.db.collection("focus_themes").add({day:e.target.dataset.rvtheme,span:"week",title,taskIds:[],goalId:f.g.value||null});toast("Theme added for next week")}catch{toast("Couldn't add that theme.")}return}
-  if(e.target.dataset.gnum){e.preventDefault();const v=e.target.elements.v.value;try{await S.db.doc("goals/"+e.target.dataset.gnum).update({current:v===""?null:+v});toast("Updated")}catch{toast("Couldn't save that.")}return}
+    try{await S.db.collection("focus_themes").add({day:e.target.dataset.rvtheme,span:"week",title,taskIds:[],goalId:f.g.value||null});toast("Theme added for next week")}catch{toast("Hmm, couldn't add that theme. Mind trying again?")}return}
+  if(e.target.dataset.gnum){e.preventDefault();const v=e.target.elements.v.value;try{await S.db.doc("goals/"+e.target.dataset.gnum).update({current:v===""?null:+v});toast("Updated")}catch{toast("Hmm, couldn't save that. Mind trying again?")}return}
   if(e.target.dataset.glink){e.preventDefault();const v=e.target.elements.x.value;if(!v)return;const[ty,id]=[v.slice(0,v.indexOf(":")),v.slice(v.indexOf(":")+1)],g=e.target.dataset.glink;
     if((S.links||[]).some(l=>l.fromType===ty&&l.fromId===id&&l.toType==="goal"&&l.toId===g)){toast("Already linked",false);return}
-    try{await S.db.collection("links").add({fromType:ty,fromId:id,toType:"goal",toId:g,kind:"part_of"});toast("Linked")}catch{toast("Couldn't link that.")}return}});
+    try{await S.db.collection("links").add({fromType:ty,fromId:id,toType:"goal",toId:g,kind:"part_of"});toast("Linked")}catch{toast("Hmm, couldn't link that. Mind trying again?")}return}});
 // the phone's More sheet: everything the five tabs leave out
 function openMore(){const g=(l,items)=>`<section><div class="sh"><h2>${l}</h2></div><div class="ms-g">${items.map(([v,t,c])=>`<button data-go="${v}">${t}${c?`<span class="count${v==="attention"?" hot":""}">${c}</span>`:""}</button>`).join("")}</div></section>`;
   document.getElementById("moreBody").innerHTML=g("Do",[["calls","Call prep"],["followups","Waiting on others",S.tasks.filter(fuDue).length||""],["attention","Needs attention",attentionCount()||""],["suggested","Suggested",S.tasks.filter(sugg).length||""],["agents","Run by agents",S.tasks.filter(x=>open(x)&&bot(x)).length||""],["projects","Projects"],["all","All tasks"]])
@@ -3455,9 +3541,9 @@ document.getElementById("personForm").addEventListener("submit",async e=>{const 
   const data={name,aliases:csv(f.aliases.value),emails:csv(f.emails.value),role:f.role.value.trim()||null,org:f.org.value.trim()||null,circles:[...f.c].filter(c=>c.checked).map(c=>c.value),cadenceDays:f.cadence.value?+f.cadence.value:null,birthday:f.birthday.value||null,howMet:f.howMet.value.trim()||null};
   try{if(editingR&&!editingR.virtual)await S.db.doc("people/"+editingR.id).update(data);
     else{const row=await S.db.collection("people").add({...data,noteId:editingR?.noteId||null});S.pv=(S.pv||0)+1;if(row&&(!editingR||S.person===editingR.id)){S.view="person";S.person=row.id;render()}}
-    toast("Saved")}catch{toast("Couldn't save that person. Try again.")}});
+    toast("Saved")}catch{toast("Hmm, couldn't save that person. Mind trying again?")}});
 document.getElementById("archPerson").addEventListener("click",async()=>{if(!editingR||editingR.virtual)return;if(!confirm(`Remove ${editingR.name} from People? Their note, calls and tasks stay.`))return;
-  try{await S.db.doc("people/"+editingR.id).update({status:"archived"});toast("Removed from People");S.view="people";render()}catch{toast("Couldn't remove that.")}document.getElementById("personDlg").close()});
+  try{await S.db.doc("people/"+editingR.id).update({status:"archived"});toast("Removed from People");S.view="people";render()}catch{toast("Hmm, couldn't remove that. Mind trying again?")}document.getElementById("personDlg").close()});
 /* capture: one box for a task, idea, note, decision, link or person */
 let capManual=false;
 function capKind(k){const f=document.getElementById("capForm").elements;f.kind.value=k;
@@ -3477,7 +3563,7 @@ document.getElementById("capForm").addEventListener("submit",async e=>{
   const k=f.kind.value,pid=f.projectId.value||null;
   if(k==="task"){const q=tagParse(title);await addTask({...q,projectId:pid,notes:body,...(S.view==="today"&&!q.quick&&!q.repeat?{todayDate:T()}:{})});toast(tagToast(q)||(S.view==="today"?"Added to today":"Task added"));return}
   let url=null;if(k==="link"){const m=raw.match(/https?:\/\/\S+/);if(m){url=m[0];title=title.replace(url,"").trim()||url.replace(/^https?:\/\/(www\.)?/,"").slice(0,90)}}
-  try{await S.db.collection("notes").add({kind:k,projectId:pid,title,body:url?body.replace(url,"").trim():body,url,source:"hub"});toast(`${KIND[k]?.l||"Note"} saved${pid?"":" to your Notes inbox"}`)}catch{toast("Couldn't save that. Try again.",false)}});
+  try{await S.db.collection("notes").add({kind:k,projectId:pid,title,body:url?body.replace(url,"").trim():body,url,source:"hub"});toast(`${KIND[k]?.l||"Note"} saved${pid?"":" to your Notes inbox"}`)}catch{toast("Hmm, couldn't save that. Mind trying again?",false)}});
 
 /* voice capture: the browser's own dictation (no server); hidden where the browser has none */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
@@ -3567,17 +3653,17 @@ document.getElementById("projForm").addEventListener("submit",async e=>{
   if(editingP)for(const k of desc(editingP.id))if((k.area||"")!==data.area)S.db.doc("projects/"+k.id).update({area:data.area,updatedAt:now()}).catch(()=>{});
   try{if(editingP)await S.db.doc("projects/"+editingP.id).update(data);
     else{let id=(par?par+"-":"")+(name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||("p-"+Date.now()));if(proj(id))id+="-"+Date.now().toString(36);await S.db.doc("projects/"+id).set({...data,order:99,createdAt:now()})}
-    toast("Project saved")}catch{toast("Couldn't save that project.")}
+    toast("Project saved. Looking good.")}catch{toast("Hmm, couldn't save that project. Mind trying again?")}
 });
 // archive: a finished project leaves the sidebar and pickers but keeps its brief, notes and done tasks (Know › Archive)
 document.getElementById("archProj").addEventListener("click",async()=>{const p=editingP;if(!p)return;
-  if(p.archivedAt){try{await S.db.doc("projects/"+p.id).update({archivedAt:null});toast(`${p.name} is back`)}catch{toast("Couldn't bring it back.")}document.getElementById("projDlg").close();return}
+  if(p.archivedAt){try{await S.db.doc("projects/"+p.id).update({archivedAt:null});toast(`${p.name} is back`)}catch{toast("Hmm, couldn't bring it back. Mind trying again?")}document.getElementById("projDlg").close();return}
   const left=S.tasks.filter(t=>fam(p.id).includes(t.projectId)&&open(t)).length;
   if(left){toast(`Close or move its ${left} open task${left===1?"":"s"} first`,false);return}
-  try{await S.db.doc("projects/"+p.id).update({archivedAt:now()});toast(`${p.name} archived. Find it under Archive.`);document.getElementById("projDlg").close();S.view="archive";S.pid=null;render()}catch{toast("Couldn't archive that.")}});
+  try{await S.db.doc("projects/"+p.id).update({archivedAt:now()});toast(`${p.name} archived. Find it under Archive.`);document.getElementById("projDlg").close();S.view="archive";S.pid=null;render()}catch{toast("Hmm, couldn't archive that. Mind trying again?")}});
 document.getElementById("delProj").addEventListener("click",async()=>{if(!editingP)return;if(!confirm(isWs(editingP)?`Delete this workspace? Its projects move up to ${parentOf(editingP)?.name||"the top level"} and its own tasks move to Unsorted.`:"Delete this project? Its tasks move to Unsorted."))return;
   try{const up=parentOf(editingP)?.id||null;for(const k of kidsOf(editingP.id))await S.db.doc("projects/"+k.id).update({parentId:up,updatedAt:now()});
-    await S.db.doc("projects/"+editingP.id).delete();S.view="projects";S.pid=null;toast("Project deleted")}catch{toast("Couldn't delete that project.")}document.getElementById("projDlg").close()});
+    await S.db.doc("projects/"+editingP.id).delete();S.view="projects";S.pid=null;toast("Project deleted")}catch{toast("Hmm, couldn't delete that project. Mind trying again?")}document.getElementById("projDlg").close()});
 
 /* ---------- boot: Supabase ---------- */
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
@@ -3671,7 +3757,7 @@ const HIST={undo:[],redo:[],grp:null,busy:false,
         }
       }
       to.push(g);toast((dir==="undo"?"Undone":"Redone")+(g.label?": "+g.label.toLowerCase():""),false);
-    }catch(e){from.push(g);toast(`Couldn't ${dir} that. Try again.`,false)}
+    }catch(e){from.push(g);toast(`Hmm, couldn't ${dir} that. Mind trying again?`,false)}
     this.busy=false;paintHist();later();
   }};
 function paintHist(){const h=document.getElementById("hist");if(!h)return;

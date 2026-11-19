@@ -52,7 +52,7 @@ check('start button counts the draft', await p.evaluate(()=>document.querySelect
 await p.click('#view [data-pdgo]'); await p.waitForTimeout(500);
 check('commit: star saved, added task on today, removed one off today', (await db('t5')).highlight_day===await p.evaluate(()=>T())&&(await db('t2')).today_date===await p.evaluate(()=>T())&&(await db('t8')).today_date===null);
 check('then the list, with the star first among non-deadline rows', await p.evaluate(()=>S.tmode==='list'&&localStorage.getItem('ambalam.planned')===T()&&document.querySelector('#view .tlist .task .tstar')?.closest('.task').dataset.tid==='t5'));
-check('header and sidebar count the same list', await p.evaluate(()=>{const n=todayList().length;return document.querySelector('#side [data-go="today"] .count').textContent==String(n)&&document.querySelector('.thead h1').textContent.toLowerCase().includes(['no','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][n]+' left')}));
+check('header and sidebar count the same list', await p.evaluate(()=>{const n=todayList().length;return document.querySelector('#side [data-go="today"] .count').textContent==String(n)&&document.querySelector('.thead h1').textContent.toLowerCase().includes(['no','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][n]+' to go')}));
 // quick look: four actions; When moves it
 await p.click('#view .task[data-tid="t5"] .title'); await p.waitForTimeout(150);
 check('quick look has four actions', await p.evaluate(()=>[...document.querySelectorAll('#peek .pk-acts.four > .tool')].map(x=>x.textContent).join('|')));
