@@ -1539,7 +1539,7 @@ const wantPlan=()=>S.view==="today"&&(S.tmode==="plan"||(S.tmode!=="list"&&!flag
 function planDayView(){if(!S.pd||S.pd.day!==T())planInit();
   const t=T(),P=S.pd,live=id=>S.tasks.find(x=>x.id===id&&open(x)),ids=P.ids.filter(live),d=parse(t),u=usualDay(),n=ids.length,over=u&&n>u;
   const fixed=[...S.tasks.filter(x=>slip(x)&&!bot(x)).sort((a,b)=>dueMs(a)-dueMs(b)).map(x=>({w:hm(x)?clock(hm(x)):"Today",t:`${x.title} (hard deadline)`,hard:1})),...callsToday().map(({s,p})=>({w:istFmt(p.next_at,{hour:"numeric",minute:"2-digit"}),t:s.name}))];
-  let h=`<header class="thead pd-h"><div><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))} · Plan the day</div><h1>Good morning! Here’s a draft. Keep what feels right.</h1><p class="sub">The 9 AM lead’s picks and what’s dated today. Add or remove tasks, star up to 3, then start the day.</p></div><div class="pd-go"><button class="btn primary" data-pdgo>Start the day with ${n}</button><button class="act" data-pdskip>Just show my list</button></div></header>`;
+  let h=`<header class="thead pd-h"><div><div class="eyebrow">${esc(d.toLocaleDateString("en-GB",{weekday:"long"}))} · ${esc(d.toLocaleDateString("en-GB",{day:"numeric",month:"long"}))} · Plan the day</div><h1>Good morning! Here’s a draft. Keep what feels right.</h1><p class="sub">The 9 AM lead’s picks and what’s dated today. Add or remove tasks, star up to 3, then start the day.</p></div><div class="pd-go"><button class="btn primary" data-pdgo>Start the day with ${n}</button><button class="act" data-pdskip>Just show my list</button><button class="act" data-tmode="brief">Back to the brief</button></div></header>`;
   h+=`<div class="pd-cap${over?" over":""}"><b>${n} planned</b><span class="bar" aria-hidden="true"><i style="width:${Math.min(100,Math.round(n/Math.max(u*1.33,n,1)*100))}%"></i></span><span>${u?over?`You finish about ${u} on a usual day. Drop ${n-u} or keep them as stretch.`:`Fits your usual day of about ${u}.`:"Keep it short: the list is what you commit to."}</span></div>`;
   h+=`<div class="pd"><section class="pd-list" aria-label="Today's draft">`;
   if(fixed.length)h+=`<div class="pd-fixed"><span class="eyebrow">Fixed today</span>${fixed.map(f=>`<div><span class="${f.hard?"late":"acc"}">${esc(f.w)}</span><span>${esc(f.t)}</span></div>`).join("")}</div>`;
@@ -1967,8 +1967,8 @@ const bSec=(title,lis,extra="")=>`<div class="bsec" role="group" aria-label="${t
 /* The morning page (after Dia's brief, 19 Nov): it opens Today once a day in the morning, before Plan the day; later the Brief chip brings it back.
    Five parts: one thing Claude can push forward with you, top to-dos (tick to finish), your day as a timeline, new updates, and on Monday or Friday your week.
    The 9 AM lead's day_briefs row adds headline, push (with a prompt), to-dos, timeline items and updates; without it the app builds every part itself. */
-const BREADK="ambalam.briefread";
-const wantBrief=()=>S.view==="today"&&(S.tmode==="brief"||(!S.tmode&&!S.noAutoPlan&&!flagOn(BREADK)&&!flagOn(PLANK)&&istHour()>=5&&istHour()<14));
+// in the morning, Today is the brief until the day is planned (or skipped with "Straight to my list")
+const wantBrief=()=>S.view==="today"&&(S.tmode==="brief"||(!S.tmode&&!S.noAutoPlan&&!flagOn(PLANK)&&istHour()>=5&&istHour()<14));
 const edName=(ed,d)=>ed==="friday"?"Friday wrap":`${d.toLocaleDateString("en-GB",{weekday:"long"})} brief`;
 const ED={daily:"brief",monday:"Monday brief",friday:"Friday wrap"};
 // where an agent item came from, for the little label after its title
@@ -2011,7 +2011,7 @@ function happyLine(d,push,line){const wd=d.toLocaleDateString("en-GB",{weekday:"
   const shape=!line.length?"a wide-open day":first&&first.m>now_+120?`a clear run until ${minClock(first.m)}`:line.length===1?`one thing on the clock`:`${word(line.length)} things on the clock`;
   const p=push?.t?proj(push.t.projectId):null;
   return `${wd} with ${shape}. ${p?`Plenty of room for ${p.name} to feel the love.`:"Plenty of room to make good things happen."}`}
-function briefView(){if(!S.tmode){S.tmode="brief";flagSet(BREADK)}
+function briefView(){if(!S.tmode)S.tmode="brief";
   const t=T(),d=parse(t),b=briefOf(t),ed=b?.edition||edOf(t),items=bItems(b),of=s=>items.filter(x=>(x.section||"needs_you")===s);
   const push=pushPick(b),line=dayLine(b),pushId=push?.t?.id;
   const by=b?`9 AM lead, ${istFmt(b.updatedAt||b.createdAt||now(),{hour:"numeric",minute:"2-digit"})}`:istFmt(now(),{hour:"numeric",minute:"2-digit"});
@@ -2053,7 +2053,7 @@ function briefView(){if(!S.tmode){S.tmode="brief";flagSet(BREADK)}
       n?bLi("Zero","needs_you",`<button class="bi-t" data-triage="late">Close the week at overdue zero: ${n} left</button>`,"Each one: today, next week, no date, or drop.",`<button class="tool" data-triage="late">Sort them</button>`):bLi("Zero","active",bT("","Overdue zero"),"Nothing past its date. What a clean week.")],
       `<button class="act" data-bskill="week">Weekly wrap in Claude</button>`)+`</section>`}
   const planned=flagOn(PLANK);
-  h+=`<footer class="bf-f"><button class="btn primary" data-tmode="${planned?"list":"plan"}">${planned?"Open my list →":"Plan the day →"}</button>${planned?"":`<button class="act" data-tmode="list">Straight to my list</button>`}</footer>`;
+  h+=`<footer class="bf-f"><button class="btn primary" data-tmode="${planned?"list":"plan"}">${planned?"Open my list →":"Plan the day →"}</button>${planned?"":`<button class="act" data-pdskip>Straight to my list</button>`}</footer>`;
   return `<div class="bf">${h}</div>`}
 document.addEventListener("toggle",e=>{if(e.target.matches?.("details.pk-sibs"))S.sibOpen=e.target.open},true);
 // "Looking ahead": in the evening, pick up to 3 tasks for the next working day; they open it as high impact, and the 9 AM lead leaves your picks alone

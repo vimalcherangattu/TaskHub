@@ -40,7 +40,7 @@ async function setup(p,{edition='monday'}={}){
       delete:()=>({eq:(c,id)=>{const i=tb.findIndex(x=>x.id===id);if(i>=0)tb.splice(i,1);return Promise.resolve({error:null})}}),
       insert:row=>({select:()=>({single:()=>{const r={id:'new'+tb.length,...row};tb.push(r);return Promise.resolve({data:{...r},error:null})}})})}};
     try{localStorage.removeItem('ambalam.brief.v1')}catch{}
-    localStorage.removeItem('ambalam.briefread');localStorage.removeItem('ambalam.planned');S.tmode=null; // the morning page opens Today on its own (forced morning below)
+    localStorage.removeItem('ambalam.planned');S.tmode=null; // the morning page opens Today on its own (forced morning below)
     window.istHour=()=>9;
     window.opened=[];window.open=u=>{opened.push(u);return null};
     refresh();
@@ -53,7 +53,7 @@ p.on('dialog',d=>d.accept());
 await setup(p);
 const txt=sel=>p.evaluate(s=>document.querySelector(s)?.textContent||'',sel);
 const sec=h=>p.evaluate(h=>[...document.querySelectorAll('.bf section')].find(x=>x.getAttribute('aria-label')===h)?.textContent||'',h);
-console.log('morning: Today opens on the brief, once:', await p.evaluate(()=>!!document.querySelector('#view .bf')&&localStorage.getItem('ambalam.briefread')===T()&&S.tmode==='brief'));
+console.log('morning: Today opens on the brief:', await p.evaluate(()=>!!document.querySelector('#view .bf')&&S.tmode==='brief'));
 console.log('headline from the lead, edition name:', await p.evaluate(()=>document.querySelector('.bf-h').textContent.includes('Two people are waiting')&&document.querySelector('.bf-h').textContent.includes('9 AM lead')&&document.querySelector('.bf-h h1').textContent===parse(T()).toLocaleDateString('en-GB',{weekday:'long'})+' brief'));
 const secs=await p.evaluate(()=>[...document.querySelectorAll('.bf section')].map(x=>x.getAttribute('aria-label')));
 console.log('sections:', JSON.stringify(secs), ['Push your work forward','Top to-dos','Your day','New updates','Your week'].every(x=>secs.includes(x)));
@@ -81,8 +81,13 @@ console.log('tick on an owed task:', await p.evaluate(()=>DB.tasks.find(x=>x.id=
 // leaving: Plan the day, then the chip brings it back
 await p.click('.bf-f [data-tmode]'); await p.waitForTimeout(200);
 console.log('footer goes on to Plan the day:', await p.evaluate(()=>!document.querySelector('.bf')&&S.tmode==='plan'));
+await p.click('.pd-go [data-tmode="brief"]'); await p.waitForTimeout(150);
+console.log('Plan the day has a way back to the brief:', await p.evaluate(()=>!!document.querySelector('.bf')));
 await p.evaluate(()=>{S.tmode=null;render()}); await p.waitForTimeout(100);
-console.log('read today: it does not open again by itself:', await p.evaluate(()=>!document.querySelector('.bf')));
+console.log('Today in the morning stays on the brief until the day is planned:', await p.evaluate(()=>!!document.querySelector('.bf')));
+await p.click('.bf-f [data-pdskip]'); await p.waitForTimeout(150);
+await p.evaluate(()=>{S.tmode=null;render()}); await p.waitForTimeout(100);
+console.log('once planned or skipped, Today opens on the list:', await p.evaluate(()=>!document.querySelector('.bf')&&!!document.querySelector('.tchips [data-tmode="brief"]')));
 await p.evaluate(()=>{S.tmode='list';render()}); await p.waitForTimeout(100);
 await p.click('.tchips [data-tmode="brief"]'); await p.waitForTimeout(200);
 console.log('the brief chip opens it again:', await p.evaluate(()=>!!document.querySelector('.bf')));
