@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Tharavad</title>
-<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121418" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F6F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1412" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="tharavad.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,251 +13,775 @@
 <link rel="preconnect" href="https://mbbucsageoyxhekzbmyq.supabase.co">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Tharavad control room. Same tokens as Ambalam (index.html); one column, view tabs, the tree as nested lists. */
+/* Tharavad control room.
+   Layout: a sticky house bar (name, freshness, Tell Tharavad, views); every view opens with its one-line state,
+   then summary cards, then detail. The family tree is an org chart: the house on top, a beam, companies hanging from it.
+   Palette: backwater teal for the house's own voice, green/amber/red only for state, cool green-grey neutrals. */
 :root{
-  --bg:#FFFFFF; --surface:#FFFFFF; --sunken:#F2F4F7; --ink:#1C2430; --muted:#4B5565; --faint:#5D6675;
-  --line:#E4E7EC; --line-strong:#CDD3DC;
-  --accent:#3B5B8C; --accent-soft:#EAF0F8; --strong:#3B5B8C; --on-strong:#FFFFFF; --danger:#A63D33; --danger-soft:#FBEAE7;
-  --warn:#875400; --warn-soft:#FBF0DC; --ok:#26683F; --ok-soft:#DDEFE3; --plan:#4F5FA8; --plan-soft:#E8EBF7;
+  --bg:#F4F6F4; --surface:#FFFFFF; --sunken:#EAEEEB; --ink:#16201C; --muted:#45524C; --faint:#56625C;
+  --line:#DCE2DE; --line-strong:#B9C3BD;
+  --accent:#1D5B55; --accent-soft:#DFEDEA; --on-accent:#FFFFFF;
+  --ok:#22683D; --ok-soft:#DCEFE2; --warn:#855500; --warn-soft:#FAEFD8; --danger:#A3352A; --danger-soft:#FBE6E2;
+  --plan:#4A59A3; --plan-soft:#E6E9F6; --hatch:rgba(22,32,28,.06);
   --display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
   --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:14px; --r-sm:9px;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#121418; --surface:#181B20; --sunken:#0C0E11; --ink:#E8EBF0; --muted:#B3BAC5; --faint:#9199A5;
-  --line:#262B33; --line-strong:#363D47;
-  --accent:#8FB0E0; --accent-soft:#1A2436; --strong:#7E9FD1; --on-strong:#0E1420; --danger:#FF8A80; --danger-soft:#2E1715;
-  --warn:#F2B65A; --warn-soft:#2E2412; --ok:#6FD39A; --ok-soft:#12291D; --plan:#A9B5F0; --plan-soft:#1E2340; color-scheme:dark}}
+  --bg:#0F1412; --surface:#161D1A; --sunken:#0A0E0C; --ink:#E5ECE8; --muted:#AFBAB4; --faint:#939F98;
+  --line:#25302B; --line-strong:#3A4842;
+  --accent:#7EC6BB; --accent-soft:#13302C; --on-accent:#06201C;
+  --ok:#72D49C; --ok-soft:#11291C; --warn:#F0B85A; --warn-soft:#2C230F; --danger:#FF8F84; --danger-soft:#35150F;
+  --plan:#AAB6F2; --plan-soft:#1D2240; --hatch:rgba(229,236,232,.05); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#121418; --surface:#181B20; --sunken:#0C0E11; --ink:#E8EBF0; --muted:#B3BAC5; --faint:#9199A5;
-  --line:#262B33; --line-strong:#363D47;
-  --accent:#8FB0E0; --accent-soft:#1A2436; --strong:#7E9FD1; --on-strong:#0E1420; --danger:#FF8A80; --danger-soft:#2E1715;
-  --warn:#F2B65A; --warn-soft:#2E2412; --ok:#6FD39A; --ok-soft:#12291D; --plan:#A9B5F0; --plan-soft:#1E2340; color-scheme:dark}
+  --bg:#0F1412; --surface:#161D1A; --sunken:#0A0E0C; --ink:#E5ECE8; --muted:#AFBAB4; --faint:#939F98;
+  --line:#25302B; --line-strong:#3A4842;
+  --accent:#7EC6BB; --accent-soft:#13302C; --on-accent:#06201C;
+  --ok:#72D49C; --ok-soft:#11291C; --warn:#F0B85A; --warn-soft:#2C230F; --danger:#FF8F84; --danger-soft:#35150F;
+  --plan:#AAB6F2; --plan-soft:#1D2240; --hatch:rgba(229,236,232,.05); color-scheme:dark}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-button,input{font:inherit;color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--accent);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* house bar */
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
-.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:10px}
-h1{font:700 1.35rem var(--display);margin:0;letter-spacing:-.01em}
-.stamp{color:var(--faint);font-size:.82rem}
-nav{display:flex;gap:2px;flex-wrap:wrap;margin-left:auto}
-nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:.9rem;padding:8px 12px;border-radius:10px;min-height:40px;display:inline-flex;align-items:center;gap:6px}
-nav a[aria-current="page"]{background:var(--accent-soft);color:var(--ink)}
-.count{font:600 .72rem var(--mono);background:var(--danger);color:var(--on-strong);border-radius:9px;padding:0 6px}
-main{padding-block:18px 48px;display:grid;gap:22px}
-h2{font:700 1.1rem var(--display);margin:0 0 4px}
-.sub{color:var(--muted);font-size:.88rem;margin:0 0 12px}
-.banner{border-radius:12px;padding:12px 14px;font-weight:500}
-.banner.stop{background:var(--danger-soft);color:var(--danger)}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;padding-block:8px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0;text-decoration:none;color:var(--ink)}
+.brand b{font:800 1.3rem/1 var(--display);letter-spacing:-.02em}
+.stamp{color:var(--faint);font:400 .76rem var(--mono);white-space:nowrap}
+.stamp .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:1px}
+.stamp.stale .live{background:var(--warn)}
+nav{display:flex;gap:2px;order:3;flex:1 1 auto;justify-content:flex-start}
+nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:.9rem;padding:6px 11px;border-radius:999px;min-height:38px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+nav a:hover{color:var(--ink);background:var(--sunken)}
+nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.count{font:600 .7rem var(--mono);background:var(--danger);color:var(--surface);border-radius:9px;padding:1px 6px;line-height:1.3}
+nav a[aria-current="page"] .count{background:var(--bg);color:var(--danger)}
+.tell-open{margin-left:auto;order:2}
+@media (min-width:1000px){nav{order:2;flex:0 1 auto;margin-left:8px}.tell-open{order:3}}
+
+/* type + structure */
+main{padding-block:20px 64px;display:grid;gap:28px}
+section{display:grid;gap:12px;min-width:0}
+h2{font:700 1.18rem/1.2 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h3{font:700 1rem/1.25 var(--display);margin:0;text-wrap:balance}
+.eyebrow{font:500 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.sub{color:var(--muted);font-size:.88rem;margin:0;max-width:68ch}
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:6px 14px;flex-wrap:wrap}
+.shead .sub{flex:1 1 100%}
+.ticks.plain li::before{display:none}
+.empty{color:var(--muted);font-size:.9rem;padding:14px 16px;border:1px dashed var(--line-strong);border-radius:var(--r);margin:0}
+.mono{font-family:var(--mono);font-size:.82em;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.pos{color:var(--ok)} .neg{color:var(--danger)}
+
+/* surfaces */
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px 16px;display:grid;gap:8px;min-width:0;align-content:start}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.grid.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.list{display:grid;gap:10px}
+.row{display:flex;gap:8px 14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.row>.t{min-width:0;flex:1 1 260px}
+.meta{color:var(--muted);font-size:.83rem;display:flex;flex-wrap:wrap;gap:2px 10px}
+.meta>span:not(:last-child)::after{content:"·";margin-left:10px;color:var(--line-strong)}
+
+/* state marks */
+.pill{display:inline-flex;align-items:center;gap:5px;font:600 .7rem/1.4 var(--mono);border-radius:999px;padding:2px 9px;white-space:nowrap;letter-spacing:.02em}
+.h-green,.s-succeeded,.s-passed,.s-done,.s-yes{color:var(--ok);background:var(--ok-soft)}
+.h-amber,.s-blocked,.s-iterating,.s-skipped,.p-med,.s-parked{color:var(--warn);background:var(--warn-soft)}
+.h-red,.s-failed,.s-killed,.p-high,.s-no,.s-dropped{color:var(--danger);background:var(--danger-soft)}
+.h-unknown,.p-low,.s-expired,.k-plain{color:var(--muted);background:var(--sunken)}
+.h-planned,.h-paused,.h-retired,.s-planned,.s-new,.s-routed{color:var(--plan);background:var(--plan-soft)}
+.s-running,.s-in_progress,.k-accent{color:var(--accent);background:var(--accent-soft)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none;background:var(--line-strong)}
+.d-green{background:var(--ok)} .d-amber{background:var(--warn)} .d-red{background:var(--danger)} .d-unknown{background:transparent;border:2px solid var(--faint)} .d-planned,.d-paused,.d-retired{background:transparent;border:2px dashed var(--plan)}
+.dots{display:inline-flex;gap:5px;align-items:center;flex-wrap:wrap}
+
+/* buttons */
+.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:7px 14px;min-height:40px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:var(--surface)}
+.btn.danger.solid{background:var(--danger);color:var(--surface)}
+.btn.quiet{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.quiet:hover{color:var(--ink);background:var(--sunken)}
+.btn[disabled]{opacity:.6;cursor:progress}
+.acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.confirm{display:grid;gap:8px;padding:10px 12px;border-radius:var(--r-sm);background:var(--sunken);font-size:.88rem;width:100%}
+.confirm.bad{background:var(--danger-soft);color:var(--ink)}
+.confirm p{margin:0}
+
+/* banners + toast */
+.banner{border-radius:var(--r);padding:12px 16px;font-weight:500;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner.stop{background:var(--danger);color:var(--surface)}
+.banner.stop a{color:var(--surface);font-weight:600}
 .banner.away{background:var(--warn-soft);color:var(--warn)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.kpi{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface)}
-.kpi .l{font:500 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-.kpi b{display:block;font:700 1.5rem var(--display);font-variant-numeric:tabular-nums}
-.kpi small{color:var(--muted);font-size:.8rem}
-.pill{display:inline-flex;align-items:center;font:600 .72rem var(--mono);border-radius:999px;padding:2px 8px;white-space:nowrap}
-.h-green{color:var(--ok);background:var(--ok-soft)} .h-amber{color:var(--warn);background:var(--warn-soft)} .h-red{color:var(--danger);background:var(--danger-soft)} .h-unknown{color:var(--muted);background:var(--sunken)} .h-planned,.h-paused,.h-retired{color:var(--plan);background:var(--plan-soft)}
-.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
-.d-green{background:var(--ok)} .d-amber{background:var(--warn)} .d-red{background:var(--danger)} .d-unknown{background:var(--line-strong)} .d-planned,.d-paused,.d-retired{background:var(--plan)}
-.tree,.tree ul{list-style:none;margin:0;padding:0}
-.tree ul{margin-left:18px;border-left:1px solid var(--line);padding-left:12px}
-.unit{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;min-width:0}
-.unit .nm{font-weight:600}
-.unit .meta{color:var(--muted);font-size:.82rem}
-.unit .dots{display:inline-flex;gap:4px}
-.card{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px;display:grid;gap:6px}
-.list{display:grid;gap:8px}
-.row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
-.row .t{min-width:0;flex:1 1 280px}
-.row .t b{display:block}
-.row .t span{color:var(--muted);font-size:.84rem}
-.steps{margin:4px 0 0;padding-left:20px;color:var(--ink);font-size:.88rem}
-.acts{display:flex;gap:6px;flex-wrap:wrap}
-.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:10px;padding:7px 12px;min-height:40px;font-weight:500}
-.btn.primary{background:var(--strong);color:var(--on-strong);border-color:var(--strong)}
-.btn.danger{color:var(--danger);border-color:var(--danger)}
-.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
-table{border-collapse:collapse;width:100%;min-width:720px;font-size:.86rem}
-th{font:500 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--sunken)}
-td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:last-child td{border-bottom:0}
-.mono{font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums}
-.empty{color:var(--muted);font-size:.9rem;padding:8px 0}
-.cos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:.85rem}
-dt{color:var(--muted)} dd{margin:0;min-width:0}
+.banner.err{background:var(--danger-soft);color:var(--danger)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:20;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+#toast.bad{background:var(--danger);color:var(--surface)}
+
+/* home: the state line */
+.state{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:center;padding-block:6px 4px}
+.lamp{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;grid-row:span 2}
+.lamp::after{content:"";width:22px;height:22px;border-radius:50%;background:currentColor}
+.lamp.ok{color:var(--ok);background:var(--ok-soft)} .lamp.need{color:var(--warn);background:var(--warn-soft)} .lamp.bad{color:var(--danger);background:var(--danger-soft)}
+.state h2{font:800 clamp(1.7rem,4.2vw,2.5rem)/1.05 var(--display);letter-spacing:-.025em}
+.state .sub{font-size:.95rem}
+.needs{display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1;margin-top:8px}
+.need{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px 6px 8px;text-decoration:none;color:var(--ink);font-size:.88rem;min-height:40px}
+.need b{font:700 .95rem var(--display);min-width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;padding:0 6px}
+.need.a b{background:var(--danger-soft);color:var(--danger)} .need.q b{background:var(--warn-soft);color:var(--warn)} .need.p b{background:var(--plan-soft);color:var(--plan)} .need.v b{background:var(--accent-soft);color:var(--accent)}
+.need:hover{border-color:var(--ink)}
+
+/* figures */
+.fig{display:grid;gap:2px}
+.fig .v{font:700 1.65rem/1.1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.fig .v.sm{font-size:1.2rem}
+.fig small{color:var(--muted);font-size:.8rem}
+.figs{display:flex;flex-wrap:wrap;gap:12px 28px}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font:500 12.5px var(--mono);fill:var(--faint)}
+.chart .end{fill:var(--ink);font-weight:600}
+.chart .grid-l{stroke:var(--line);stroke-width:1}
+.chart .zero{stroke:var(--line-strong);stroke-width:1.5}
+.c-rev{fill:var(--ok);opacity:.8} .c-cost{fill:var(--danger);opacity:.55}
+.c-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.c-dot{fill:var(--ink)} .c-dot.last{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend .l-rev{background:var(--ok)} .legend .l-cost{background:var(--danger);opacity:.6} .legend .l-con{background:var(--ink);height:3px;border-radius:2px;vertical-align:3px}
+.hbar{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--sunken);gap:2px}
+.hbar span{display:block;height:100%}
+.hbar .green{background:var(--ok)} .hbar .amber{background:var(--warn)} .hbar .red{background:var(--danger)} .hbar .unknown{background:var(--line-strong)}
+.meter{height:6px;border-radius:999px;background:var(--sunken);overflow:hidden}
+.meter span{display:block;height:100%;background:var(--accent);border-radius:999px}
+.meter.over span{background:var(--danger)}
+.spark{width:64px;height:20px;display:block}
+.spark path{fill:none;stroke:var(--muted);stroke-width:1.5}
+.spark circle{fill:var(--accent)}
+
+/* board report */
+.report{max-width:72ch;display:grid;gap:10px;font-size:.95rem}
+.report h3{font-size:1.1rem;margin-top:6px} .report h4{font:700 .98rem var(--display);margin:6px 0 0} .report h5{font:600 .8rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:4px 0 0}
+.report p,.report ul,.report ol{margin:0}
+.report ul,.report ol{padding-left:22px;display:grid;gap:3px}
+.report hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+.report code{font:.85em var(--mono);background:var(--sunken);padding:1px 5px;border-radius:5px}
+.report strong{font-weight:600}
+.clip{max-height:340px;overflow:hidden;position:relative}
+.clip::after{content:"";position:absolute;inset:auto 0 0;height:64px;background:linear-gradient(transparent,var(--surface))}
+
+/* family tree: org chart */
+.org{display:grid;justify-items:center}
+.org-root{width:min(100%,460px);text-align:center;justify-items:center;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.org-root .meta{color:var(--bg);opacity:.8;justify-content:center}
+.org-root .meta>span:not(:last-child)::after{color:var(--bg)}
+.org-root h3{font-size:1.5rem;font-weight:800}
+.org-trunk{width:2px;height:26px;background:var(--line-strong)}
+.org-row{--cols:3;width:100%;position:relative;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:30px 16px;padding-top:26px}
+.org-row::before{content:"";position:absolute;top:0;height:2px;background:var(--line-strong);left:calc((100% - (var(--cols) - 1) * 16px) / var(--cols) / 2);right:calc((100% - (var(--cols) - 1) * 16px) / var(--cols) / 2)}
+.org-co{position:relative;align-content:start}
+.org-co.top::before{content:"";position:absolute;top:-27px;left:50%;width:2px;height:26px;background:var(--line-strong)}
+.org-co.paused{background:repeating-linear-gradient(135deg,var(--surface) 0 10px,var(--hatch) 10px 20px)}
+.org-co.test{border-style:dashed;border-color:var(--line-strong)}
+.co-link{color:var(--ink);text-decoration:none}
+.co-link::after{content:"";position:absolute;inset:0;border-radius:var(--r)}
+.org-co:hover{border-color:var(--ink)}
+.org-co .kids{display:grid;gap:6px;margin-top:4px;position:relative;z-index:1}
+.kid{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-sm);background:var(--sunken);text-decoration:none;color:var(--ink);font-size:.86rem;min-height:40px}
+.kid:hover{outline:1px solid var(--line-strong)}
+.kid .nm{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.kid .tag{font:500 .66rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.kid.test{background:transparent;border:1px dashed var(--line-strong)}
+.co-money{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+@media (max-width:760px){
+  .org{justify-items:stretch}
+  .org-root{text-align:left;justify-items:start;width:100%}
+  .org-root .meta{justify-content:flex-start}
+  .org-trunk{margin-left:22px}
+  .org-row{--cols:1!important;padding-top:0;margin-left:22px;width:calc(100% - 22px);border-left:2px solid var(--line-strong);padding-left:16px;gap:14px;padding-block:14px 0}
+  .org-row::before{display:none}
+  .org-co.top::before,.org-co::before{content:"";position:absolute;top:26px;left:-18px;width:16px;height:2px;background:var(--line-strong)}
+}
+
+/* company page */
+.co-head{display:grid;gap:10px}
+.co-head h2{font:800 clamp(1.6rem,4vw,2.3rem)/1.05 var(--display);letter-spacing:-.02em}
+.back{font-size:.86rem;text-decoration:none;display:inline-flex;align-items:center;min-height:36px}
+dl.kv{display:grid;grid-template-columns:minmax(90px,max-content) 1fr;gap:6px 16px;margin:0;font-size:.9rem}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.primary-metric{border-radius:var(--r-sm);background:var(--accent-soft);padding:12px 14px;display:grid;gap:2px}
+.primary-metric .eyebrow{color:var(--accent)}
+.primary-metric b{font:700 1.15rem var(--display)}
+.ticks{margin:0;padding:0;list-style:none;display:grid;gap:5px;font-size:.88rem}
+.ticks li{display:flex;gap:8px;align-items:baseline}
+.ticks li::before{content:"";flex:none;width:7px;height:7px;border-radius:2px;background:var(--line-strong);transform:translateY(-1px)}
+.ticks.guard li::before{background:transparent;border:1.5px solid var(--danger);border-radius:50%}
+.ticks.kill li::before{background:var(--danger);border-radius:1px;width:7px;height:7px}
+.steps{margin:0;padding-left:22px;font-size:.9rem;display:grid;gap:3px}
+.why{font-size:.92rem;margin:0}
+.kvline{font-size:.86rem;color:var(--muted);margin:0}
+.kvline b{color:var(--ink);font-weight:600}
+
+/* queue */
+.qcard{border-left-width:4px}
+.qcard.alarm{border-left-color:var(--danger)}
+.qcard.ask{border-left-color:var(--warn)}
+.qcard.ask.late{border-left-color:var(--danger)}
+.qcard.prop{border-left-color:var(--plan)}
+.qcard.veto{border-left-color:var(--accent)}
+.due{font:600 .76rem var(--mono);white-space:nowrap}
+.due.late{color:var(--danger)}
+.mins{font:700 .9rem var(--display);color:var(--muted);white-space:nowrap}
+.score{font:800 1.6rem/1 var(--display);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+
+/* agents */
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 12px;min-height:36px;font-size:.85rem;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.agent{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.agent summary{list-style:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;cursor:pointer;min-height:44px}
+.agent summary::-webkit-details-marker{display:none}
+.agent summary .nm{font-weight:600}
+.agent[open] summary{border-bottom:1px solid var(--line)}
+.agent .body{padding:12px 14px 14px;display:grid;gap:10px;font-size:.9rem}
+.agent .handoff{white-space:pre-wrap;font:.84rem/1.5 var(--mono);background:var(--sunken);border-radius:var(--r-sm);padding:10px 12px;margin:0;max-height:320px;overflow:auto}
+.lvl{display:grid;gap:8px}
+.tl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.tl{border-collapse:separate;border-spacing:3px;font-size:.82rem;padding:8px}
+table.tl th{font:500 .66rem var(--mono);color:var(--faint);text-align:center;padding:0 0 4px;white-space:nowrap}
+table.tl th.who{text-align:left;padding-right:10px;font:500 .84rem var(--sans);color:var(--ink);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+table.tl td{width:24px;height:24px;border-radius:5px;background:var(--sunken);text-align:center;font:600 .66rem var(--mono);color:var(--surface)}
+table.tl td.r-succeeded{background:var(--ok)} table.tl td.r-failed{background:var(--danger)} table.tl td.r-blocked{background:var(--warn)} table.tl td.r-skipped{background:var(--line-strong);color:var(--ink)} table.tl td.r-running{background:var(--accent)}
+.legend .r-succeeded{background:var(--ok)} .legend .r-failed{background:var(--danger)} .legend .r-blocked{background:var(--warn)} .legend .r-skipped{background:var(--line-strong)} .legend .r-running{background:var(--accent)} .legend .r-none{background:var(--sunken);outline:1px solid var(--line)}
+.runs{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.run{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:4px 14px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:baseline;font-size:.88rem}
+.run:last-child{border-bottom:0}
+.run .when{font:500 .76rem var(--mono);color:var(--faint)}
+.run .what{min-width:0;overflow-wrap:anywhere}
+
+/* orders */
+.tell{display:grid;gap:10px}
+.tell textarea{width:100%;min-height:96px;resize:vertical;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:10px 12px;background:var(--surface);font-size:1rem;line-height:1.45}
+.tell .opts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.tell select{border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:7px 10px;min-height:40px;background:var(--surface);max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 12px;min-height:38px;font-size:.86rem}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--bg)}
+.tell .go{margin-left:auto}
+.track{display:flex;gap:3px;align-items:center;font:500 .66rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--faint);flex-wrap:wrap}
+.track span{padding:2px 7px;border-radius:5px;background:var(--sunken)}
+.track span.on{background:var(--accent-soft);color:var(--accent)}
+.track span.now{background:var(--accent);color:var(--on-accent)}
+.track span.blk{background:var(--danger);color:var(--surface)}
+.track.dropped span{text-decoration:line-through}
+.panel-tell{background:var(--accent-soft);border-color:transparent}
+dialog{border:0;border-radius:18px;padding:0;background:var(--surface);color:var(--ink);width:min(560px,calc(100% - 24px));box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(10,14,12,.45)}
+dialog .in{padding:18px;display:grid;gap:12px}
+
+/* library */
+.lib-q{border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:8px 12px;min-height:42px;background:var(--surface);width:min(100%,360px)}
+.lcard .claim{font-weight:600;margin:0}
+.lcard .when2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:8px;font-size:.84rem}
+.lcard .when2 div{background:var(--sunken);border-radius:var(--r-sm);padding:7px 10px}
+.lcard .when2 b{display:block;font:500 .66rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.lcard.retired{opacity:.6}
+
+/* controls */
+.estop{border:2px solid var(--danger);border-radius:18px;padding:18px;display:grid;gap:12px;background:var(--surface)}
+.estop.on{background:var(--danger);color:var(--surface);border-color:var(--danger)}
+.estop.on .sub{color:var(--surface)}
+.estop h3{font:800 1.45rem/1.1 var(--display)}
+.estop .btn.big{min-height:52px;padding:10px 22px;font-size:1.02rem;font-weight:600}
+.estop.on .btn.big{background:var(--surface);color:var(--danger);border-color:var(--surface)}
+.estop.on .confirm{background:var(--surface);color:var(--ink)}
+.switch{display:flex;align-items:center;gap:10px;font-weight:600}
+.switch i{width:38px;height:22px;border-radius:999px;background:var(--line-strong);position:relative;flex:none}
+.switch i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:left .15s}
+.switch.on i{background:var(--warn)} .switch.on i::after{left:19px}
+
+/* loading */
+.skel{height:84px;border-radius:var(--r);background:linear-gradient(90deg,var(--sunken),var(--line),var(--sunken));background-size:200% 100%;animation:sh 1.2s infinite linear}
+@keyframes sh{to{background-position:-200% 0}}
 .login{max-width:380px;margin:12vh auto;display:grid;gap:12px}
-.login input{border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface)}
-.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
-@media (max-width:820px){.btn,nav a{min-height:44px}}
+.login input{border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:10px 12px;background:var(--surface);min-height:44px}
+
+@media (max-width:820px){
+  .btn,.chip,.kid,.need,.seg button,.tell select,nav a,.back{min-height:44px}
+  .hrow{gap:4px 10px}
+  nav{order:3;flex-basis:100%;overflow-x:auto;scrollbar-width:none;margin-inline:-4px;padding-bottom:2px}
+  nav::-webkit-scrollbar{display:none}
+  .run{grid-template-columns:minmax(0,1fr) auto}
+  .run .when{grid-column:1/-1}
+  .lamp{width:44px;height:44px} .lamp::after{width:18px;height:18px}
+  .tell .go{margin-left:0;width:100%}
+}
+@media (max-width:420px){.tell-open .long{display:none}}
 </style>
 </head>
 <body>
-<header><div class="wrap hrow"><h1>Tharavad</h1><span class="stamp" id="stamp"></span>
-<nav aria-label="Views" id="nav">
-  <a href="#overview">Overview</a><a href="#queue">Your queue <span class="count" id="qn" hidden></span></a><a href="#agents">Agents and runs</a><a href="#companies">Companies</a><a href="#controls">Controls</a>
-</nav></div></header>
-<div class="wrap"><main id="view" aria-live="polite"></main></div>
+<header><div class="wrap hrow">
+  <a class="brand" href="#overview"><b>Tharavad</b><span class="stamp" id="stamp" aria-live="polite"></span></a>
+  <button class="btn primary tell-open" id="tellOpen" type="button" hidden>Tell<span class="long">Tharavad</span></button>
+  <nav aria-label="Views" id="nav">
+    <a href="#overview">Home</a><a href="#queue">Queue <span class="count" id="qn" hidden></span></a><a href="#tree">Family</a><a href="#agents">Agents</a><a href="#orders">Orders</a><a href="#library">Library</a><a href="#controls">Controls</a>
+  </nav>
+</div></header>
+<div class="wrap"><main id="view"></main></div>
+<dialog id="tellDlg" aria-labelledby="tellTitle"><div class="in">
+  <div class="row"><div class="t"><h2 id="tellTitle">Tell Tharavad</h2><p class="sub">Say what you want done. The Karanavar routes it to the right agent; you'll see it move in Orders.</p></div>
+  <button class="btn quiet" type="button" id="tellClose" aria-label="Close">Close</button></div>
+  <div id="tellDlgBody"></div>
+</div></dialog>
+<div id="toast" role="status" hidden></div>
 <script>
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const V=document.getElementById("view");
-const VIEWS=["overview","queue","agents","companies","controls"];
+const $=id=>document.getElementById(id);
+const V=$("view");
+const VIEWS=["overview","queue","tree","agents","orders","library","controls"];
+const ALIAS={companies:"tree",home:"overview"};
 const H={green:"Healthy",amber:"Watch",red:"Silent",unknown:"Unknown",planned:"Not built",paused:"Paused",retired:"Retired"};
-const D={flags:{},companies:[],projects:[],econ:[],health:[],runs:[],asks:[],alarms:[],report:null,ready:false};
-const ist=t=>t?new Date(t).toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}):"—";
+const LEVELS=[["group","Group"],["company","Company"],["product","Product"],["shared","Shared services"]];
+const D={flags:{},companies:[],projects:[],econ:[],health:[],agents:[],runs:[],asks:[],alarms:[],proposals:[],orders:[],experiments:[],decisions:[],report:null,audits:[],cards:[],assets:[],ready:false,errors:[],at:null};
+const UI={pending:null,agentFilter:"all",open:new Set(),draft:"",unit:"",prio:"med",libQ:"",sending:false};
+
+/* ---------- small helpers ---------- */
+const TZ="Asia/Kolkata";
+const ist=t=>t?new Date(t).toLocaleString("en-IN",{timeZone:TZ,day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}):"—";
+const istDay=t=>t?new Date(t).toLocaleDateString("en-IN",{timeZone:TZ,day:"numeric",month:"short"}):"—";
+const hhmm=t=>new Date(t).toLocaleTimeString("en-IN",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false});
+const dayKey=t=>new Date(t).toLocaleDateString("en-CA",{timeZone:TZ});
+const ago=t=>{if(!t)return "never";const m=(Date.now()-new Date(t))/6e4;if(m<1)return "just now";if(m<60)return Math.round(m)+" min ago";if(m<48*60)return Math.round(m/60)+" h ago";return Math.round(m/1440)+" days ago"};
+const until=t=>{const m=(new Date(t)-Date.now())/6e4,a=Math.abs(m),s=a<60?Math.round(a)+" min":a<48*60?Math.round(a/60)+" h":Math.round(a/1440)+" days";return m<0?s+" late":"in "+s};
 const inr=n=>{const v=Math.round(Number(n)||0);return (v<0?"−":"")+"₹"+Math.abs(v).toLocaleString("en-IN")};
-const monthNow=()=>{const d=new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kolkata"}));return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`};
-const pname=id=>D.projects.find(p=>p.id===id)?.name||id;
+const inrK=n=>{const v=Number(n)||0,a=Math.abs(v),s=a>=1e7?(a/1e7).toFixed(1)+"Cr":a>=1e5?(a/1e5).toFixed(1)+"L":a>=1e3?(a/1e3).toFixed(a>=1e4?0:1)+"k":String(Math.round(a));return (v<0?"−":"")+"₹"+s};
+const sgn=n=>(Number(n)||0)>0?"pos":(Number(n)||0)<0?"neg":"";
+const monthNow=()=>{const d=new Date(new Date().toLocaleString("en-US",{timeZone:TZ}));return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`};
+const mon=m=>{const[y,mm]=String(m).split("-");return new Date(+y,+mm-1,1).toLocaleDateString("en-IN",{month:"short"})};
+const pname=id=>D.projects.find(p=>p.id===id)?.name||id||"Tharavad";
+const aname=id=>D.health.find(a=>a.id===id)?.name||D.agents.find(a=>a.id===id)?.name||id||"";
+const co=id=>D.companies.find(c=>c.project_id===id);
 const flag=k=>{const v=D.flags[k];return v===true||v==="true"};
-const pill=h=>`<span class="pill h-${esc(h)}">${esc(H[h]||h)}</span>`;
-let pending=null; // inline confirmation: {kind, id}
+const hs=a=>a.status==="active"?(a.health||"unknown"):(a.status||"unknown");
+const pill=(cls,label)=>`<span class="pill ${esc(cls)}">${esc(label)}</span>`;
+const hpill=a=>pill("h-"+hs(a),H[hs(a)]||hs(a));
+const dot=a=>`<span class="dot d-${esc(hs(a))}" role="img" aria-label="${esc(a.name+": "+(H[hs(a)]||hs(a)))}" title="${esc(a.name+": "+(H[hs(a)]||hs(a)))}"></span>`;
+const arr=v=>Array.isArray(v)?v:v==null||v===""?[]:[v];
+const plur=(n,w,ws)=>`${n} ${n===1?w:(ws||w+"s")}`;
+const idv=v=>/^\d+$/.test(v)?+v:v;
+const safeUrl=u=>/^https?:\/\//i.test(String(u||""))?String(u):"";
+const NAMEK=["metric","name","label","title","rule","question","what"];
+function fmtItem(x){if(x==null)return "";if(typeof x!=="object")return String(x);
+  const nk=NAMEK.find(k=>x[k]!=null),nm=nk?String(x[nk]):"";
+  const rest=Object.entries(x).filter(([k,v])=>k!==nk&&v!=null&&v!==""&&typeof v!=="object").map(([k,v])=>`${k.replace(/_/g," ").replace(/ 90d$/," (90 days)")} ${v}`).join(" · ");
+  return nm&&rest?`${nm}: ${rest}`:nm||rest}
+const txt=v=>Array.isArray(v)?v.map(fmtItem).join("; "):fmtItem(v);
+const unitsOf=id=>{const out=new Set([id]);let grew=true;while(grew){grew=false;for(const p of D.projects)if(out.has(p.parent_id)&&!out.has(p.id)){out.add(p.id);grew=true}}return out};
+const econ=(id,m)=>D.econ.find(x=>x.project_id===id&&String(x.month).slice(0,10)===m)||{revenue_inr:0,cost_inr:0,contribution_inr:0};
+const series=id=>D.econ.filter(x=>x.project_id===id).sort((a,b)=>String(a.month).localeCompare(String(b.month)));
+const inWindow=d=>d.rights==="veto"&&!d.vetoed&&d.created_at&&Date.now()-new Date(d.created_at)<48*36e5;
+const vetoes=()=>D.decisions.filter(inWindow);
+const newProps=()=>D.proposals.filter(p=>p.status==="new");
+const sortAsks=a=>[...a].sort((x,y)=>(x.deadline?new Date(x.deadline):Infinity)-(y.deadline?new Date(y.deadline):Infinity));
+const needCount=()=>D.alarms.length+D.asks.length+newProps().length+vetoes().length;
+const openOrders=()=>D.orders.filter(o=>!["done","dropped"].includes(o.status));
 
+/* simple markdown: headings, bullets, numbered, rules, bold, code, links */
+function md(src){
+  const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const out=[];let list=null,para=[];
+  const flushP=()=>{if(para.length){out.push(`<p>${para.map(inl).join(" ")}</p>`);para=[]}};
+  const flushL=()=>{if(list){out.push(`<${list.t}>${list.items.map(i=>`<li>${inl(i)}</li>`).join("")}</${list.t}>`);list=null}};
+  for(const raw of String(src||"").split(/\r?\n/)){const l=raw.trim();let m;
+    if(!l){flushP();flushL();continue}
+    if(/^(-{3,}|\*{3,}|_{3,})$/.test(l)){flushP();flushL();out.push("<hr>");continue}
+    if(m=l.match(/^(#{1,4})\s+(.*)$/)){flushP();flushL();const h=Math.min(5,m[1].length+2);out.push(`<h${h}>${inl(m[2].replace(/\*\*/g,""))}</h${h}>`);continue}
+    if(m=l.match(/^[-*•]\s+(.*)$/)){flushP();if(!list||list.t!=="ul"){flushL();list={t:"ul",items:[]}}list.items.push(m[1]);continue}
+    if(m=l.match(/^\d+[.)]\s+(.*)$/)){flushP();if(!list||list.t!=="ol"){flushL();list={t:"ol",items:[]}}list.items.push(m[1]);continue}
+    flushL();para.push(l)}
+  flushP();flushL();return out.join("")}
+
+/* ---------- charts (hand-drawn SVG, one scale per chart) ---------- */
+function moneyChart(rows,label){
+  rows=rows.slice(-12);
+  if(!rows.length||rows.every(r=>!+r.revenue_inr&&!+r.cost_inr))return `<p class="empty">No money has moved yet. Months appear here as Treasury records revenue and cost.</p>`;
+  const W=420,Hh=172,L=50,R=54,T=14,B=24,iw=W-L-R,ih=Hh-T-B,n=rows.length,bw=Math.min(28,iw/n*.55);
+  const hi=Math.max(1,...rows.map(r=>Math.max(+r.revenue_inr||0,+r.contribution_inr||0))),lo=Math.min(0,...rows.map(r=>Math.min(-(+r.cost_inr||0),+r.contribution_inr||0)));
+  const y=v=>T+(hi-v)/(hi-lo)*ih,x=i=>L+iw*(i+.5)/n,z=y(0);
+  const step=n>8?2:1;let s=`<svg class="chart" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(label)}">`;
+  s+=`<line class="grid-l" x1="${L}" x2="${W-R}" y1="${y(hi)}" y2="${y(hi)}"/><text x="${L-6}" y="${y(hi)+4}" text-anchor="end">${esc(inrK(hi))}</text>`;
+  if(lo<0)s+=`<line class="grid-l" x1="${L}" x2="${W-R}" y1="${y(lo)}" y2="${y(lo)}"/><text x="${L-6}" y="${y(lo)+4}" text-anchor="end">${esc(inrK(lo))}</text>`;
+  rows.forEach((r,i)=>{const rv=+r.revenue_inr||0,c=+r.cost_inr||0,cx=x(i);
+    if(rv>0)s+=`<rect class="c-rev" x="${cx-bw/2}" y="${y(rv)}" width="${bw}" height="${z-y(rv)}" rx="2"><title>${esc(mon(r.month)+" revenue "+inr(rv))}</title></rect>`;
+    if(c>0)s+=`<rect class="c-cost" x="${cx-bw/2}" y="${z}" width="${bw}" height="${y(-c)-z}" rx="2"><title>${esc(mon(r.month)+" cost "+inr(c))}</title></rect>`;
+    if(i%step===(n-1)%step)s+=`<text x="${cx}" y="${Hh-6}" text-anchor="middle">${esc(mon(r.month))}</text>`});
+  s+=`<line class="zero" x1="${L}" x2="${W-R}" y1="${z}" y2="${z}"/><text x="${L-6}" y="${z+4}" text-anchor="end">₹0</text>`;
+  const pts=rows.map((r,i)=>[x(i),y(+r.contribution_inr||0)]);
+  if(n>1)s+=`<path class="c-line" d="M${pts.map(p=>p.map(v=>v.toFixed(1)).join(",")).join("L")}"/>`;
+  pts.forEach((p,i)=>s+=`<circle class="c-dot${i===n-1?" last":""}" cx="${p[0]}" cy="${p[1]}" r="${i===n-1?5:3}"/>`);
+  const last=rows[n-1];s+=`<text class="end" x="${pts[n-1][0]+9}" y="${pts[n-1][1]+4}">${esc(inrK(last.contribution_inr))}</text></svg>`;
+  return s+`<div class="legend"><span><i class="l-rev"></i>Revenue</span><span><i class="l-cost"></i>Cost</span><span><i class="l-con"></i>Contribution</span></div>`}
+function spark(id){const r=series(id).slice(-6);if(r.length<2)return "";
+  const v=r.map(x=>+x.contribution_inr||0),hi=Math.max(...v),lo=Math.min(...v),sp=hi-lo||1,X=i=>2+i*(60/(r.length-1)),Y=x=>18-(x-lo)/sp*16;
+  return `<svg class="spark" viewBox="0 0 64 20" aria-hidden="true"><path d="M${v.map((x,i)=>X(i).toFixed(1)+","+Y(x).toFixed(1)).join("L")}"/><circle cx="${X(v.length-1)}" cy="${Y(v[v.length-1])}" r="2.5"/></svg>`}
+
+/* ---------- load: every table once, render from memory ---------- */
+let loading=null,again=false;
 async function load(){
-  const [f,c,p,e,h,r,a,al,rep]=await Promise.all([
-    sb.from("tharavad_flags").select("key,value"),
-    sb.from("companies").select("project_id,kind,tier,stage,key_metric,target_90d,budget_cap_monthly,currency,core_channel,brand_mode,paused_at,head_agent,scorecard"),
-    sb.from("projects").select("id,name,parent_id,archived_at"),
-    sb.from("unit_economics").select("project_id,month,revenue_inr,cost_inr,contribution_inr"),
-    sb.from("agent_health").select("id,name,level,kind,project_id,cadence,status,health,last_evidence,last_status,last_summary,runs_7d,fails_in_row"),
-    sb.from("runs").select("id,agent_id,started_at,ended_at,status,summary,error").order("started_at",{ascending:false}).limit(40),
-    sb.from("asks").select("id,project_id,agent_id,type,title,why,unblocks,steps,link,est_minutes,deadline,fallback,status,created_at").eq("status","open").order("deadline",{ascending:true}),
-    sb.from("alarms").select("id,kind,project_id,agent_id,message,created_at,acked_at").is("acked_at",null).order("created_at",{ascending:false}),
-    sb.from("notes").select("title,body,created_at").contains("tags",["weekly-report"]).order("created_at",{ascending:false}).limit(1)
-  ]);
-  D.flags=Object.fromEntries((f.data||[]).map(x=>[x.key,x.value]));
-  D.companies=c.data||[];D.projects=p.data||[];D.econ=e.data||[];D.health=h.data||[];D.runs=r.data||[];D.asks=a.data||[];D.alarms=al.data||[];D.report=(rep.data||[])[0]||null;
-  D.ready=true;render();
+  if(loading){again=true;return loading}
+  loading=(async()=>{
+    const since=new Date(Date.now()-14*864e5).toISOString();
+    const Q={
+      flags:sb.from("tharavad_flags").select("key,value"),
+      companies:sb.from("companies").select("*"),
+      projects:sb.from("projects").select("id,name,parent_id,archived_at"),
+      econ:sb.from("unit_economics").select("project_id,name,kind,month,revenue_inr,cost_inr,contribution_inr,budget_cap_monthly,cap_currency").order("month",{ascending:true}),
+      health:sb.from("agent_health").select("*"),
+      agents:sb.from("agents").select("id,name,note,spec,handoff,trigger_id,version"),
+      runs:sb.from("runs").select("id,agent_id,started_at,ended_at,status,summary,outputs,cost_usd,error").gte("started_at",since).order("started_at",{ascending:false}).limit(400),
+      asks:sb.from("asks").select("*").eq("status","open").order("deadline",{ascending:true}),
+      alarms:sb.from("alarms").select("*").is("acked_at",null).order("created_at",{ascending:false}),
+      proposals:sb.from("proposals").select("*").in("status",["new","parked"]).order("created_at",{ascending:false}).limit(60),
+      orders:sb.from("orders").select("*").order("created_at",{ascending:false}).limit(60),
+      experiments:sb.from("experiments").select("*").order("starts_on",{ascending:false}).limit(80),
+      decisions:sb.from("agent_decisions").select("*").order("created_at",{ascending:false}).limit(80),
+      report:sb.from("notes").select("title,body,created_at").contains("tags",["weekly-report"]).order("created_at",{ascending:false}).limit(1),
+      audits:sb.from("notes").select("title,body,created_at").contains("tags",["audit"]).order("created_at",{ascending:false}).limit(3),
+      cards:sb.from("library_cards").select("*"),
+      assets:sb.from("commons_assets").select("*")};
+    const keys=Object.keys(Q),res=await Promise.all(keys.map(k=>Promise.resolve(Q[k]).catch(e=>({error:e}))));
+    const errs=[];
+    keys.forEach((k,i)=>{const r=res[i]||{};if(r.error){errs.push(k);return}const d=r.data||[];
+      if(k==="flags")D.flags=Object.fromEntries(d.map(x=>[x.key,x.value]));else if(k==="report")D.report=d[0]||null;else D[k]=d});
+    D.errors=errs;if(errs.length<keys.length){D.ready=true;D.at=new Date()}else if(!D.ready)D.fatal=true;
+    render(true)})();
+  try{await loading}finally{loading=null;if(again){again=false;load()}}
 }
+let tmr=null;const soon=()=>{clearTimeout(tmr);tmr=setTimeout(load,300)};
 
-function render(){
-  const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):"overview";
-  document.querySelectorAll("#nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+v?"page":"false"));
-  const n=D.asks.length+D.alarms.length,qn=document.getElementById("qn");qn.hidden=!n;qn.textContent=n;
-  document.getElementById("stamp").textContent=D.ready?"updated "+ist(new Date()):"loading…";
-  if(!D.ready){V.innerHTML=`<p class="empty">Loading Tharavad…</p>`;return}
-  V.innerHTML=banners()+({overview,queue,agents,companies,controls}[v])();
+/* ---------- render ---------- */
+function route(){const h=decodeURIComponent(location.hash.slice(1));if(h.startsWith("co/"))return{v:"co",id:h.slice(3)};const v=ALIAS[h]||h;return{v:VIEWS.includes(v)?v:"overview"}}
+let focusNext=null;
+function focusKey(el){if(!el||!V.contains(el))return null;if(el.id)return "#"+el.id;for(const a of el.attributes)if(a.name.startsWith("data-"))return `[${a.name}="${CSS.escape(a.value)}"]`;return null}
+let deferred=false;
+const typing=()=>{const a=document.activeElement;return a&&(a.matches?.("[data-draft]")||a.id==="libQ")&&!UI.sending};
+function render(bg){
+  if(bg===true&&typing()){deferred=true;return}
+  const r=route(),nv=r.v==="co"?"tree":r.v;
+  document.querySelectorAll("#nav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+nv?"page":"false"));
+  const n=needCount(),qn=$("qn");qn.hidden=!n||!D.ready;qn.textContent=n;
+  const st=$("stamp");st.className="stamp"+(D.at&&Date.now()-D.at>15*6e4?" stale":"");
+  st.innerHTML=D.ready?`<span class="live" aria-hidden="true"></span>updated ${esc(hhmm(D.at))}`:D.fatal?"offline":"loading…";
+  if(D.fatal&&!D.ready){V.innerHTML=`<section><div class="banner err">Tharavad couldn't reach the database. Check your connection, then try again. <button class="btn" data-retry>Try again</button></div></section>`;return}
+  if(!D.ready){V.innerHTML=`<section aria-busy="true"><span class="sr">Loading Tharavad…</span><div class="skel" style="height:120px"></div><div class="grid"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div><div class="skel" style="height:200px"></div></section>`;return}
+  const key=focusNext||focusKey(document.activeElement);focusNext=null;
+  const body={overview,queue,tree,agents,orders,library,controls,co:()=>company(r.id)}[r.v]();
+  V.innerHTML=banners()+body;
+  if(key){const el=V.querySelector(key);if(el){el.focus({preventScroll:true});if(el.tagName==="TEXTAREA"){const l=el.value.length;el.setSelectionRange(l,l)}}}
+  if($("tellDlg").open)paintDlg();
 }
 function banners(){
-  return (flag("stop_all")?`<div class="banner stop">Everything is stopped. No run starts and no external action goes out until you resume it in Controls.</div>`:"")
-    +(flag("away")?`<div class="banner away">Away mode is on: veto windows are paused and class C calls wait for you.</div>`:"");
+  return (flag("stop_all")?`<div class="banner stop"><span>Everything is stopped. No run starts and no upload, send or payment step goes out.</span> ${route().v==="controls"?"":`<a href="#controls">Resume in Controls</a>`}</div>`:"")
+    +(flag("away")?`<div class="banner away">Away mode is on: veto windows are paused and class C calls wait for you.</div>`:"")
+    +(D.errors.length?`<div class="banner err">Some parts didn't load (${esc(D.errors.join(", "))}). What you see may be incomplete. <button class="btn" data-retry>Try again</button></div>`:"");
 }
 
-/* ---------- Overview ---------- */
+/* ---------- Home ---------- */
 function overview(){
-  const m=monthNow(),mon=D.econ.filter(x=>x.month===m&&x.project_id==="group-hq")[0]||{revenue_inr:0,cost_inr:0,contribution_inr:0};
-  const live=D.health.filter(a=>a.status==="active"),bad=live.filter(a=>a.health==="red"||a.health==="amber");
-  const mins=D.asks.reduce((s,a)=>s+(a.est_minutes||0),0);
-  return `<section><div class="kpis">
-    <div class="kpi"><span class="l">This month</span><b>${inr(mon.revenue_inr)}</b><small>revenue · cost ${inr(mon.cost_inr)}</small></div>
-    <div class="kpi"><span class="l">Contribution</span><b>${inr(mon.contribution_inr)}</b><small>revenue minus every cost</small></div>
-    <div class="kpi"><span class="l">Your queue</span><b>${D.asks.length}</b><small>about ${mins} min · ${D.alarms.length} alarm${D.alarms.length===1?"":"s"}</small></div>
-    <div class="kpi"><span class="l">Agents</span><b>${live.length-bad.length} of ${live.length}</b><small>healthy · ${bad.length} need a look</small></div>
-  </div></section>
-  <section><h2>The family tree</h2><p class="sub">Tharavad, its companies and products. Dots are the agents on each unit; tap a company in Companies for its numbers.</p>${tree()}</section>
-  ${D.report?`<section><h2>${esc(D.report.title)}</h2><p class="sub">The Karanavar's latest board report, ${ist(D.report.created_at)}.</p><div class="card" style="white-space:pre-wrap">${esc(D.report.body)}</div></section>`:`<section><h2>Board report</h2><p class="empty">The Karanavar's first report arrives Monday 07:41.</p></section>`}`;
+  const m=monthNow(),g=econ("group-hq",m),al=D.alarms.length,as=D.asks.length,pr=newProps().length,vt=vetoes().length,n=al+as+pr+vt;
+  const mins=D.asks.reduce((s,a)=>s+(+a.est_minutes||0),0);
+  const live=D.health.filter(a=>a.status==="active"),cnt=k=>live.filter(a=>(a.health||"unknown")===k).length,off=D.health.length-live.length;
+  const bad=live.filter(a=>a.health==="red"||a.health==="amber");
+  const lamp=al?"bad":n||bad.length?"need":"ok";
+  const head=n?`${n} ${n===1?"thing needs":"things need"} you`:bad.length?"Nothing needs you":"All clear";
+  const subl=n?`${mins?`About ${mins} minutes of hands-on work. `:""}Alarms first, then asks by deadline.`:`Nothing is waiting on you. Agents are running on their own${bad.length?`, though ${plur(bad.length,"agent")} could use a look`:""}.`;
+  const chips=[[al,"a","#queue","alarm"],[as,"q","#queue","ask"],[pr,"p","#queue","proposal to decide","proposals to decide"],[vt,"v","#queue","call you can veto","calls you can veto"]].filter(c=>c[0]).map(c=>`<a class="need ${c[1]}" href="${c[2]}"><b>${c[0]}</b>${esc(c[0]===1?c[3]:(c[4]||c[3]+"s"))}</a>`).join("");
+  const nextAsk=sortAsks(D.asks).find(a=>a.deadline);
+  const cap=co("group-hq")?.budget_cap_monthly;
+  const units=D.companies.filter(c=>c.kind==="company"||c.kind==="test");
+  return `<section class="state" aria-label="Today's state"><span class="lamp ${lamp}" aria-hidden="true"></span><h2>${esc(head)}</h2><p class="sub">${esc(subl)}</p>${chips?`<div class="needs">${chips}</div>`:""}</section>
+  <div class="grid">
+    <section class="card" aria-labelledby="hMoney"><div class="shead"><h3 id="hMoney">Money this month</h3><span class="eyebrow">${esc(mon(m))} · group</span></div>
+      <div class="figs"><div class="fig"><span class="v ${sgn(g.contribution_inr)}">${esc(inr(g.contribution_inr))}</span><small>contribution</small></div>
+      <div class="fig"><span class="v sm">${esc(inr(g.revenue_inr))}</span><small>revenue</small></div><div class="fig"><span class="v sm">${esc(inr(g.cost_inr))}</span><small>cost${cap?` · cap ${esc(inr(cap))}`:""}</small></div></div>
+      ${moneyChart(series("group-hq"),"Group revenue, cost and contribution by month")}</section>
+    <div class="list" style="gap:14px">
+      <section class="card" aria-labelledby="hQueue"><div class="shead"><h3 id="hQueue">Your queue</h3><a href="#queue" class="eyebrow">Open</a></div>
+        <div class="figs"><div class="fig"><span class="v">${n}</span><small>waiting on you</small></div><div class="fig"><span class="v sm">${mins} min</span><small>for ${plur(as,"ask")}</small></div></div>
+        ${nextAsk?`<p class="kvline">Next deadline: <b>${esc(nextAsk.title)}</b> <span class="due${new Date(nextAsk.deadline)<new Date()?" late":""}">${esc(until(nextAsk.deadline))}</span></p>`:`<p class="kvline">No deadlines pending.</p>`}</section>
+      <section class="card" aria-labelledby="hAgents"><div class="shead"><h3 id="hAgents">Agents</h3><a href="#agents" class="eyebrow">All agents</a></div>
+        <div class="figs"><div class="fig"><span class="v">${live.length-bad.length}<span style="color:var(--faint);font-size:1rem"> / ${live.length}</span></span><small>running healthy</small></div>${off?`<div class="fig"><span class="v sm">${off}</span><small>not built or paused</small></div>`:""}</div>
+        ${live.length?`<div class="hbar" role="img" aria-label="${esc(`${cnt("green")} healthy, ${cnt("amber")} watch, ${cnt("red")} silent, ${cnt("unknown")} unknown`)}">${["red","amber","unknown","green"].map(k=>cnt(k)?`<span class="${k}" style="flex:${cnt(k)}"></span>`:"").join("")}</div>`:""}
+        ${bad.length?`<ul class="ticks plain">${bad.map(a=>`<li><span>${dot(a)} <b>${esc(a.name)}</b> <span class="meta" style="display:inline">${esc(H[a.health])} · last evidence ${esc(ago(a.last_evidence))}</span></span></li>`).join("")}</ul>`:`<p class="kvline">Every running agent has reported on time.</p>`}</section>
+    </div>
+  </div>
+  <section><div class="shead"><h2>Companies</h2><a href="#tree" class="sub" style="flex:0 0 auto">See the family tree</a></div>
+    ${units.length?`<div class="grid g3">${units.map(c=>miniCo(c,m)).join("")}</div>`:`<p class="empty">No companies yet. They appear here once HQ adds them to the companies table.</p>`}</section>
+  ${openOrders().length?`<section><div class="shead"><h2>Your open orders</h2><a href="#orders" class="sub" style="flex:0 0 auto">All orders</a></div><div class="list">${openOrders().slice(0,3).map(orderCard).join("")}</div></section>`:""}
+  <section aria-labelledby="hReport"><div class="shead"><h2 id="hReport">${esc(D.report?.title||"Board report")}</h2>${D.report?`<span class="eyebrow">From the Karanavar · ${esc(istDay(D.report.created_at))}</span>`:""}</div>
+    ${D.report?`<article class="card report">${md(D.report.body)}</article>`:`<p class="empty">The Karanavar's weekly board report lands here every Monday morning.</p>`}</section>
+  ${D.audits.length?`<section><h2>Audits</h2><div class="list">${D.audits.map((a,i)=>`<details class="agent" data-k="audit-${i}" ${UI.open.has("audit-"+i)?"open":""}><summary><span class="dot d-unknown" aria-hidden="true"></span><span class="nm">${esc(a.title||"Audit")}</span><span class="mono">${esc(istDay(a.created_at))}</span></summary><div class="body report">${md(a.body)}</div></details>`).join("")}</div></section>`:""}`;
 }
+function miniCo(c,m){const e=econ(c.project_id,m),ag=D.health.filter(a=>unitsOf(c.project_id).has(a.project_id));
+  return `<a class="card co-link" style="position:relative;gap:6px" href="#co/${esc(encodeURIComponent(c.project_id))}"><div class="row"><b style="font:700 1rem var(--display)">${esc(pname(c.project_id))}</b>${c.paused_at?pill("h-paused","Paused"):c.kind==="test"?pill("k-plain","Test"):""}</div>
+    <div class="co-money" style="border:0;padding:0;margin:0"><span class="dots">${ag.map(dot).join("")||`<span class="meta">No agents yet</span>`}</span><span class="num ${sgn(e.contribution_inr)}" style="font-weight:600">${esc(inr(e.contribution_inr))}</span></div></a>`}
+
+/* ---------- Family tree ---------- */
 function tree(){
-  const units=new Set(D.companies.map(c=>c.project_id));
-  const kids=id=>D.projects.filter(p=>p.parent_id===id&&!p.archived_at&&(units.has(p.id)||D.projects.some(q=>q.parent_id===p.id&&units.has(q.id))));
-  const node=p=>{const c=D.companies.find(x=>x.project_id===p.id)||{},ag=D.health.filter(a=>a.project_id===p.id),ch=kids(p.id);
-    return `<li><div class="unit"><span class="nm">${esc(p.name)}</span><span class="meta">${esc([c.kind,c.stage,c.paused_at?"paused":""].filter(Boolean).join(" · "))}</span>
-      <span class="dots">${ag.map(a=>`<span class="dot d-${esc(a.status==="active"?a.health:a.status)}" title="${esc(a.name+": "+(H[a.status==="active"?a.health:a.status]||""))}"></span>`).join("")}</span></div>
-      ${ch.length?`<ul>${ch.map(node).join("")}</ul>`:""}</li>`};
-  const root=D.projects.find(p=>p.id==="group-hq");
-  return root?`<ul class="tree">${node(root)}</ul>`:`<p class="empty">No units yet.</p>`;
+  const root=D.projects.find(p=>p.id==="group-hq");if(!root)return `<p class="empty">No family tree yet. Tharavad appears here once the group-hq project exists.</p>`;
+  const units=new Set(D.companies.map(c=>c.project_id)),m=monthNow();
+  const kids=id=>D.projects.filter(p=>p.parent_id===id&&!p.archived_at&&units.has(p.id));
+  const top=kids("group-hq"),cols=Math.max(1,Math.min(top.length,3)),g=econ("group-hq",m),hq=D.health.filter(a=>a.project_id==="group-hq");
+  const node=(p,i)=>{const c=co(p.id)||{},e=econ(p.id,m),ag=D.health.filter(a=>a.project_id===p.id),ch=kids(p.id),deep=id=>kids(id).flatMap(k=>[k,...deep(k.id)]);
+    const all=[...ch.flatMap(k=>[k,...deep(k.id)])];
+    return `<article class="card org-co${i<cols?" top":""}${c.paused_at?" paused":""}${c.kind==="test"?" test":""}">
+      <div class="row"><div class="t"><h3><a class="co-link" href="#co/${esc(encodeURIComponent(p.id))}">${esc(p.name)}</a></h3>
+      <div class="meta">${[c.kind==="test"?"test":c.brand_mode==="studio"?"studio":c.kind,c.stage,c.tier?"tier "+c.tier:""].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("")}</div></div>
+      ${c.paused_at?pill("h-paused","Paused"):""}</div>
+      <span class="dots">${ag.map(dot).join("")||`<span class="meta">No agents on the company itself</span>`}</span>
+      ${all.length?`<div class="kids">${all.map(k=>{const kc=co(k.id)||{},ka=D.health.filter(a=>a.project_id===k.id);return `<a class="kid${kc.kind==="test"?" test":""}" href="#co/${esc(encodeURIComponent(k.id))}"><span class="nm">${esc(k.name)}</span><span class="tag">${esc(kc.kind||"")}${kc.paused_at?" · paused":""}</span><span class="dots">${ka.map(dot).join("")}</span></a>`}).join("")}</div>`:""}
+      <div class="co-money"><div class="fig"><span class="v sm ${sgn(e.contribution_inr)}">${esc(inr(e.contribution_inr))}</span><small>${esc(mon(m))} contribution</small></div>${spark(p.id)}</div></article>`};
+  return `<section><div class="shead"><h2>The family tree</h2><p class="sub">Tharavad and the companies it runs. Dots are agents: filled is reporting, ringed is unknown, dashed is not built. Dashed cards are tests; striped ones are paused.</p></div>
+  <div class="org"><article class="card org-root"><span class="eyebrow" style="color:inherit;opacity:.75">The house</span><h3>${esc(root.name)}</h3>
+    <div class="meta"><span>${plur(top.length,"unit")}</span><span>${esc(inr(g.contribution_inr))} this month</span><span>${plur(hq.length,"group agent")}</span></div>${hq.length?`<span class="dots">${hq.map(dot).join("")}</span>`:""}</article>
+  ${top.length?`<div class="org-trunk" aria-hidden="true"></div><div class="org-row" style="--cols:${cols}">${top.map(node).join("")}</div>`:`<p class="empty" style="margin-top:14px">No companies under Tharavad yet.</p>`}</div></section>`;
 }
+
+/* ---------- Company page ---------- */
+function company(id){
+  const p=D.projects.find(x=>x.id===id),c=co(id);
+  if(!p&&!c)return `<section><a class="back" href="#tree">← Family tree</a><p class="empty">There's no unit called “${esc(id)}”. It may have been archived or renamed.</p></section>`;
+  const m=monthNow(),e=econ(id,m),sc=c?.scorecard||{},ch=c?.charter||{},fam=unitsOf(id),parent=p?.parent_id;
+  const kids=D.projects.filter(x=>x.parent_id===id&&!x.archived_at);
+  const ag=D.health.filter(a=>fam.has(a.project_id)),ex=D.experiments.filter(x=>fam.has(x.project_id)),dc=D.decisions.filter(x=>fam.has(x.project_id)).slice(0,10);
+  const asks=sortAsks(D.asks.filter(x=>fam.has(x.project_id))),ords=D.orders.filter(x=>fam.has(x.project_id)).slice(0,8);
+  const conf=UI.pending?.kind==="pause"&&UI.pending.id===id,paused=!!c?.paused_at;
+  const capU=c?.currency==="USD"?"$":"₹",cap=c?.budget_cap_monthly,capPct=cap&&c?.currency!=="USD"?Math.min(100,Math.round((+e.cost_inr||0)/cap*100)):null;
+  const lastRun=aid=>D.runs.find(r=>r.agent_id===aid);
+  const repo=c?.repo?`https://github.com/${String(c.repo).replace(/^https?:\/\/github\.com\//,"")}`:"";
+  const kv=(o,keys)=>keys.filter(([k])=>o[k]!=null&&o[k]!==""&&!(Array.isArray(o[k])&&!o[k].length)).map(([k,l])=>`<dt>${esc(l)}</dt><dd>${esc(txt(o[k]))}</dd>`).join("");
+  const charter=kv(ch,[["purpose","Purpose"],["customer","Customer"],["motion","Motion"],["scope","In scope"],["not_scope","Not in scope"]]);
+  const facts=kv({...c,head_agent:c?.head_agent?aname(c.head_agent):null,cap:cap!=null?`${capU}${Number(cap).toLocaleString("en-IN")} a month`:null,partners:arr(c?.partners).length?c.partners:null,target_due:c?.target_due?istDay(c.target_due):null,test_ends_on:c?.test_ends_on?istDay(c.test_ends_on):null},
+    [["revenue_model","Revenue model"],["motion","Motion"],["core_channel","Core channel"],["brand_mode","Brand"],["head_agent","Head agent"],["cap","Budget cap"],["test_ends_on","Test ends"],["partners","Partners"]]);
+  const kq=arr(c?.kill_questions);
+  return `<section class="co-head"><a class="back" href="${parent&&parent!=="group-hq"?"#co/"+esc(encodeURIComponent(parent)):"#tree"}">← ${esc(parent&&parent!=="group-hq"?pname(parent):"Family tree")}</a>
+    <div class="row"><div class="t"><span class="eyebrow">${esc([c?.kind==="test"?"company in test":c?.kind,c?.stage,c?.tier?"tier "+c.tier:""].filter(Boolean).join(" · ")||"unit")}</span><h2>${esc(pname(id))}</h2></div>
+    <div class="acts">${repo?`<a class="btn" href="${esc(repo)}" target="_blank" rel="noopener">Repo</a>`:""}${c?(conf?"":`<button class="btn ${paused?"primary":""}" data-pause="${esc(id)}">${paused?"Resume":"Pause"}</button>`):""}</div>
+    ${conf?`<div class="confirm ${paused?"":"bad"}"><p>${paused?`Resume ${esc(pname(id))}? Its agents pick up at their next run.`:`Pause ${esc(pname(id))}? Its agents stop at their next check, and nothing goes out for it until you resume.`}</p><div class="acts"><button class="btn ${paused?"primary":"danger solid"}" data-pauseyes="${esc(id)}">${paused?"Resume":"Pause"} ${esc(pname(id))}</button><button class="btn" data-cancel>Cancel</button></div></div>`:""}</div>
+    ${paused?`<div class="banner away">Paused since ${esc(ist(c.paused_at))}. Its agents don't run until you resume it.</div>`:""}
+  </section>
+  <div class="grid">
+    <section class="card"><div class="shead"><h3>Money</h3><span class="eyebrow">${esc(mon(m))}</span></div>
+      <div class="figs"><div class="fig"><span class="v ${sgn(e.contribution_inr)}">${esc(inr(e.contribution_inr))}</span><small>contribution</small></div><div class="fig"><span class="v sm">${esc(inr(e.revenue_inr))}</span><small>revenue</small></div><div class="fig"><span class="v sm">${esc(inr(e.cost_inr))}</span><small>cost</small></div></div>
+      ${capPct!=null?`<div class="meter${capPct>=100?" over":""}" role="img" aria-label="${esc(capPct+"% of the monthly cap spent")}"><span style="width:${capPct}%"></span></div><p class="kvline">${capPct}% of the ${esc(inr(cap))} monthly cap</p>`:cap!=null?`<p class="kvline">Cap ${esc(capU+cap)} a month (costs are tracked in rupees)</p>`:""}
+      ${moneyChart(series(id),pname(id)+" money by month")}</section>
+    <section class="card"><h3>Scorecard</h3>
+      ${sc.primary||c?.key_metric?`<div class="primary-metric"><span class="eyebrow">Primary · 90 days</span><b>${esc(sc.primary?.metric||c.key_metric)}</b><span class="kvline">Target <b>${esc(sc.primary?.target_90d??c?.target_90d??"not set")}</b>${c?.target_due?` by ${esc(istDay(c.target_due))}`:""}</span></div>`:`<p class="empty">No scorecard yet. HQ writes one in the universal format when the unit is set up.</p>`}
+      ${arr(sc.supporting).length?`<div><span class="eyebrow">Supporting</span><ul class="ticks">${arr(sc.supporting).map(x=>`<li>${esc(fmtItem(x))}</li>`).join("")}</ul></div>`:""}
+      ${arr(sc.guardrails).length?`<div><span class="eyebrow">Guardrails</span><ul class="ticks guard">${arr(sc.guardrails).map(x=>`<li>${esc(fmtItem(x))}</li>`).join("")}</ul></div>`:""}
+      ${sc.contribution!=null?`<p class="kvline"><b>Contribution:</b> ${esc(txt(sc.contribution))}</p>`:""}
+      ${sc.review?`<p class="kvline"><b>Review${sc.review.date?" "+esc(istDay(sc.review.date)):""}:</b> ${esc(sc.review.rule||txt(sc.review))}</p>`:""}
+      ${kq.length?`<div><span class="eyebrow">Kill questions${c?.test_ends_on?" · test ends "+esc(istDay(c.test_ends_on)):""}</span><ul class="ticks kill">${kq.map(x=>`<li>${esc(fmtItem(x))}</li>`).join("")}</ul></div>`:""}</section>
+    ${charter||facts?`<section class="card"><h3>Charter</h3>${charter?`<dl class="kv">${charter}</dl>`:""}${facts?`<dl class="kv" style="${charter?"border-top:1px solid var(--line);padding-top:10px":""}">${facts}</dl>`:""}</section>`:""}
+  </div>
+  ${asks.length||ords.length?`<section><h2>Waiting on you here</h2><div class="list">${asks.map(askCard).join("")}${ords.map(orderCard).join("")}</div></section>`:""}
+  ${kids.length?`<section><h2>Products and tests</h2><div class="grid g3">${kids.map(k=>miniCo(co(k.id)||{project_id:k.id},m)).join("")}</div></section>`:""}
+  <section><h2>Agents</h2>${ag.length?`<div class="list">${ag.map(a=>{const r=lastRun(a.id);return `<div class="card"><div class="row"><div class="t"><b>${dot(a)} ${esc(a.name)}</b><div class="meta"><span>${esc(a.project_id===id?"this unit":pname(a.project_id))}</span><span>${esc(a.cadence||"no schedule")}</span><span>evidence ${esc(ago(a.last_evidence))}</span></div></div>${hpill(a)}</div>
+    ${r?`<p class="kvline">Last run ${esc(ist(r.started_at))}: ${pill("s-"+r.status,r.status)} ${esc(r.summary||r.error||"")}</p>`:a.last_summary?`<p class="kvline">${esc(a.last_summary)}</p>`:""}</div>`}).join("")}</div>`:`<p class="empty">No agents on this unit yet. When HQ builds one it shows here with its health.</p>`}</section>
+  <section><h2>Experiments</h2>${ex.length?`<div class="grid">${ex.map(expCard).join("")}</div>`:`<p class="empty">No experiments yet. Each test of a channel or offer appears here with its pass and kill bars.</p>`}</section>
+  <section><h2>Recent decisions</h2>${dc.length?`<div class="list">${dc.map(decCard).join("")}</div>`:`<p class="empty">No decisions logged yet. Calls agents make on their own show here, with a Veto button while the window is open.</p>`}</section>`;
+}
+function expCard(x){const run=x.status==="running"&&x.starts_on&&x.ends_on,pct=run?Math.max(0,Math.min(100,Math.round((Date.now()-new Date(x.starts_on))/(new Date(x.ends_on)-new Date(x.starts_on))*100))):null;
+  return `<article class="card"><div class="row"><div class="t"><b>${esc(x.hypothesis||"Experiment")}</b><div class="meta">${[x.channel,x.agent_id?aname(x.agent_id):"",x.starts_on?istDay(x.starts_on)+" – "+istDay(x.ends_on):""].filter(Boolean).map(s=>`<span>${esc(s)}</span>`).join("")}</div></div>${pill("s-"+x.status,x.status||"planned")}</div>
+    ${pct!=null?`<div class="meter" role="img" aria-label="${pct}% of the test window gone"><span style="width:${pct}%"></span></div>`:""}
+    <p class="kvline"><b>Metric:</b> ${esc(x.metric||"—")}${x.sample?` · sample ${esc(x.sample)}`:""}</p>
+    <p class="kvline"><span class="pos">Pass ≥ ${esc(x.pass_bar??"—")}</span> · <span class="neg">Kill ≤ ${esc(x.kill_bar??"—")}</span></p>
+    ${x.result?`<p class="kvline"><b>Result:</b> ${esc(x.result)}</p>`:""}${x.decision?`<p class="kvline"><b>Decision:</b> ${esc(x.decision)}</p>`:""}</article>`}
+function decCard(d){const w=inWindow(d),conf=UI.pending?.kind==="veto"&&UI.pending.id==d.id,left=w?Math.max(1,Math.round(48-(Date.now()-new Date(d.created_at))/36e5)):0;
+  return `<article class="card${w?" qcard veto":""}"><div class="row"><div class="t"><b>${esc(d.call)}</b><div class="meta"><span>${esc(aname(d.agent_id))}</span><span>${esc(pname(d.project_id))}</span><span>${esc(ist(d.created_at))}</span></div></div>
+    <div class="chips">${pill(d.rights==="veto"?"k-accent":d.rights==="approve"?"s-new":"k-plain",d.rights==="alone"?"decides alone":d.rights==="veto"?"you can veto":"needs approval")}${d.vetoed?pill("h-red","vetoed"):""}${d.correct===true?pill("h-green","proved right"):d.correct===false?pill("h-red","proved wrong"):""}</div></div>
+    ${d.expected?`<p class="kvline"><b>Expects:</b> ${esc(d.expected)}${d.check_on?` · check ${esc(istDay(d.check_on))}`:""}</p>`:""}${d.actual?`<p class="kvline"><b>Actual:</b> ${esc(d.actual)}</p>`:""}
+    ${evLinks(d.evidence)}
+    ${w?(conf?`<div class="confirm bad"><p>Veto this call? The agent undoes it at its next run and logs why.</p><div class="acts"><button class="btn danger solid" data-vetoyes="${esc(d.id)}">Veto</button><button class="btn" data-cancel>Keep it</button></div></div>`:`<div class="acts"><button class="btn danger" data-veto="${esc(d.id)}">Veto</button><span class="meta">${left} h left in the window${flag("away")?" (paused while you're away)":""}</span></div>`):""}</article>`}
+function evLinks(ev){const L=arr(ev).map(x=>{if(typeof x==="string")return safeUrl(x)?{u:x,l:x.replace(/^https?:\/\/(www\.)?/,"").slice(0,48)}:{l:x};const u=safeUrl(x?.url||x?.link||x?.href);return {u,l:x?.label||x?.title||x?.name||(u?u.replace(/^https?:\/\/(www\.)?/,"").slice(0,48):fmtItem(x))}}).filter(x=>x.l);
+  return L.length?`<div class="chips">${L.map(x=>x.u?`<a class="pill k-accent" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.l)}</a>`:pill("k-plain",x.l)).join("")}</div>`:""}
 
 /* ---------- Queue ---------- */
+function askCard(a){const steps=arr(a.steps),late=a.deadline&&new Date(a.deadline)<new Date(),conf=UI.pending?.kind==="drop"&&UI.pending.id==a.id;
+  return `<article class="card qcard ask${late?" late":""}"><div class="row"><div class="t"><b>${esc(a.title)}</b><div class="meta"><span>${esc(a.type)}</span><span>${esc(pname(a.project_id))}</span>${a.agent_id?`<span>from ${esc(aname(a.agent_id))}</span>`:""}</div></div>
+    <div class="acts">${a.est_minutes?`<span class="mins">${esc(a.est_minutes)} min</span>`:""}${a.deadline?`<span class="due${late?" late":""}" title="${esc(ist(a.deadline))}">${esc(late?until(a.deadline):"due "+until(a.deadline))}</span>`:""}</div></div>
+    ${a.why?`<p class="why">${esc(a.why)}</p>`:""}${a.unblocks?`<p class="kvline"><b>Unblocks:</b> ${esc(a.unblocks)}</p>`:""}
+    ${steps.length?`<ol class="steps">${steps.map(s=>`<li>${esc(fmtItem(s))}</li>`).join("")}</ol>`:""}
+    ${conf?`<div class="confirm"><p><b>Can't do it?</b> The agent falls back to: ${esc(a.fallback||"nothing; the work waits")}.</p><div class="acts"><button class="btn danger solid" data-dropyes="${esc(a.id)}">Drop it</button><button class="btn" data-cancel>Keep it</button></div></div>`
+      :`<div class="acts"><button class="btn primary" data-done="${esc(a.id)}">Done</button><button class="btn" data-drop="${esc(a.id)}">Can't do</button>${safeUrl(a.link)?`<a class="btn quiet" href="${esc(a.link)}" target="_blank" rel="noopener">Open link ↗</a>`:""}</div>`}</article>`}
+function propCard(p){const sc=p.scores&&typeof p.scores==="object"?Object.entries(p.scores):[],kq=arr(p.kill_questions);
+  return `<article class="card qcard prop"><div class="row"><div class="t"><b>${esc(p.title)}</b><div class="meta"><span>${esc(p.kind||"proposal")}</span><span>${esc(pname(p.project_id))}</span>${p.agent_id?`<span>from ${esc(aname(p.agent_id))}</span>`:""}<span>${esc(istDay(p.created_at))}</span></div></div>
+    ${p.score!=null?`<div class="fig" style="text-align:right"><span class="score">${esc(p.score)}</span><small>score</small></div>`:""}</div>
+    ${sc.length?`<div class="chips">${sc.map(([k,v])=>pill("k-plain",`${k.replace(/_/g," ")} ${typeof v==="object"?fmtItem(v):v}`)).join("")}</div>`:""}
+    ${p.evidence?`<div class="report" style="font-size:.9rem">${md(typeof p.evidence==="string"?p.evidence:txt(p.evidence))}</div>`:""}
+    ${kq.length?`<div><span class="eyebrow">Kill questions</span><ul class="ticks kill">${kq.map(x=>`<li>${esc(fmtItem(x))}</li>`).join("")}</ul></div>`:""}
+    ${p.cost_cap!=null?`<p class="kvline"><b>Cost cap:</b> ${esc(typeof p.cost_cap==="number"?inr(p.cost_cap):txt(p.cost_cap))}</p>`:""}
+    ${p.status==="new"?`<div class="acts"><button class="btn primary" data-prop="yes" data-pid="${esc(p.id)}">Approve</button><button class="btn" data-prop="parked" data-pid="${esc(p.id)}">Park</button><button class="btn danger" data-prop="no" data-pid="${esc(p.id)}">Reject</button></div>`
+      :`<div class="acts">${pill("s-parked","parked")}<button class="btn" data-prop="yes" data-pid="${esc(p.id)}">Approve now</button></div>`}</article>`}
 function queue(){
-  const al=D.alarms.map(a=>`<div class="card"><div class="row"><div class="t"><b>${esc(a.message)}</b><span>${esc(a.kind)} · ${esc(a.project_id?pname(a.project_id):"Tharavad")} · ${ist(a.created_at)}</span></div>
-    <div class="acts"><button class="btn" data-ack="${a.id}">Seen</button></div></div></div>`).join("");
-  const as=D.asks.map(a=>{const steps=Array.isArray(a.steps)?a.steps:[],late=a.deadline&&new Date(a.deadline)<new Date();
-    const conf=pending&&pending.kind==="drop"&&pending.id===a.id;
-    return `<div class="card"><div class="row"><div class="t"><b>${esc(a.title)}</b>
-      <span>${esc(a.type)} · ${esc(pname(a.project_id))}${a.est_minutes?` · ${a.est_minutes} min`:""}${a.deadline?` · due ${ist(a.deadline)}${late?" (late)":""}`:""}</span></div>
-      <div class="acts">${conf?`<span class="confirm">Drop it? The agent falls back to: ${esc(a.fallback||"nothing")} <button class="btn danger" data-dropyes="${a.id}">Drop</button><button class="btn" data-cancel>Keep</button></span>`
-        :`<button class="btn primary" data-done="${a.id}">Done</button><button class="btn" data-drop="${a.id}">Can't do</button>`}</div></div>
-      ${a.why?`<div>${esc(a.why)}</div>`:""}${a.unblocks?`<div class="sub" style="margin:0">Unblocks: ${esc(a.unblocks)}</div>`:""}
-      ${steps.length?`<ol class="steps">${steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>`:""}
-      ${a.link?`<div><a href="${esc(a.link)}" target="_blank" rel="noopener">Open link</a></div>`:""}</div>`}).join("");
-  return `<section><h2>Alarms</h2><p class="sub">Sent by the database itself; they also reach your phone through ntfy.</p><div class="list">${al||`<p class="empty">No open alarms.</p>`}</div></section>
-  <section><h2>Your queue</h2><p class="sub">Only what needs your hands: logins, payments, submissions, approvals. Each also sits in Ambalam's Today; finishing it here closes it there.</p><div class="list">${as||`<p class="empty">Nothing waiting on you.</p>`}</div></section>`;
+  const as=sortAsks(D.asks),pr=newProps(),pk=D.proposals.filter(p=>p.status==="parked"),vt=vetoes(),mins=as.reduce((s,a)=>s+(+a.est_minutes||0),0),n=needCount();
+  return `<section class="state"><span class="lamp ${D.alarms.length?"bad":n?"need":"ok"}" aria-hidden="true"></span><h2>${n?esc(plur(n,"thing")+" for you"):"Nothing waiting on you"}</h2><p class="sub">${n?`About ${mins} minutes of hands-on work. Top to bottom is the order to do them in.`:"New asks, proposals and veto windows land here the moment an agent raises them."}</p></section>
+  <section><div class="shead"><h2>Alarms</h2><p class="sub">Raised by the database itself; they also reach your phone.</p></div><div class="list">${D.alarms.map(a=>`<article class="card qcard alarm"><div class="row"><div class="t"><b>${esc(a.message)}</b><div class="meta"><span>${esc(a.kind)}</span><span>${esc(pname(a.project_id))}</span>${a.agent_id?`<span>${esc(aname(a.agent_id))}</span>`:""}<span>${esc(ago(a.created_at))}</span></div></div>
+    <div class="acts"><button class="btn" data-ack="${esc(a.id)}">Seen</button></div></div></article>`).join("")||`<p class="empty">No open alarms. If an agent goes silent or a cap is crossed, it shows here first.</p>`}</div></section>
+  <section><div class="shead"><h2>Asks</h2><p class="sub">Only what needs your hands: logins, payments, submissions, approvals. Soonest deadline first. Each also sits in Ambalam's Today; finishing it here closes it there.</p></div><div class="list">${as.map(askCard).join("")||`<p class="empty">Nothing waiting on you. When an agent hits a login, payment or signature it can't do, the ask appears here with steps.</p>`}</div></section>
+  <section><div class="shead"><h2>Proposals to decide</h2><p class="sub">New bets the agents scored. Approve starts it within its cost cap; Park keeps it for later.</p></div><div class="list">${pr.map(propCard).join("")||`<p class="empty">No proposals waiting. Scored ideas for new products and tests appear here.</p>`}</div>
+    ${pk.length?`<details class="agent" data-k="parked" ${UI.open.has("parked")?"open":""}><summary><span class="dot d-amber" aria-hidden="true"></span><span class="nm">Parked (${pk.length})</span><span></span></summary><div class="body list">${pk.map(propCard).join("")}</div></details>`:""}</section>
+  <section><div class="shead"><h2>Calls you can veto</h2><p class="sub">Decisions agents made in the last 48 hours that you may overturn.</p></div><div class="list">${vt.map(decCard).join("")||`<p class="empty">No calls in a veto window. When an agent makes a reversible call, it waits here for 48 hours.</p>`}</div></section>`;
 }
 
 /* ---------- Agents and runs ---------- */
+const FILT=[["all","All"],["attention","Needs a look"],["green","Healthy"],["unknown","Unknown"],["off","Not built or paused"]];
+const fmatch=a=>{const h=hs(a);return UI.agentFilter==="all"||(UI.agentFilter==="attention"?h==="red"||h==="amber":UI.agentFilter==="off"?["planned","paused","retired"].includes(h):h===UI.agentFilter)};
+const RANK={red:0,amber:1,unknown:2,green:3,planned:4,paused:5,retired:6};
 function agents(){
-  const rows=[...D.health].sort((a,b)=>({red:0,amber:1,unknown:2,green:3}[a.health]??4)-({red:0,amber:1,unknown:2,green:3}[b.health]??4));
-  return `<section><h2>Agents</h2><p class="sub">Health comes from each agent's own run reports, with its writes to the hub as a fallback, never from the scheduler.</p>
-  <div class="tablewrap"><table><thead><tr><th>Agent</th><th>Unit</th><th>Schedule</th><th>Last evidence</th><th>Runs 7d</th><th>Health</th></tr></thead><tbody>
-  ${rows.map(a=>`<tr><td><b>${esc(a.name)}</b>${a.last_summary?`<div class="sub" style="margin:0">${esc(a.last_summary)}</div>`:""}</td><td>${esc(a.project_id?pname(a.project_id):"Tharavad")}</td><td class="mono">${esc(a.cadence||"—")}</td><td class="mono">${ist(a.last_evidence)}</td><td class="mono">${a.runs_7d??0}${a.fails_in_row?` · ${a.fails_in_row} failed`:""}</td><td>${pill(a.status==="active"?a.health:a.status)}</td></tr>`).join("")}
-  </tbody></table></div></section>
-  <section><h2>Recent runs</h2><div class="tablewrap"><table><thead><tr><th>Agent</th><th>Started</th><th>Ended</th><th>Status</th><th>Summary</th></tr></thead><tbody>
-  ${D.runs.length?D.runs.map(r=>`<tr><td>${esc(D.health.find(a=>a.id===r.agent_id)?.name||r.agent_id)}</td><td class="mono">${ist(r.started_at)}</td><td class="mono">${ist(r.ended_at)}</td><td>${esc(r.status)}</td><td>${esc(r.summary||r.error||"")}</td></tr>`).join(""):`<tr><td colspan="5" class="empty">No run has reported yet. The first is the KTN run on Wed 25 Nov.</td></tr>`}
-  </tbody></table></div></section>`;
+  const list=D.health.filter(fmatch).sort((a,b)=>(RANK[hs(a)]??9)-(RANK[hs(b)]??9)||String(a.name).localeCompare(b.name));
+  const lv=a=>LEVELS.some(l=>l[0]===a.level)?a.level:"shared";
+  const count=k=>D.health.filter(a=>{const s=UI.agentFilter;UI.agentFilter=k;const r=fmatch(a);UI.agentFilter=s;return r}).length;
+  const groups=LEVELS.map(([k,l])=>[l,list.filter(a=>lv(a)===k)]).filter(g=>g[1].length);
+  return `<section><div class="shead"><h2>Agents</h2><p class="sub">Health comes from each agent's own run reports, with its writes to the hub as a fallback, never from the scheduler.</p></div>
+  <div class="filters" role="group" aria-label="Filter by health">${FILT.map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${UI.agentFilter===k}">${esc(l)} <span class="mono">${count(k)}</span></button>`).join("")}</div>
+  ${groups.length?groups.map(([l,g])=>`<div class="lvl"><span class="eyebrow">${esc(l)} · ${g.length}</span>${g.map(agentRow).join("")}</div>`).join(""):`<p class="empty">No agents match this filter.</p>`}</section>
+  ${timeline()}
+  <section><div class="shead"><h2>Recent runs</h2><p class="sub">Newest first, last 14 days.</p></div>${D.runs.length?`<div class="runs">${D.runs.slice(0,30).map(r=>`<div class="run"><span class="when">${esc(ist(r.started_at))}</span><span class="what"><b>${esc(aname(r.agent_id))}</b> ${esc(r.summary||r.error||"")}${r.cost_usd?` <span class="mono">$${esc(Number(r.cost_usd).toFixed(2))}</span>`:""}</span>${pill("s-"+r.status,r.status)}</div>`).join("")}</div>`:`<p class="empty">No run has reported in the last 14 days. Runs appear here as soon as an agent files its report.</p>`}</section>`;
 }
+function agentRow(a){const d=D.agents.find(x=>x.id===a.id)||{},runs=D.runs.filter(r=>r.agent_id===a.id).slice(0,5),k="ag-"+a.id;
+  return `<details class="agent" data-k="${esc(k)}" ${UI.open.has(k)?"open":""}><summary>${dot(a)}<span style="min-width:0"><span class="nm">${esc(a.name)}</span><span class="meta"><span>${esc(pname(a.project_id))}</span><span>${esc(a.cadence||"no schedule")}</span><span>evidence ${esc(ago(a.last_evidence))}</span><span>${plur(+a.runs_7d||0,"run")} in 7 days${a.fails_in_row?` · ${a.fails_in_row} failed in a row`:""}</span></span></span>${hpill(a)}</summary>
+    <div class="body">${d.note?`<p class="why">${esc(d.note)}</p>`:""}${a.last_summary?`<p class="kvline"><b>Last report:</b> ${esc(a.last_summary)}</p>`:""}
+    <p class="kvline">${[a.seats?`<b>Seats</b> ${esc(a.seats)}`:"",a.every_hours?`<b>Every</b> ${esc(a.every_hours)} h`:"",a.cost_7d!=null?`<b>Cost 7d</b> $${esc(Number(a.cost_7d).toFixed(2))}`:"",d.version?`<b>Version</b> ${esc(d.version)}`:"",a.last_ok?`<b>Last OK</b> ${esc(ist(a.last_ok))}`:""].filter(Boolean).join(" · ")||"No run details yet."}</p>
+    ${runs.length?`<div class="runs">${runs.map(r=>`<div class="run"><span class="when">${esc(ist(r.started_at))}</span><span class="what">${esc(r.summary||r.error||"")}</span>${pill("s-"+r.status,r.status)}</div>`).join("")}</div>`:""}
+    ${d.handoff?`<div><span class="eyebrow">Handoff</span><pre class="handoff">${esc(d.handoff)}</pre></div>`:`<p class="kvline">No handoff written yet.</p>`}</div></details>`}
+function timeline(){
+  const days=[...Array(14)].map((_,i)=>dayKey(Date.now()-(13-i)*864e5)),W={failed:0,blocked:1,running:2,skipped:3,succeeded:4};
+  const ids=[...new Set([...D.runs.map(r=>r.agent_id),...D.health.filter(a=>a.status==="active").map(a=>a.id)])];
+  if(!ids.length)return "";
+  const rows=ids.map(id=>{const by={};D.runs.filter(r=>r.agent_id===id).forEach(r=>(by[dayKey(r.started_at)]??=[]).push(r));return {id,by}});
+  return `<section><div class="shead"><h2>Last 14 days</h2><p class="sub">One square per day per agent, coloured by its worst run. A row of grey squares is an agent that went quiet.</p></div>
+  <div class="tl-wrap"><table class="tl"><thead><tr><th class="who"><span class="sr">Agent</span></th>${days.map((d,i)=>`<th scope="col">${i%2===(13%2)?esc(String(+d.slice(8))):""}<span class="sr">${esc(d)}</span></th>`).join("")}</tr></thead><tbody>
+  ${rows.map(r=>`<tr><th class="who" scope="row">${esc(aname(r.id))}</th>${days.map(d=>{const rs=r.by[d]||[],w=rs.map(x=>x.status).sort((a,b)=>(W[a]??9)-(W[b]??9))[0];const t=`${aname(r.id)}, ${d}: ${rs.length?rs.map(x=>x.status).join(", "):"no run"}`;return `<td class="${w?"r-"+esc(w):""}" title="${esc(t)}" aria-label="${esc(t)}">${rs.length>1?rs.length:""}</td>`}).join("")}</tr>`).join("")}
+  </tbody></table></div>
+  <div class="legend">${["succeeded","failed","blocked","skipped","running"].map(s=>`<span><i class="r-${s}"></i>${s}</span>`).join("")}<span><i class="r-none"></i>no run</span></div></section>`}
 
-/* ---------- Companies ---------- */
-function companies(){
-  const m=monthNow(),list=D.companies.filter(c=>c.kind==="company"||c.kind==="test");
-  return `<section><h2>Companies</h2><p class="sub">Placed by how they reach customers. Money is this month, from Treasury's view, in rupees.</p><div class="cos">${list.map(c=>{
-    const e=D.econ.find(x=>x.project_id===c.project_id&&x.month===m)||{},sc=c.scorecard||{},prods=D.companies.filter(x=>x.kind==="product"&&D.projects.find(p=>p.id===x.project_id)?.parent_id===c.project_id),ag=D.health.filter(a=>a.project_id===c.project_id);
-    const conf=pending&&pending.kind==="pause"&&pending.id===c.project_id;
-    return `<article class="card"><div class="row"><div class="t"><b style="font:700 1.02rem var(--display)">${esc(pname(c.project_id))}</b><span>${esc([c.kind==="test"?"company in test":c.brand_mode==="studio"?"studio":"company",c.stage,c.paused_at?"paused":""].filter(Boolean).join(" · "))}</span></div>
-      <div class="acts">${conf?`<span class="confirm">${c.paused_at?"Resume":"Pause"} ${esc(pname(c.project_id))}? <button class="btn ${c.paused_at?"primary":"danger"}" data-pauseyes="${esc(c.project_id)}">${c.paused_at?"Resume":"Pause"}</button><button class="btn" data-cancel>Cancel</button></span>`:`<button class="btn" data-pause="${esc(c.project_id)}">${c.paused_at?"Resume":"Pause"}</button>`}</div></div>
-      <dl><dt>Key number</dt><dd>${esc(sc.primary?.metric||c.key_metric||"—")}</dd><dt>90-day target</dt><dd>${esc(sc.primary?.target_90d??c.target_90d??"—")}</dd>
-      <dt>Core channel</dt><dd>${esc(c.core_channel||"—")}</dd><dt>This month</dt><dd class="mono">${inr(e.revenue_inr)} in · ${inr(e.cost_inr)} out · ${inr(e.contribution_inr)}</dd>
-      <dt>Cap</dt><dd class="mono">${c.budget_cap_monthly!=null?esc((c.currency==="USD"?"$":"₹")+c.budget_cap_monthly):"—"}</dd></dl>
-      ${prods.length?`<div class="sub" style="margin:0">Products: ${prods.map(x=>esc(pname(x.project_id))).join(", ")}</div>`:""}
-      <div class="acts">${ag.length?ag.map(a=>pill(a.status==="active"?a.health:a.status).replace("</span>"," · "+esc(a.name)+"</span>")).join(""):`<span class="pill h-unknown">No agents yet</span>`}</div></article>`}).join("")}</div></section>`;
+/* ---------- Orders: Tell Tharavad ---------- */
+function tellForm(px){
+  const units=D.companies.filter(c=>c.kind!=="group").map(c=>c.project_id).sort((a,b)=>pname(a).localeCompare(pname(b)));
+  return `<form class="tell" id="${px}Form" data-tell="${px}"><label class="sr" for="${px}Text">What do you want done?</label>
+    <textarea id="${px}Text" data-draft placeholder="e.g. Find three more bulk buyers for the parenting series before Christmas" required>${esc(UI.draft)}</textarea>
+    <div class="opts"><label class="sr" for="${px}Unit">Unit</label><select id="${px}Unit" data-unitsel><option value="">Any unit (HQ decides)</option>${units.map(u=>`<option value="${esc(u)}"${UI.unit===u?" selected":""}>${esc(pname(u))}</option>`).join("")}</select>
+    <div class="seg" role="radiogroup" aria-label="Priority">${[["high","High"],["med","Normal"],["low","Low"]].map(([k,l])=>`<button type="button" role="radio" aria-checked="${UI.prio===k}" data-prio="${k}">${l}</button>`).join("")}</div>
+    <button class="btn primary go" type="submit"${UI.sending?" disabled":""}>${UI.sending?"Sending…":"Send to Tharavad"}</button></div></form>`}
+const STEPS=[["new","New"],["routed","Routed"],["in_progress","Working"],["done","Done"]];
+function orderCard(o){const i=STEPS.findIndex(s=>s[0]===o.status),blk=o.status==="blocked",dr=o.status==="dropped",at=blk?2:i;
+  return `<article class="card"><div class="row"><div class="t"><b>${esc(o.request)}</b><div class="meta"><span>${esc(o.from_who==="vimal"?"you":o.from_who||"")}</span><span>${esc(pname(o.project_id))}</span>${o.agent_id?`<span>${esc(aname(o.agent_id))}</span>`:""}<span>${esc(ago(o.created_at))}</span></div></div>${o.priority?pill("p-"+o.priority,o.priority==="med"?"normal":o.priority):""}</div>
+    <div class="track${dr?" dropped":""}" aria-label="${esc("Status: "+String(o.status).replace("_"," "))}">${STEPS.map(([k,l],j)=>`<span class="${blk&&j===2?"blk":j===at&&!dr&&o.status!=="done"?"now":j<=at&&!dr?"on":""}">${esc(blk&&j===2?"Blocked":l)}</span>`).join("")}${dr?`<span class="blk" style="text-decoration:none">Dropped</span>`:""}</div>
+    ${o.why?`<p class="kvline"><b>Why:</b> ${esc(o.why)}</p>`:""}${o.result?`<p class="kvline"><b>Result:</b> ${esc(o.result)}</p>`:""}${evLinks(o.evidence)}</article>`}
+function orders(){
+  const op=openOrders(),cl=D.orders.filter(o=>["done","dropped"].includes(o.status));
+  return `<section class="card panel-tell"><div class="shead"><h2>Tell Tharavad</h2><p class="sub">Type what you want in plain words. It lands as a new order; the Karanavar routes it to an agent and you can watch it move below.</p></div>${tellForm("ord")}</section>
+  <section><div class="shead"><h2>Open orders</h2><span class="eyebrow">${op.length}</span></div><div class="list">${op.map(orderCard).join("")||`<p class="empty">No open orders. Anything you send above shows here until it's done.</p>`}</div></section>
+  ${cl.length?`<section><h2>Recently closed</h2><div class="list">${cl.slice(0,10).map(orderCard).join("")}</div></section>`:""}`;
 }
+function paintDlg(){const b=$("tellDlgBody"),k=focusKey(document.activeElement)||(document.activeElement&&b.contains(document.activeElement)&&document.activeElement.id?"#"+document.activeElement.id:null);b.innerHTML=tellForm("dlg");if(k){const el=b.querySelector(k);el?.focus()}}
+
+/* ---------- Library and Commons ---------- */
+function library(){
+  const by=(xs,f)=>xs.reduce((m,x)=>((m[f(x)||"other"]??=[]).push(x),m),{});
+  const cd=by(D.cards,c=>c.domain),as=by(D.assets,a=>a.kind);
+  const hay=o=>esc(Object.values(o).map(v=>typeof v==="object"?JSON.stringify(v):v).join(" ").toLowerCase());
+  return `<section><div class="shead"><h2>Library</h2><p class="sub">What the house has learned: canon from books and sources, cases from our own runs. Agents read these before they act.</p></div>
+  <label class="sr" for="libQ">Filter the library and commons</label><input class="lib-q" id="libQ" type="search" placeholder="Filter cards and assets" value="${esc(UI.libQ)}">
+  ${D.cards.length?Object.entries(cd).sort().map(([d,cs])=>`<div class="lvl" data-grp><span class="eyebrow">${esc(d)} · ${cs.length}</span><div class="grid">${cs.map(c=>`<article class="card lcard${c.status==="retired"?" retired":""}" data-hay="${hay(c)}"><div class="row"><p class="claim">${esc(c.claim)}</p><div class="chips">${pill(c.kind==="case"?"k-accent":"k-plain",c.kind||"canon")}${c.confidence!=null?pill("k-plain","confidence "+c.confidence):""}</div></div>
+    ${c.applies_when||c.not_when?`<div class="when2">${c.applies_when?`<div><b>Use when</b>${esc(c.applies_when)}</div>`:""}${c.not_when?`<div><b>Not when</b>${esc(c.not_when)}</div>`:""}</div>`:""}
+    ${c.source?`<p class="kvline">${safeUrl(c.source_url)?`<a href="${esc(c.source_url)}" target="_blank" rel="noopener">${esc(c.source)}</a>`:esc(c.source)}</p>`:""}</article>`).join("")}</div></div>`).join(""):`<p class="empty">No library cards yet. They appear as agents file what they learn.</p>`}</section>
+  <section><div class="shead"><h2>Commons</h2><p class="sub">Shared assets every unit can use. Identity-bound ones are tied to your name or ID and need you to act on them.</p></div>
+  ${D.assets.length?Object.entries(as).sort().map(([k,xs])=>`<div class="lvl" data-grp><span class="eyebrow">${esc(k)} · ${xs.length}</span><div class="grid g3">${xs.map(a=>`<article class="card" data-hay="${hay(a)}"><div class="row"><b>${esc(a.name)}</b><div class="chips">${a.identity_bound?pill("h-amber","identity-bound"):""}${a.status&&a.status!=="active"?pill("k-plain",a.status):""}</div></div>
+    <p class="kvline">${a.owner_unit?`Owned by <b>${esc(pname(a.owner_unit))}</b>`:"Owned by HQ"}${a.location?` · ${safeUrl(a.location)?`<a href="${esc(a.location)}" target="_blank" rel="noopener">open</a>`:`<span class="mono">${esc(a.location)}</span>`}`:""}</p>
+    ${arr(a.used_by).length?`<div class="chips">${arr(a.used_by).map(u=>pill("k-plain",pname(u))).join("")}</div>`:""}${a.notes?`<p class="kvline">${esc(a.notes)}</p>`:""}</article>`).join("")}</div></div>`).join(""):`<p class="empty">No shared assets listed yet.</p>`}</section>`;
+}
+function filterLib(){const q=UI.libQ.trim().toLowerCase();V.querySelectorAll("[data-hay]").forEach(el=>el.hidden=!!q&&!el.dataset.hay.includes(q));V.querySelectorAll("[data-grp]").forEach(g=>g.hidden=!g.querySelector("[data-hay]:not([hidden])"))}
 
 /* ---------- Controls ---------- */
 function controls(){
-  const stop=flag("stop_all"),away=flag("away"),conf=pending&&pending.kind==="flag";
-  const sw=(k,on,label,desc)=>`<div class="card"><div class="row"><div class="t"><b>${label}: ${on?"on":"off"}</b><span>${desc}</span></div><div class="acts">
-    ${conf&&pending.id===k?`<span class="confirm">Turn ${on?"off":"on"}? <button class="btn ${k==="stop_all"&&!on?"danger":"primary"}" data-flagyes="${k}">Yes</button><button class="btn" data-cancel>Cancel</button></span>`:`<button class="btn ${k==="stop_all"&&!on?"danger":""}" data-flag="${k}">${on?"Turn off":"Turn on"}</button>`}</div></div></div>`;
-  return `<section><h2>Controls</h2><p class="sub">These are database switches every run checks first, so they work even if Claude or an agent misbehaves.</p><div class="list">
-    ${sw("stop_all",stop,"Stop everything","No run starts and no upload, send or payment step goes out. Use it if anything looks wrong.")}
-    ${sw("away",away,"Away mode","While you travel: veto windows pause and class C calls wait; routine work carries on.")}
-  </div></section>`;
+  const stop=flag("stop_all"),away=flag("away"),cf=k=>UI.pending?.kind==="flag"&&UI.pending.id===k;
+  return `<section><div class="shead"><h2>Controls</h2><p class="sub">Database switches every run checks first, so they work even if Claude or an agent misbehaves.</p></div>
+  <div class="estop${stop?" on":""}"><span class="eyebrow" style="color:inherit">Emergency stop</span><h3>${stop?"Everything is stopped":"Stop everything"}</h3>
+    <p class="sub">${stop?"No run starts and no upload, send or payment step goes out. Resume when you're sure things are right.":"Halts every agent: no run starts and no upload, send or payment step goes out. Use it the moment anything looks wrong."}</p>
+    ${cf("stop_all")?`<div class="confirm ${stop?"":"bad"}"><p>${stop?"Resume all agents? Each picks up at its next scheduled run.":"Stop every agent now? Work in flight halts at its next check."}</p><div class="acts"><button class="btn ${stop?"primary":"danger solid"}" data-flagyes="stop_all">${stop?"Resume everything":"Stop everything now"}</button><button class="btn" data-cancel>Cancel</button></div></div>`
+      :`<div class="acts"><button class="btn big ${stop?"":"danger solid"}" data-flag="stop_all">${stop?"Resume everything":"Stop everything"}</button></div>`}</div>
+  <div class="card"><div class="row"><div class="t"><span class="switch${away?" on":""}"><i aria-hidden="true"></i>Away mode is ${away?"on":"off"}</span><p class="sub" style="margin-top:6px">While you travel: veto windows pause and class C calls wait for you; routine work carries on.</p></div>
+    ${cf("away")?"":`<button class="btn" data-flag="away" aria-pressed="${away}">${away?"Turn off":"Turn on"}</button>`}</div>
+    ${cf("away")?`<div class="confirm"><p>Turn away mode ${away?"off? Veto windows start counting again.":"on? Veto windows pause until you're back."}</p><div class="acts"><button class="btn primary" data-flagyes="away">Turn ${away?"off":"on"}</button><button class="btn" data-cancel>Cancel</button></div></div>`:""}</div></section>`;
 }
 
 /* ---------- actions ---------- */
-async function act(fn,ok){try{const{error}=await fn();if(error)throw error;pending=null;await load()}catch(e){pending=null;render();alertLine("That didn't save. Check your connection and try again.")}}
-function alertLine(t){const d=document.createElement("div");d.className="banner stop";d.textContent=t;V.prepend(d);setTimeout(()=>d.remove(),5000)}
-V.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset;
-  if(d.ack)return act(()=>sb.from("alarms").update({acked_at:new Date().toISOString()}).eq("id",+d.ack));
-  if(d.done)return act(()=>sb.from("asks").update({status:"done",done_at:new Date().toISOString()}).eq("id",+d.done));
-  if(d.drop){pending={kind:"drop",id:+d.drop};return render()}
-  if(d.dropyes)return act(()=>sb.from("asks").update({status:"dropped",done_at:new Date().toISOString()}).eq("id",+d.dropyes));
-  if(d.pause){pending={kind:"pause",id:d.pause};return render()}
-  if(d.pauseyes){const c=D.companies.find(x=>x.project_id===d.pauseyes);return act(()=>sb.from("companies").update({paused_at:c?.paused_at?null:new Date().toISOString()}).eq("project_id",d.pauseyes))}
-  if(d.flag){pending={kind:"flag",id:d.flag};return render()}
-  if(d.flagyes)return act(()=>sb.from("tharavad_flags").update({value:!flag(d.flagyes),updated_at:new Date().toISOString()}).eq("key",d.flagyes));
-  if("cancel" in d){pending=null;render()}});
-addEventListener("hashchange",()=>{pending=null;render()});
+let tt=null;function toast(t,bad){const el=$("toast");el.textContent=t;el.className=bad?"bad":"";el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,4000)}
+async function act(fn,ok){try{const{error}=await fn();if(error)throw error;UI.pending=null;if(ok)toast(ok);await load()}catch(e){UI.pending=null;render();toast("That didn't save. Check your connection and try again.",true)}}
+const now=()=>new Date().toISOString();
+function confirmAsk(kind,id){UI.pending={kind,id};render();const b=V.querySelector(".confirm button");if(b)b.focus()}
+function onClick(e){const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+  if("retry" in d)return load();
+  if(d.ack)return act(()=>sb.from("alarms").update({acked_at:now()}).eq("id",idv(d.ack)),"Alarm marked seen");
+  if(d.done)return act(()=>sb.from("asks").update({status:"done",done_at:now()}).eq("id",idv(d.done)),"Done. Ambalam's task closes too.");
+  if(d.drop)return confirmAsk("drop",idv(d.drop));
+  if(d.dropyes)return act(()=>sb.from("asks").update({status:"dropped",done_at:now()}).eq("id",idv(d.dropyes)),"Dropped. The agent takes its fallback.");
+  if(d.prop){const v=d.prop;return act(()=>sb.from("proposals").update({status:v,decided_at:now()}).eq("id",idv(d.pid)),v==="yes"?"Approved":v==="no"?"Rejected":"Parked")}
+  if(d.veto)return confirmAsk("veto",idv(d.veto));
+  if(d.vetoyes)return act(()=>sb.from("agent_decisions").update({vetoed:true}).eq("id",idv(d.vetoyes)),"Vetoed. The agent reverses it.");
+  if(d.pause)return confirmAsk("pause",d.pause);
+  if(d.pauseyes){const c=co(d.pauseyes),p=!!c?.paused_at;return act(()=>sb.from("companies").update({paused_at:p?null:now()}).eq("project_id",d.pauseyes),p?"Resumed":"Paused")}
+  if(d.flag)return confirmAsk("flag",d.flag);
+  if(d.flagyes){const k=d.flagyes,v=!flag(k);return act(()=>sb.from("tharavad_flags").update({value:v,updated_at:now()}).eq("key",k),k==="stop_all"?(v?"Everything is stopped":"Agents resumed"):(v?"Away mode on":"Away mode off"))}
+  if(d.filter){UI.agentFilter=d.filter;focusNext=`[data-filter="${d.filter}"]`;return render()}
+  if(d.prio){UI.prio=d.prio;focusNext=`[data-prio="${d.prio}"]`;render();if($("tellDlg").open){paintDlg();$("tellDlgBody").querySelector(`[data-prio="${d.prio}"]`)?.focus()}return}
+  if("cancel" in d){UI.pending=null;render()}}
+function onInput(e){const t=e.target;if(t.matches("[data-draft]"))UI.draft=t.value;if(t.matches("[data-unitsel]"))UI.unit=t.value;if(t.id==="libQ"){UI.libQ=t.value;filterLib()}}
+async function onSubmit(e){const f=e.target.closest("[data-tell]");if(!f)return;e.preventDefault();const request=UI.draft.trim();if(!request||UI.sending)return;
+  UI.sending=true;render();
+  try{const{error}=await sb.from("orders").insert({from_who:"vimal",project_id:UI.unit||null,request,priority:UI.prio});if(error)throw error;
+    UI.draft="";UI.unit="";UI.prio="med";UI.sending=false;if($("tellDlg").open)$("tellDlg").close();toast("Sent. It shows in Orders as New until an agent picks it up.");await load()}
+  catch(err){UI.sending=false;render();toast("That order didn't send. Your words are kept; try again.",true)}}
+for(const el of [V,$("tellDlgBody")]){el.addEventListener("click",onClick);el.addEventListener("input",onInput);el.addEventListener("change",onInput);el.addEventListener("submit",onSubmit)}
+V.addEventListener("toggle",e=>{const k=e.target.dataset?.k;if(k)e.target.open?UI.open.add(k):UI.open.delete(k)},true);
+$("tellOpen").addEventListener("click",()=>{paintDlg();$("tellDlg").showModal();$("dlgText").focus()});
+$("tellClose").addEventListener("click",()=>$("tellDlg").close());
+$("tellDlg").addEventListener("close",()=>{if(route().v==="orders")render()});
+addEventListener("hashchange",()=>{UI.pending=null;render();scrollTo(0,0)});
 
 /* ---------- boot: same sign-in as Ambalam ---------- */
-function showLogin(msg){V.innerHTML=`<form class="login" id="loginForm"><h2>Tharavad</h2><p class="sub">${esc(msg||"Sign in with your email. We'll send you a link.")}</p><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
-  document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:e.target.email.value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
+function showLogin(msg){V.innerHTML=`<form class="login" id="loginForm"><h2>Tharavad</h2><p class="sub">${esc(msg||"Sign in with your email. We'll send you a link.")}</p><label class="sr" for="loginEmail">Email</label><input id="loginEmail" type="email" name="email" required placeholder="you@example.com" autocomplete="email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
+  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:e.target.email.value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
     showLogin(error?"That email can't sign in here. Check the address and try again.":"Check your inbox and tap the link.")})}
 let started=false;
-async function start(){if(started)return;started=true;render();await load();
-  sb.channel("tharavad").on("postgres_changes",{event:"*",schema:"public",table:"asks"},load).on("postgres_changes",{event:"*",schema:"public",table:"alarms"},load)
-    .on("postgres_changes",{event:"*",schema:"public",table:"runs"},load).on("postgres_changes",{event:"*",schema:"public",table:"tharavad_flags"},load).subscribe();
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()})}
-window.TH={start,load,D};
+async function start(){if(started)return;started=true;$("tellOpen").hidden=false;render();await load();
+  let ch=sb.channel("tharavad");for(const t of ["asks","alarms","runs","tharavad_flags","proposals","orders","agent_decisions","companies","experiments"])ch=ch.on("postgres_changes",{event:"*",schema:"public",table:t},soon);ch.subscribe();
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
+  setInterval(()=>{if(!document.hidden)render(true)},6e4);
+  document.addEventListener("focusout",()=>setTimeout(()=>{if(deferred&&!typing()){deferred=false;render()}},0))}
+window.TH={start,load,D,UI};
 (async()=>{const{data:{session}}=await sb.auth.getSession();if(session)start();else showLogin();sb.auth.onAuthStateChange((ev,s)=>{if(s&&!started)start()})})();
 </script>
 </body>
