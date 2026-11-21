@@ -232,11 +232,11 @@ ok('explicit light theme wins over dark system', await p.evaluate(() => getCompu
 const s2 = await b.newPage({ viewport: { width: 390, height: 844 } }); watch(s2);
 await s2.goto(new URL('../tharavad.html', import.meta.url).href + '?title=' + encodeURIComponent('Cool tool') + '&text=' + encodeURIComponent('Look at this https://example.com/tool?x=1 nice') + '#orders'); await s2.waitForTimeout(800);
 ok('share: query string cleared, hash kept', await s2.evaluate(() => location.search === '' && location.hash === '#orders'));
-ok('share: stashed while signed out', await s2.evaluate(() => !!document.getElementById('loginForm') && JSON.parse(sessionStorage.getItem('tharavad.share.v1') || 'null')?.link === 'https://example.com/tool?x=1'));
+ok('share: stashed while signed out', await s2.evaluate(() => !!document.getElementById('loginForm') && JSON.parse(localStorage.getItem('tharavad.share.v1') || 'null')?.link === 'https://example.com/tool?x=1'));
 await s2.evaluate(mock); await s2.waitForTimeout(500);
 ok('share: dialog opens in Idea mode after sign-in', await s2.evaluate(() => document.getElementById('tellDlg').open && document.querySelector('#tellDlgBody [data-kind="idea"]').getAttribute('aria-checked') === 'true'));
 ok('share: link and words prefilled', await s2.evaluate(() => document.getElementById('dlgLink').value === 'https://example.com/tool?x=1' && document.getElementById('dlgText').value === 'Cool tool\nLook at this nice'));
-ok('share: stash used once', await s2.evaluate(() => sessionStorage.getItem('tharavad.share.v1') === null));
+ok('share: stash used once', await s2.evaluate(() => localStorage.getItem('tharavad.share.v1') === null));
 await s2.evaluate(() => { document.getElementById('toast').hidden = true }); await s2.screenshot({ path: out('phone-share-dialog') });
 await s2.click('#dlgForm button[type="submit"]'); await s2.waitForTimeout(300);
 ok('share: idea inserted', await s2.evaluate(() => WRITES.some(w => w.t === 'orders' && w.row.kind === 'idea' && w.row.link === 'https://example.com/tool?x=1' && w.row.priority === 'low' && w.row.from_who === 'vimal')));

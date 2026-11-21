@@ -816,9 +816,9 @@ function parseShare(q){const url=(q.get("url")||"").trim(),text=(q.get("text")||
   const parts=[strip(title),strip(text)].filter(Boolean);
   return {link,request:[...new Set(parts)].join("\n")}}
 (()=>{try{const q=new URLSearchParams(location.search),sh=parseShare(q);if(!sh)return;
-  try{sessionStorage.setItem(SHARE_KEY,JSON.stringify(sh))}catch(e){window.__share=sh}
+  try{localStorage.setItem(SHARE_KEY,JSON.stringify({...sh,at:Date.now()}))}catch(e){window.__share=sh}
   for(const k of ["url","text","title"])q.delete(k);const qs=q.toString();history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash)}catch(e){}})();
-function takeShare(){let sh=window.__share||null;window.__share=null;try{const v=sessionStorage.getItem(SHARE_KEY);if(v){sh=JSON.parse(v);sessionStorage.removeItem(SHARE_KEY)}}catch(e){}
+function takeShare(){let sh=window.__share||null;window.__share=null;try{const v=localStorage.getItem(SHARE_KEY);if(v){localStorage.removeItem(SHARE_KEY);const o=JSON.parse(v);if(Date.now()-(o.at||0)<36e5)sh=o}}catch(e){}
   if(!sh)return;UI.kind="idea";UI.link=String(sh.link||"");UI.draft=String(sh.request||"");openTell()}
 let started=false;
 async function start(){if(started)return;started=true;$("tellOpen").hidden=false;render();await load();takeShare();
