@@ -284,6 +284,15 @@ table.tl td.r-succeeded{background:var(--ok)} table.tl td.r-failed{background:va
 .seg button+button{border-left:1px solid var(--line-strong)}
 .seg button[aria-checked="true"]{background:var(--ink);color:var(--bg)}
 .tell .go{margin-left:auto}
+.tell .flab{font-weight:600;font-size:.88rem;margin-bottom:-4px}
+.tell .link-in{width:100%;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:9px 12px;min-height:42px;background:var(--surface);font-size:1rem}
+.seg.kind{justify-self:start}
+.seg.kind button{min-width:84px;font-weight:600}
+.card.idea{border-left:4px solid var(--plan)}
+.idea b.req{white-space:pre-wrap;overflow-wrap:anywhere}
+.idea .link{overflow-wrap:anywhere;font-size:.88rem;margin:0}
+.verdict{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--sunken);border-radius:var(--r-sm);padding:10px 12px;margin:0;font-size:.9rem;line-height:1.5}
+.verdict-h{font:600 .7rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px}
 .track{display:flex;gap:3px;align-items:center;font:500 .66rem var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--faint);flex-wrap:wrap}
 .track span{padding:2px 7px;border-radius:5px;background:var(--sunken)}
 .track span.on{background:var(--accent-soft);color:var(--accent)}
@@ -323,7 +332,7 @@ dialog .in{padding:18px;display:grid;gap:12px}
 .login input{border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:10px 12px;background:var(--surface);min-height:44px}
 
 @media (max-width:820px){
-  .btn,.chip,.kid,.need,.seg button,.tell select,nav a,.back{min-height:44px}
+  .btn,.chip,.kid,.need,.seg button,.tell select,.tell .link-in,nav a,.back{min-height:44px}
   .hrow{gap:4px 10px}
   nav{order:3;flex-basis:100%;overflow-x:auto;scrollbar-width:none;margin-inline:-4px;padding-bottom:2px}
   nav::-webkit-scrollbar{display:none}
@@ -345,7 +354,7 @@ dialog .in{padding:18px;display:grid;gap:12px}
 </div></header>
 <div class="wrap"><main id="view"></main></div>
 <dialog id="tellDlg" aria-labelledby="tellTitle"><div class="in">
-  <div class="row"><div class="t"><h2 id="tellTitle">Tell Tharavad</h2><p class="sub">Say what you want done. The Karanavar routes it to the right agent; you'll see it move in Orders.</p></div>
+  <div class="row"><div class="t"><h2 id="tellTitle">Tell Tharavad</h2><p class="sub" id="tellSub">Say what you want done. The Karanavar routes it to the right agent; you'll see it move in Orders.</p></div>
   <button class="btn quiet" type="button" id="tellClose" aria-label="Close">Close</button></div>
   <div id="tellDlgBody"></div>
 </div></dialog>
@@ -362,7 +371,7 @@ const ALIAS={companies:"tree",home:"overview"};
 const H={green:"Healthy",amber:"Watch",red:"Silent",unknown:"Unknown",planned:"Not built",paused:"Paused",retired:"Retired"};
 const LEVELS=[["group","Group"],["company","Company"],["product","Product"],["shared","Shared services"]];
 const D={flags:{},companies:[],projects:[],econ:[],health:[],agents:[],runs:[],asks:[],alarms:[],proposals:[],orders:[],experiments:[],decisions:[],report:null,audits:[],cards:[],assets:[],ready:false,errors:[],at:null};
-const UI={pending:null,agentFilter:"all",open:new Set(),draft:"",unit:"",prio:"med",libQ:"",sending:false};
+const UI={pending:null,agentFilter:"all",open:new Set(),draft:"",unit:"",prio:"med",kind:"order",link:"",ordFilter:"all",libQ:"",sending:false};
 
 /* ---------- small helpers ---------- */
 const TZ="Asia/Kolkata";
@@ -403,7 +412,10 @@ const vetoes=()=>D.decisions.filter(inWindow);
 const newProps=()=>D.proposals.filter(p=>p.status==="new");
 const sortAsks=a=>[...a].sort((x,y)=>(x.deadline?new Date(x.deadline):Infinity)-(y.deadline?new Date(y.deadline):Infinity));
 const needCount=()=>D.alarms.length+D.asks.length+newProps().length+vetoes().length;
-const openOrders=()=>D.orders.filter(o=>!["done","dropped"].includes(o.status));
+const isIdea=o=>o.kind==="idea";
+const realOrders=()=>D.orders.filter(o=>!isIdea(o));
+const ideas=()=>D.orders.filter(isIdea);
+const openOrders=()=>realOrders().filter(o=>!["done","dropped"].includes(o.status));
 
 /* simple markdown: headings, bullets, numbered, rules, bold, code, links */
 function md(src){
@@ -484,7 +496,7 @@ function route(){const h=decodeURIComponent(location.hash.slice(1));if(h.startsW
 let focusNext=null;
 function focusKey(el){if(!el||!V.contains(el))return null;if(el.id)return "#"+el.id;for(const a of el.attributes)if(a.name.startsWith("data-"))return `[${a.name}="${CSS.escape(a.value)}"]`;return null}
 let deferred=false;
-const typing=()=>{const a=document.activeElement;return a&&(a.matches?.("[data-draft]")||a.id==="libQ")&&!UI.sending};
+const typing=()=>{const a=document.activeElement;return a&&(a.matches?.("[data-draft],[data-link]")||a.id==="libQ")&&!UI.sending};
 function render(bg){
   if(bg===true&&typing()){deferred=true;return}
   const r=route(),nv=r.v==="co"?"tree":r.v;
@@ -574,7 +586,7 @@ function company(id){
   const m=monthNow(),e=econ(id,m),sc=c?.scorecard||{},ch=c?.charter||{},fam=unitsOf(id),parent=p?.parent_id;
   const kids=D.projects.filter(x=>x.parent_id===id&&!x.archived_at);
   const ag=D.health.filter(a=>fam.has(a.project_id)),ex=D.experiments.filter(x=>fam.has(x.project_id)),dc=D.decisions.filter(x=>fam.has(x.project_id)).slice(0,10);
-  const asks=sortAsks(D.asks.filter(x=>fam.has(x.project_id))),ords=D.orders.filter(x=>fam.has(x.project_id)).slice(0,8);
+  const asks=sortAsks(D.asks.filter(x=>fam.has(x.project_id))),ords=realOrders().filter(x=>fam.has(x.project_id)).slice(0,8);
   const conf=UI.pending?.kind==="pause"&&UI.pending.id===id,paused=!!c?.paused_at;
   const capU=c?.currency==="USD"?"$":"₹",cap=c?.budget_cap_monthly,capPct=cap&&c?.currency!=="USD"?Math.min(100,Math.round((+e.cost_inr||0)/cap*100)):null;
   const lastRun=aid=>D.runs.find(r=>r.agent_id===aid);
@@ -688,24 +700,37 @@ function timeline(){
 
 /* ---------- Orders: Tell Tharavad ---------- */
 function tellForm(px){
-  const units=D.companies.filter(c=>c.kind!=="group").map(c=>c.project_id).sort((a,b)=>pname(a).localeCompare(pname(b)));
-  return `<form class="tell" id="${px}Form" data-tell="${px}"><label class="sr" for="${px}Text">What do you want done?</label>
-    <textarea id="${px}Text" data-draft placeholder="e.g. Find three more bulk buyers for the parenting series before Christmas" required>${esc(UI.draft)}</textarea>
-    <div class="opts"><label class="sr" for="${px}Unit">Unit</label><select id="${px}Unit" data-unitsel><option value="">Any unit (HQ decides)</option>${units.map(u=>`<option value="${esc(u)}"${UI.unit===u?" selected":""}>${esc(pname(u))}</option>`).join("")}</select>
-    <div class="seg" role="radiogroup" aria-label="Priority">${[["high","High"],["med","Normal"],["low","Low"]].map(([k,l])=>`<button type="button" role="radio" aria-checked="${UI.prio===k}" data-prio="${k}">${l}</button>`).join("")}</div>
-    <button class="btn primary go" type="submit"${UI.sending?" disabled":""}>${UI.sending?"Sending…":"Send to Tharavad"}</button></div></form>`}
+  const units=D.companies.filter(c=>c.kind!=="group").map(c=>c.project_id).sort((a,b)=>pname(a).localeCompare(pname(b))),idea=UI.kind==="idea";
+  const kind=`<div class="seg kind" role="radiogroup" aria-label="Kind">${[["order","Order"],["idea","Idea"]].map(([k,l])=>`<button type="button" role="radio" aria-checked="${UI.kind===k}" data-kind="${k}">${l}</button>`).join("")}</div>`;
+  const unitSel=`<label class="sr" for="${px}Unit">${idea?"Unit (optional)":"Unit"}</label><select id="${px}Unit" data-unitsel><option value="">${idea?"No unit (HQ decides)":"Any unit (HQ decides)"}</option>${units.map(u=>`<option value="${esc(u)}"${UI.unit===u?" selected":""}>${esc(pname(u))}</option>`).join("")}</select>`;
+  return `<form class="tell" id="${px}Form" data-tell="${px}" data-kindnow="${esc(UI.kind)}">${kind}
+    ${idea?`<label class="flab" for="${px}Link">Link (optional)</label><input class="link-in" id="${px}Link" data-link type="text" inputmode="url" spellcheck="false" autocomplete="off" placeholder="https://…" value="${esc(UI.link)}">`:""}
+    <label class="${idea?"flab":"sr"}" for="${px}Text">${idea?"What caught your eye?":"What do you want done?"}</label>
+    <textarea id="${px}Text" data-draft placeholder="${idea?"e.g. This tool turns blog posts into Shorts. Worth a look for KTN?":"e.g. Find three more bulk buyers for the parenting series before Christmas"}"${idea?"":" required"}>${esc(UI.draft)}</textarea>
+    <div class="opts">${unitSel}
+    ${idea?"":`<div class="seg" role="radiogroup" aria-label="Priority">${[["high","High"],["med","Normal"],["low","Low"]].map(([k,l])=>`<button type="button" role="radio" aria-checked="${UI.prio===k}" data-prio="${k}">${l}</button>`).join("")}</div>`}
+    <button class="btn primary go" type="submit"${UI.sending?" disabled":""}>${UI.sending?"Sending…":idea?"Send the idea":"Send to Tharavad"}</button></div></form>`}
 const STEPS=[["new","New"],["routed","Routed"],["in_progress","Working"],["done","Done"]];
 function orderCard(o){const i=STEPS.findIndex(s=>s[0]===o.status),blk=o.status==="blocked",dr=o.status==="dropped",at=blk?2:i;
   return `<article class="card"><div class="row"><div class="t"><b>${esc(o.request)}</b><div class="meta"><span>${esc(o.from_who==="vimal"?"you":o.from_who||"")}</span><span>${esc(pname(o.project_id))}</span>${o.agent_id?`<span>${esc(aname(o.agent_id))}</span>`:""}<span>${esc(ago(o.created_at))}</span></div></div>${o.priority?pill("p-"+o.priority,o.priority==="med"?"normal":o.priority):""}</div>
     <div class="track${dr?" dropped":""}" aria-label="${esc("Status: "+String(o.status).replace("_"," "))}">${STEPS.map(([k,l],j)=>`<span class="${blk&&j===2?"blk":j===at&&!dr&&o.status!=="done"?"now":j<=at&&!dr?"on":""}">${esc(blk&&j===2?"Blocked":l)}</span>`).join("")}${dr?`<span class="blk" style="text-decoration:none">Dropped</span>`:""}</div>
     ${o.why?`<p class="kvline"><b>Why:</b> ${esc(o.why)}</p>`:""}${o.result?`<p class="kvline"><b>Result:</b> ${esc(o.result)}</p>`:""}${evLinks(o.evidence)}</article>`}
+const IDEA_ST={new:"New",routed:"Routed",in_progress:"Being looked at",blocked:"Blocked",done:"Evaluated",dropped:"Dropped"};
+function ideaCard(o){const u=safeUrl(o.link),st=o.status||"new";
+  return `<article class="card idea"><div class="row"><div class="t"><b class="req">${esc(o.request)}</b><div class="meta"><span>${esc(o.from_who==="vimal"?"you":o.from_who||"")}</span>${o.project_id?`<span>${esc(pname(o.project_id))}</span>`:""}<span>${esc(ago(o.created_at))}</span></div></div>${pill(st==="done"?"h-green":st==="blocked"||st==="dropped"?"h-red":"k-plain",IDEA_ST[st]||st)}</div>
+    ${u?`<p class="link"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\/(www\.)?/,"").slice(0,90))}</a></p>`:o.link?`<p class="link mono">${esc(o.link)}</p>`:""}
+    <p class="kvline">${o.agent_id?`Evaluated by <b>${esc(aname(o.agent_id))}</b>`:`<span class="meta">Waiting for the runner</span>`}</p>
+    ${o.verdict?`<div class="verdict"><span class="verdict-h">Verdict</span>${esc(o.verdict)}</div>`:""}</article>`}
 function orders(){
-  const op=openOrders(),cl=D.orders.filter(o=>["done","dropped"].includes(o.status));
-  return `<section class="card panel-tell"><div class="shead"><h2>Tell Tharavad</h2><p class="sub">Type what you want in plain words. It lands as a new order; the Karanavar routes it to an agent and you can watch it move below.</p></div>${tellForm("ord")}</section>
-  <section><div class="shead"><h2>Open orders</h2><span class="eyebrow">${op.length}</span></div><div class="list">${op.map(orderCard).join("")||`<p class="empty">No open orders. Anything you send above shows here until it's done.</p>`}</div></section>
-  ${cl.length?`<section><h2>Recently closed</h2><div class="list">${cl.slice(0,10).map(orderCard).join("")}</div></section>`:""}`;
+  const op=openOrders(),cl=realOrders().filter(o=>["done","dropped"].includes(o.status)),id=ideas(),f=UI.ordFilter;
+  const chips=[["all","All",D.orders.length],["orders","Orders",realOrders().length],["ideas","Ideas",id.length]];
+  return `<section class="card panel-tell"><div class="shead"><h2>Tell Tharavad</h2><p class="sub">Type what you want in plain words, or drop an idea with a link. Orders go to an agent; ideas go to a scout who writes back a verdict.</p></div>${tellForm("ord")}</section>
+  <div class="filters" role="group" aria-label="Show">${chips.map(([k,l,n])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${f===k}">${esc(l)} <span class="mono">${n}</span></button>`).join("")}</div>
+  ${f!=="ideas"?`<section><div class="shead"><h2>Open orders</h2><span class="eyebrow">${op.length}</span></div><div class="list">${op.map(orderCard).join("")||`<p class="empty">No open orders. Anything you send above shows here until it's done.</p>`}</div></section>`:""}
+  ${f!=="orders"?`<section><div class="shead"><h2>Ideas</h2><span class="eyebrow">${id.length}</span></div><div class="list">${id.slice(0,30).map(ideaCard).join("")||`<p class="empty">No ideas yet. Pick Idea above, or share a link to Tharavad from your phone.</p>`}</div></section>`:""}
+  ${f!=="ideas"&&cl.length?`<section><h2>Recently closed</h2><div class="list">${cl.slice(0,10).map(orderCard).join("")}</div></section>`:""}`;
 }
-function paintDlg(){const b=$("tellDlgBody"),k=focusKey(document.activeElement)||(document.activeElement&&b.contains(document.activeElement)&&document.activeElement.id?"#"+document.activeElement.id:null);b.innerHTML=tellForm("dlg");if(k){const el=b.querySelector(k);el?.focus()}}
+function paintDlg(){const b=$("tellDlgBody"),k=focusKey(document.activeElement)||(document.activeElement&&b.contains(document.activeElement)&&document.activeElement.id?"#"+document.activeElement.id:null);$("tellSub").textContent=UI.kind==="idea"?"Drop something that caught your eye. A scout agent looks at it and writes a verdict; you'll see it under Ideas in Orders.":"Say what you want done. The Karanavar routes it to the right agent; you'll see it move in Orders.";b.innerHTML=tellForm("dlg");if(k){const el=b.querySelector(k);el?.focus()}}
 
 /* ---------- Library and Commons ---------- */
 function library(){
@@ -757,16 +782,23 @@ function onClick(e){const b=e.target.closest("button");if(!b)return;const d=b.da
   if(d.flagyes){const k=d.flagyes,v=!flag(k);return act(()=>sb.from("tharavad_flags").update({value:v,updated_at:now()}).eq("key",k),k==="stop_all"?(v?"Everything is stopped":"Agents resumed"):(v?"Away mode on":"Away mode off"))}
   if(d.filter){UI.agentFilter=d.filter;focusNext=`[data-filter="${d.filter}"]`;return render()}
   if(d.prio){UI.prio=d.prio;focusNext=`[data-prio="${d.prio}"]`;render();if($("tellDlg").open){paintDlg();$("tellDlgBody").querySelector(`[data-prio="${d.prio}"]`)?.focus()}return}
+  if(d.kind){UI.kind=d.kind;focusNext=`[data-kind="${d.kind}"]`;render();if($("tellDlg").open){paintDlg();$("tellDlgBody").querySelector(`[data-kind="${d.kind}"]`)?.focus()}return}
+  if(d.ofilter){UI.ordFilter=d.ofilter;focusNext=`[data-ofilter="${d.ofilter}"]`;return render()}
   if("cancel" in d){UI.pending=null;render()}}
-function onInput(e){const t=e.target;if(t.matches("[data-draft]"))UI.draft=t.value;if(t.matches("[data-unitsel]"))UI.unit=t.value;if(t.id==="libQ"){UI.libQ=t.value;filterLib()}}
-async function onSubmit(e){const f=e.target.closest("[data-tell]");if(!f)return;e.preventDefault();const request=UI.draft.trim();if(!request||UI.sending)return;
+function onInput(e){const t=e.target;if(t.matches("[data-draft]"))UI.draft=t.value;if(t.matches("[data-unitsel]"))UI.unit=t.value;if(t.matches("[data-link]"))UI.link=t.value;if(t.id==="libQ"){UI.libQ=t.value;filterLib()}}
+const fixLink=v=>{v=String(v||"").trim();if(!v)return "";return /^https?:\/\//i.test(v)?v:/^[\w-]+(\.[\w-]+)+([/?#].*)?$/.test(v)?"https://"+v:v};
+async function onSubmit(e){const f=e.target.closest("[data-tell]");if(!f)return;e.preventDefault();if(UI.sending)return;
+  const idea=UI.kind==="idea",link=idea?fixLink(UI.link):"",request=UI.draft.trim()||link;if(!request){if(idea)toast("Add a link or a few words first.",true);return}
   UI.sending=true;render();
-  try{const{error}=await sb.from("orders").insert({from_who:"vimal",project_id:UI.unit||null,request,priority:UI.prio});if(error)throw error;
-    UI.draft="";UI.unit="";UI.prio="med";UI.sending=false;if($("tellDlg").open)$("tellDlg").close();toast("Sent. It shows in Orders as New until an agent picks it up.");await load()}
-  catch(err){UI.sending=false;render();toast("That order didn't send. Your words are kept; try again.",true)}}
+  const row=idea?{from_who:"vimal",kind:"idea",link:link||null,request,project_id:UI.unit||null,priority:"low"}:{from_who:"vimal",kind:"order",project_id:UI.unit||null,request,priority:UI.prio};
+  try{const{error}=await sb.from("orders").insert(row);if(error)throw error;
+    UI.draft="";UI.unit="";UI.prio="med";UI.kind="order";UI.link="";UI.sending=false;if($("tellDlg").open)$("tellDlg").close();
+    toast(idea?"Idea saved. A scout looks at it and writes a verdict under Ideas.":"Sent. It shows in Orders as New until an agent picks it up.");await load()}
+  catch(err){UI.sending=false;render();toast(idea?"That idea didn't send. Your words are kept; try again.":"That order didn't send. Your words are kept; try again.",true)}}
 for(const el of [V,$("tellDlgBody")]){el.addEventListener("click",onClick);el.addEventListener("input",onInput);el.addEventListener("change",onInput);el.addEventListener("submit",onSubmit)}
 V.addEventListener("toggle",e=>{const k=e.target.dataset?.k;if(k)e.target.open?UI.open.add(k):UI.open.delete(k)},true);
-$("tellOpen").addEventListener("click",()=>{paintDlg();$("tellDlg").showModal();$("dlgText").focus()});
+function openTell(){paintDlg();if(!$("tellDlg").open)$("tellDlg").showModal();$("dlgText").focus()}
+$("tellOpen").addEventListener("click",openTell);
 $("tellClose").addEventListener("click",()=>$("tellDlg").close());
 $("tellDlg").addEventListener("close",()=>{if(route().v==="orders")render()});
 addEventListener("hashchange",()=>{UI.pending=null;render();scrollTo(0,0)});
@@ -775,13 +807,26 @@ addEventListener("hashchange",()=>{UI.pending=null;render();scrollTo(0,0)});
 function showLogin(msg){V.innerHTML=`<form class="login" id="loginForm"><h2>Tharavad</h2><p class="sub">${esc(msg||"Sign in with your email. We'll send you a link.")}</p><label class="sr" for="loginEmail">Email</label><input id="loginEmail" type="email" name="email" required placeholder="you@example.com" autocomplete="email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
   $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:e.target.email.value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
     showLogin(error?"That email can't sign in here. Check the address and try again.":"Check your inbox and tap the link.")})}
+/* ---------- share target: a link shared from the phone lands as an idea ---------- */
+const SHARE_KEY="tharavad.share.v1";
+function parseShare(q){const url=(q.get("url")||"").trim(),text=(q.get("text")||"").trim(),title=(q.get("title")||"").trim();
+  if(!url&&!text&&!title)return null;
+  const found=(text.match(/https?:\/\/[^\s<>"']+/i)||title.match(/https?:\/\/[^\s<>"']+/i)||[""])[0].replace(/[).,;:!?]+$/,"");
+  const link=safeUrl(url)?url:found||url,strip=s=>(link?s.split(link).join(" "):s).replace(/[ \t]+/g," ").trim();
+  const parts=[strip(title),strip(text)].filter(Boolean);
+  return {link,request:[...new Set(parts)].join("\n")}}
+(()=>{try{const q=new URLSearchParams(location.search),sh=parseShare(q);if(!sh)return;
+  try{sessionStorage.setItem(SHARE_KEY,JSON.stringify(sh))}catch(e){window.__share=sh}
+  for(const k of ["url","text","title"])q.delete(k);const qs=q.toString();history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash)}catch(e){}})();
+function takeShare(){let sh=window.__share||null;window.__share=null;try{const v=sessionStorage.getItem(SHARE_KEY);if(v){sh=JSON.parse(v);sessionStorage.removeItem(SHARE_KEY)}}catch(e){}
+  if(!sh)return;UI.kind="idea";UI.link=String(sh.link||"");UI.draft=String(sh.request||"");openTell()}
 let started=false;
-async function start(){if(started)return;started=true;$("tellOpen").hidden=false;render();await load();
+async function start(){if(started)return;started=true;$("tellOpen").hidden=false;render();await load();takeShare();
   let ch=sb.channel("tharavad");for(const t of ["asks","alarms","runs","tharavad_flags","proposals","orders","agent_decisions","companies","experiments"])ch=ch.on("postgres_changes",{event:"*",schema:"public",table:t},soon);ch.subscribe();
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
   setInterval(()=>{if(!document.hidden)render(true)},6e4);
   document.addEventListener("focusout",()=>setTimeout(()=>{if(deferred&&!typing()){deferred=false;render()}},0))}
-window.TH={start,load,D,UI};
+window.TH={start,load,D,UI,parseShare};
 (async()=>{const{data:{session}}=await sb.auth.getSession();if(session)start();else showLogin();sb.auth.onAuthStateChange((ev,s)=>{if(s&&!started)start()})})();
 </script>
 </body>

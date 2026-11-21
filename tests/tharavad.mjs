@@ -1,6 +1,7 @@
 // Tharavad control room (tharavad.html): renders every view from an in-memory mock, and every button writes the
 // right row (alarm Seen, ask Done / Can't do, proposal Approve / Park / Reject, Veto, Pause, Stop and Away, Tell Tharavad
-// inserts an order). Phone width never scrolls sideways; light and dark screenshots go to tests/out/. Never touches the real database.
+// inserts an order or an idea; a link shared to the app opens the dialog in Idea mode). Phone width never scrolls sideways; light and
+// dark screenshots go to tests/out/. Never touches the real database.
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 const b = await chromium.launch();
 const errs = [], fails = [];
@@ -8,8 +9,9 @@ const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
 p.on('pageerror', e => errs.push(e.message));
 p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_|net::/.test(m.text())) errs.push('console: ' + m.text()) });
 const ok = (name, v) => { console.log(name + ':', v); if (v !== true) fails.push(name) };
+const watch = pg => { pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_|net::/.test(m.text())) errs.push('console: ' + m.text()) }) };
 await p.goto(new URL('../tharavad.html', import.meta.url).href); await p.waitForTimeout(800);
-await p.evaluate(() => {
+const mock = () => {
   const mk = off => { const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })); d.setDate(1); d.setMonth(d.getMonth() - off); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01` };
   const m = mk(0), ago = h => new Date(Date.now() - h * 36e5).toISOString();
   window.DB = {
@@ -43,7 +45,9 @@ await p.evaluate(() => {
       { id: 13, agent_id: 'karanavar', project_id: 'etsy-shop', kind: 'test', title: 'Wedding planners', score: 5.2, status: 'new', created_at: ago(7) },
       { id: 14, agent_id: 'karanavar', kind: 'company', title: 'B2B newsletter', score: 4, status: 'parked', created_at: ago(90) }],
     orders: [{ id: 21, from_who: 'vimal', project_id: 'publishing', request: 'Get the parenting series into two Bengaluru bookshops', priority: 'high', status: 'in_progress', agent_id: 'kdp', evidence: [{ label: 'Shop list', url: 'https://example.com/list' }], created_at: ago(30) },
-      { id: 22, from_who: 'vimal', request: 'Draft a privacy page for Small Fish', priority: 'low', status: 'done', result: 'Live on the site', created_at: ago(100), closed_at: ago(60) }],
+      { id: 22, from_who: 'vimal', request: 'Draft a privacy page for Small Fish', priority: 'low', status: 'done', result: 'Live on the site', created_at: ago(100), closed_at: ago(60) },
+      { id: 23, kind: 'idea', from_who: 'vimal', request: 'AI dubbing for Shorts in Hindi', link: 'https://example.com/dub-tool', priority: 'low', status: 'done', agent_id: 'karanavar', verdict: 'What: a dubbing service for short videos.\nScore: 6/10, cheap to try.\nNext: test on two KTN Shorts.', created_at: ago(12) },
+      { id: 24, kind: 'idea', from_who: 'vimal', request: 'Sticker packs on WhatsApp', link: null, priority: 'low', status: 'new', created_at: ago(3) }],
     experiments: [{ id: 31, project_id: 'publishing', agent_id: 'ktn', channel: 'YouTube Shorts', hypothesis: 'Shorts lift book sales', metric: 'Sales from Shorts link', sample: '6 Shorts', pass_bar: '15 sales', kill_bar: '3 sales', starts_on: ago(24 * 7), ends_on: new Date(Date.now() + 7 * 864e5).toISOString(), status: 'running' }],
     agent_decisions: [{ id: 41, agent_id: 'kdp', project_id: 'publishing', call: 'Drop the price of book 2 to ₹199', rights: 'veto', evidence: ['https://example.com/sales'], expected: '+20% sales', check_on: '2026-12-01', vetoed: false, created_at: ago(10) },
       { id: 42, agent_id: 'ktn', project_id: 'parenting-series', call: 'Post Shorts at 19:00', rights: 'alone', vetoed: false, correct: true, created_at: ago(200) }],
@@ -67,7 +71,8 @@ await p.evaluate(() => {
       return Promise.resolve({ error: null }) } }) });
   sb.channel = () => ({ on() { return this }, subscribe() { return this } });
   TH.start();
-});
+};
+await p.evaluate(mock);
 await p.waitForTimeout(500);
 const out = n => new URL(`./out/tharavad-${n}.png`, import.meta.url).pathname;
 const shot = async n => { await p.evaluate(() => { document.getElementById('toast').hidden = true }); await p.screenshot({ path: out(n), fullPage: true }) };
@@ -149,15 +154,42 @@ await p.fill('#ordText', 'Find three bulk buyers before Christmas');
 await p.selectOption('#ordUnit', 'publishing'); await p.click('[data-prio="high"]');
 ok('typed draft survives a background refresh', await p.evaluate(async () => { await TH.load(); return document.getElementById('ordText').value === 'Find three bulk buyers before Christmas' }));
 await p.click('#ordForm button[type="submit"]'); await p.waitForTimeout(300);
-ok('order inserted', await wrote("w.t==='orders'&&w.op==='insert'&&w.row.from_who==='vimal'&&w.row.project_id==='publishing'&&w.row.priority==='high'&&w.row.request==='Find three bulk buyers before Christmas'"));
+ok('order inserted', await wrote("w.t==='orders'&&w.op==='insert'&&w.row.kind==='order'&&w.row.from_who==='vimal'&&w.row.project_id==='publishing'&&w.row.priority==='high'&&w.row.request==='Find three bulk buyers before Christmas'"));
 ok('new order shows as New', await has('Find three bulk buyers'));
 await shot('orders');
 await go('#library');
 await p.click('#tellOpen'); await p.waitForTimeout(150);
 await p.fill('#dlgText', 'Pause the Etsy ads'); await p.click('#dlgForm button[type="submit"]'); await p.waitForTimeout(300);
+ok('home open orders leave ideas out', await (async () => { await go('#overview'); return await has('two Bengaluru bookshops') && !(await has('AI dubbing for Shorts')) })());
+await go('#library');
 ok('Tell Tharavad dialog inserts from any view', await wrote("w.t==='orders'&&w.row.request==='Pause the Etsy ads'&&w.row.project_id===null&&w.row.priority==='med'") && await p.evaluate(() => !document.getElementById('tellDlg').open));
 
+// Ideas: render with verdict, filter chips, insert payload
+await go('#orders');
+ok('ideas section lists both ideas', await p.$$eval('.card.idea', c => c.length === 2) && await has('AI dubbing for Shorts in Hindi') && await has('Sticker packs on WhatsApp'));
+ok('idea link opens in a new tab safely', await p.evaluate(() => { const a = document.querySelector('.card.idea a[href="https://example.com/dub-tool"]'); return !!a && a.target === '_blank' && /noopener/.test(a.rel) }));
+ok('idea shows who evaluates it, or waiting', await p.evaluate(() => { const c = [...document.querySelectorAll('.card.idea')]; return c.some(x => x.innerText.includes('Evaluated by Karanavar')) && c.some(x => x.innerText.includes('Waiting for the runner')) }));
+ok('verdict shown with line breaks kept', await p.evaluate(() => { const v = document.querySelector('.card.idea .verdict'); return !!v && getComputedStyle(v).whiteSpace === 'pre-wrap' && v.textContent.includes('cheap to try.\nNext: test on two KTN Shorts.') && v.getBoundingClientRect().height > 60 }));
+await p.click('[data-ofilter="ideas"]'); await p.waitForTimeout(100);
+ok('Ideas chip hides orders', await p.evaluate(() => document.querySelectorAll('.card.idea').length === 2 && !document.getElementById('view').innerText.includes('Open orders')));
+await p.click('[data-ofilter="orders"]'); await p.waitForTimeout(100);
+ok('Orders chip hides ideas', await p.evaluate(() => document.querySelectorAll('.card.idea').length === 0 && document.getElementById('view').innerText.includes('Open orders')));
+await p.click('[data-ofilter="all"]');
+await p.click('#ordForm [data-kind="idea"]'); await p.waitForTimeout(100);
+ok('Idea mode: link field, new label, no priority', await p.evaluate(() => !!document.getElementById('ordLink') && document.querySelector('label[for="ordText"]').textContent === 'What caught your eye?' && document.querySelector('label[for="ordLink"]').textContent === 'Link (optional)' && !document.querySelector('#ordForm [data-prio]') && document.querySelector('#ordForm [data-kind="idea"]').getAttribute('aria-checked') === 'true'));
+await p.fill('#ordLink', 'https://example.com/printables'); await p.fill('#ordText', 'Printable planners are trending on Pinterest');
+ok('typed idea survives a background refresh', await p.evaluate(async () => { await TH.load(); return document.getElementById('ordLink').value === 'https://example.com/printables' && document.getElementById('ordText').value.startsWith('Printable') }));
+await p.click('#ordForm button[type="submit"]'); await p.waitForTimeout(300);
+ok('idea inserted with the right payload', await p.evaluate(() => { const w = WRITES.filter(w => w.t === 'orders' && w.op === 'insert').pop().row;
+  return JSON.stringify(w) === JSON.stringify({ from_who: 'vimal', kind: 'idea', link: 'https://example.com/printables', request: 'Printable planners are trending on Pinterest', project_id: null, priority: 'low' }) }));
+ok('new idea shows under Ideas, form back to Order', await p.evaluate(() => document.querySelectorAll('.card.idea').length === 3 && document.querySelector('#ordForm [data-kind="order"]').getAttribute('aria-checked') === 'true' && !document.getElementById('ordLink')));
+await p.click('#ordForm [data-kind="idea"]'); await p.fill('#ordLink', 'example.com/no-scheme'); await p.click('#ordForm button[type="submit"]'); await p.waitForTimeout(300);
+ok('link-only idea: request falls back to the link, scheme added', await wrote("w.t==='orders'&&w.row.kind==='idea'&&w.row.link==='https://example.com/no-scheme'&&w.row.request==='https://example.com/no-scheme'"));
+ok('share parser: url param wins, text kept', await p.evaluate(() => { const r = TH.parseShare(new URLSearchParams('url=https%3A%2F%2Fa.com%2Fx&text=Nice+tool&title=A')); return r.link === 'https://a.com/x' && r.request === 'A\nNice tool' }));
+await shot('ideas');
+
 // Library
+await go('#library');
 ok('library cards by domain, assets by kind', await p.$$eval('.lvl .eyebrow', e => e.map(x => x.textContent).join('|') === 'pricing · 1|youtube · 1|account · 1|brand · 1'));
 ok('identity-bound flagged', await has('identity-bound'));
 await p.fill('#libQ', 'shorts'); await p.waitForTimeout(100);
@@ -181,13 +213,33 @@ const wide = [];
 for (const v of views) { await go(v); if (await p.evaluate(() => document.documentElement.scrollWidth > 390)) wide.push(v) }
 ok('phone: no sideways scroll on any view', wide.length === 0 || wide.join(','));
 ok('phone: buttons at least 44px', await p.evaluate(() => [...document.querySelectorAll('#view .btn, nav a')].filter(e => e.offsetParent).every(e => e.getBoundingClientRect().height >= 44)));
-for (const v of ['overview', 'tree', 'co/publishing', 'queue', 'agents']) { await go('#' + v); await shot('phone-' + v.replace('/', '-')) }
+for (const v of ['overview', 'tree', 'co/publishing', 'queue', 'agents', 'orders']) { await go('#' + v); await shot('phone-' + v.replace('/', '-')) }
+const ideaDlg = async () => { await p.click('#tellOpen'); await p.waitForTimeout(150); await p.click('#tellDlgBody [data-kind="idea"]'); await p.waitForTimeout(100); await p.fill('#dlgLink', 'https://example.com/a-very-long-path/that-keeps-going/and-going?utm_source=share&utm_medium=android'); await p.fill('#dlgText', 'Saw this on a podcast'); await p.evaluate(() => { document.getElementById('toast').hidden = true }) };
+await go('#overview'); await ideaDlg();
+ok('phone: idea dialog fits, no sideways scroll', await p.evaluate(() => { const d = document.getElementById('tellDlg').getBoundingClientRect(); return document.documentElement.scrollWidth <= 390 && d.right <= 390 && d.left >= 0 && document.getElementById('tellDlg').scrollWidth <= document.getElementById('tellDlg').clientWidth }));
+ok('phone: idea dialog targets at least 44px', await p.evaluate(() => [...document.querySelectorAll('#tellDlg .btn, #tellDlg .seg button, #tellDlg select, #dlgLink')].filter(e => e.offsetParent).every(e => e.getBoundingClientRect().height >= 44)));
+await p.screenshot({ path: out('phone-idea-dialog') });
+await p.click('#tellClose');
 await p.emulateMedia({ colorScheme: 'dark' }); await p.waitForTimeout(100);
-for (const v of ['overview', 'tree', 'co/publishing', 'controls']) { await go('#' + v); await shot('phone-dark-' + v.replace('/', '-')) }
+for (const v of ['overview', 'tree', 'co/publishing', 'controls', 'orders']) { await go('#' + v); await shot('phone-dark-' + v.replace('/', '-')) }
+await go('#overview'); await ideaDlg(); await p.screenshot({ path: out('phone-dark-idea-dialog') }); await p.click('#tellClose');
 await p.setViewportSize({ width: 1280, height: 900 });
 for (const v of ['overview', 'tree', 'co/publishing', 'agents', 'orders', 'library']) { await go('#' + v); await shot('dark-' + v.replace('/', '-')) }
 await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'light')); await go('#overview');
 ok('explicit light theme wins over dark system', await p.evaluate(() => getComputedStyle(document.body).backgroundColor === 'rgb(244, 246, 244)'));
+
+// Share target: a link shared from the phone, before sign-in, opens Tell Tharavad in Idea mode once signed in
+const s2 = await b.newPage({ viewport: { width: 390, height: 844 } }); watch(s2);
+await s2.goto(new URL('../tharavad.html', import.meta.url).href + '?title=' + encodeURIComponent('Cool tool') + '&text=' + encodeURIComponent('Look at this https://example.com/tool?x=1 nice') + '#orders'); await s2.waitForTimeout(800);
+ok('share: query string cleared, hash kept', await s2.evaluate(() => location.search === '' && location.hash === '#orders'));
+ok('share: stashed while signed out', await s2.evaluate(() => !!document.getElementById('loginForm') && JSON.parse(sessionStorage.getItem('tharavad.share.v1') || 'null')?.link === 'https://example.com/tool?x=1'));
+await s2.evaluate(mock); await s2.waitForTimeout(500);
+ok('share: dialog opens in Idea mode after sign-in', await s2.evaluate(() => document.getElementById('tellDlg').open && document.querySelector('#tellDlgBody [data-kind="idea"]').getAttribute('aria-checked') === 'true'));
+ok('share: link and words prefilled', await s2.evaluate(() => document.getElementById('dlgLink').value === 'https://example.com/tool?x=1' && document.getElementById('dlgText').value === 'Cool tool\nLook at this nice'));
+ok('share: stash used once', await s2.evaluate(() => sessionStorage.getItem('tharavad.share.v1') === null));
+await s2.evaluate(() => { document.getElementById('toast').hidden = true }); await s2.screenshot({ path: out('phone-share-dialog') });
+await s2.click('#dlgForm button[type="submit"]'); await s2.waitForTimeout(300);
+ok('share: idea inserted', await s2.evaluate(() => WRITES.some(w => w.t === 'orders' && w.row.kind === 'idea' && w.row.link === 'https://example.com/tool?x=1' && w.row.priority === 'low' && w.row.from_who === 'vimal')));
 
 if (fails.length) console.log('FAILED checks:', fails);
 console.log('errors', errs);
