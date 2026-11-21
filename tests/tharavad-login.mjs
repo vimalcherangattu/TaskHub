@@ -1,0 +1,21 @@
+import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+// Tharavad sign-in matches Ambalam: one email per tap, the wait explained, a pasted link or code, a ?token_hash link waits for a tap
+const b = await chromium.launch(); const errs=[];
+const page=async q=>{const p=await b.newPage({viewport:{width:390,height:844}});p.on('pageerror',e=>errs.push(e.message));
+  await p.addInitScript(()=>{Object.defineProperty(navigator,'standalone',{get:()=>true});window.calls=[]});
+  await p.goto(new URL('../tharavad.html'+q, import.meta.url).href);await p.waitForTimeout(1500);
+  await p.evaluate(()=>{let n=0;sb.auth.signInWithOtp=async o=>{calls.push('otp');await new Promise(r=>setTimeout(r,150));return{error:++n>1?{status:429}:null}};
+    sb.auth.verifyOtp=async o=>{calls.push('verify:'+(o.token||o.token_hash));return{error:{status:403}}}});return p};
+const p=await page('');
+await p.fill('#loginForm input','me@example.com');await p.evaluate(()=>{const f=document.getElementById('loginForm');f.requestSubmit();f.requestSubmit()});await p.waitForSelector('#codeForm');
+console.log('hint:',await p.textContent('.login .sub'));
+await p.fill('#codeForm input','https://x.supabase.co/auth/v1/verify?token=used1&type=magiclink');await p.click('#codeForm button[type=submit]');await p.waitForTimeout(100);
+console.log('used link:',await p.textContent('.login .sub'));
+await p.click('#codeBack');await p.fill('#loginForm input','me@example.com');await p.click('#loginForm button');await p.waitForSelector('#codeForm');
+console.log('429:',await p.textContent('.login .sub'));
+const c=await p.evaluate(()=>calls);console.log('calls',JSON.stringify(c));
+if(c.join()!=='otp,verify:used1,otp')errs.push('unexpected calls '+c.join());
+const q=await page('?token_hash=th1&type=magiclink');const qc=await q.evaluate(()=>calls);
+console.log('link page:',await q.textContent('.login .sub'),'calls before tap',JSON.stringify(qc));if(qc.length)errs.push('link used on open');
+await q.click('#linkForm button[type=submit]');await q.waitForTimeout(100);console.log('after tap',JSON.stringify(await q.evaluate(()=>calls)));
+console.log('errors',errs);await b.close();if(errs.length)process.exit(1);

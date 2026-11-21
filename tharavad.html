@@ -804,9 +804,29 @@ $("tellDlg").addEventListener("close",()=>{if(route().v==="orders")render()});
 addEventListener("hashchange",()=>{UI.pending=null;render();scrollTo(0,0)});
 
 /* ---------- boot: same sign-in as Ambalam ---------- */
+// a Home Screen app keeps its own sign-in: a tapped (or previewed) link signs in Safari instead and is then used up
+const homeApp=()=>navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
 function showLogin(msg){V.innerHTML=`<form class="login" id="loginForm"><h2>Tharavad</h2><p class="sub">${esc(msg||"Sign in with your email. We'll send you a link.")}</p><label class="sr" for="loginEmail">Email</label><input id="loginEmail" type="email" name="email" required placeholder="you@example.com" autocomplete="email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
-  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:e.target.email.value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
-    showLogin(error?"That email can't sign in here. Check the address and try again.":"Check your inbox and tap the link.")})}
+  $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const bt=e.target.querySelector("button");if(bt.disabled)return;bt.disabled=true; // one email per tap
+    const email=e.target.email.value.trim(),{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
+    if(error?.status===429)return showCode(email,"A sign-in email went out a moment ago. Use that one, or wait a minute before asking again.");
+    error?showLogin("That email can't sign in here. Check the address and try again."):showCode(email)})}
+// the email's link, copied rather than opened, or its code signs in this app
+function showCode(email,msg){const hint=homeApp()?"Check your inbox. Don't tap or preview the link: it signs in your browser, not this app. Press and hold it, copy it and paste it here.":"Check your inbox. Tap the link, or copy it and paste it here.";
+  V.innerHTML=`<form class="login" id="codeForm"><h2>Tharavad</h2><p class="sub">${esc(msg||hint)}</p><label class="sr" for="loginCode">Sign-in link or code</label><input id="loginCode" name="code" required autocomplete="one-time-code" placeholder="Paste the link or code"><button class="btn primary" type="submit">Sign in</button><button class="btn" type="button" id="codeBack">Use a different email</button></form>`;
+  $("codeBack").onclick=()=>showLogin();
+  $("codeForm").addEventListener("submit",async e=>{e.preventDefault();const bt=e.target.querySelector("button[type=submit]");if(bt.disabled)return;bt.disabled=true;
+    const v=e.target.code.value.trim(),u=(()=>{try{return decodeURIComponent(v)}catch{return v}})(),h=u.match(/[?&]token(?:_hash)?=([\w-]+)/),ty=u.match(/[?&]type=(\w+)/);
+    const{error}=await sb.auth.verifyOtp(h?{token_hash:h[1],type:ty?.[1]||"magiclink"}:{email,token:v.replace(/\s/g,""),type:"email"});
+    if(!error){bt.disabled=false;return}
+    const{data:{session}}=await sb.auth.getSession();if(session){start();return}
+    showCode(email,h?"That link was already used. Opening or previewing it signs in your browser, not this app. Send a new email and copy the link without opening it.":"That code didn't work. It may have expired, or a newer email replaced it.")})}
+// an email link to this page (?token_hash=…) signs in only on a tap, so a preview or a mail scanner can't use it up
+function showLink(th,ty){const clean=()=>{try{history.replaceState(null,"",location.pathname+location.hash)}catch{}};
+  V.innerHTML=`<form class="login" id="linkForm"><h2>Tharavad</h2><p class="sub">Tap to finish signing in here. To sign in the Home Screen app instead, copy this page's address and paste it there.</p><button class="btn primary" type="submit">Sign in here</button><button class="btn" type="button" id="linkBack">Send a new link</button></form>`;
+  $("linkBack").onclick=()=>{clean();showLogin()};
+  $("linkForm").addEventListener("submit",async e=>{e.preventDefault();const bt=e.target.querySelector("button[type=submit]");if(bt.disabled)return;bt.disabled=true;
+    const{error}=await sb.auth.verifyOtp({token_hash:th,type:ty});clean();if(error)showLogin("That link was already used or has expired. Send a new one.")})}
 /* ---------- share target: a link shared from the phone lands as an idea ---------- */
 const SHARE_KEY="tharavad.share.v1";
 function parseShare(q){const url=(q.get("url")||"").trim(),text=(q.get("text")||"").trim(),title=(q.get("title")||"").trim();
@@ -827,7 +847,8 @@ async function start(){if(started)return;started=true;$("tellOpen").hidden=false
   setInterval(()=>{if(!document.hidden)render(true)},6e4);
   document.addEventListener("focusout",()=>setTimeout(()=>{if(deferred&&!typing()){deferred=false;render()}},0))}
 window.TH={start,load,D,UI,parseShare};
-(async()=>{const{data:{session}}=await sb.auth.getSession();if(session)start();else showLogin();sb.auth.onAuthStateChange((ev,s)=>{if(s&&!started)start()})})();
+(async()=>{const{data:{session}}=await sb.auth.getSession(),lp=new URLSearchParams(location.search),th=lp.get("token_hash");
+  if(session){if(th)try{history.replaceState(null,"",location.pathname+location.hash)}catch{}start()}else if(th)showLink(th,lp.get("type")||"magiclink");else showLogin();sb.auth.onAuthStateChange((ev,s)=>{if(s&&!started)start()})})();
 </script>
 </body>
 </html>
