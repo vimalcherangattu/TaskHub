@@ -3881,7 +3881,7 @@ function showCode(email,msg){
   document.getElementById("codeBack").onclick=()=>showLogin();
   document.getElementById("codeForm").addEventListener("submit",async e=>{e.preventDefault();
     const bt=e.target.querySelector("button[type=submit]");if(bt.disabled)return;bt.disabled=true;
-    const v=e.target.code.value.trim(),u=(()=>{try{return decodeURIComponent(v)}catch{return v}})(),h=u.match(/[?&]token=([\w-]+)/),ty=u.match(/[?&]type=(\w+)/);
+    const v=e.target.code.value.trim(),u=(()=>{try{return decodeURIComponent(v)}catch{return v}})(),h=u.match(/[?&]token(?:_hash)?=([\w-]+)/),ty=u.match(/[?&]type=(\w+)/);
     const{error}=await sb.auth.verifyOtp(h?{token_hash:h[1],type:ty?.[1]||"magiclink"}:{email,token:v.replace(/\s/g,""),type:"email"});
     if(!error){bt.disabled=false;return} // signed in: onAuthStateChange opens the app
     // the link may already have signed this page in (opened in another tab of the same browser)
@@ -3907,9 +3907,21 @@ async function start(){
   let last=T();setInterval(()=>{if(T()!==last){last=T();render()}else if(S.view==="today"&&(S.tasks.some(x=>slip(x)&&hm(x))||Object.values(S.prep).some(p=>p?.next_at&&Math.abs(new Date(p.next_at)-Date.now())<90*6e4)))paint()},60000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)soon()});
 }
+// an email link to this page (?token_hash=…) signs in only on a tap, so a preview, a mail scanner or a long-press can't use it up
+function showLink(th,ty){
+  const clean=()=>{try{history.replaceState(null,"",location.pathname+location.hash)}catch{}};
+  document.getElementById("view").innerHTML=`<form class="login" id="linkForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">Tap to finish signing in here. To sign in the Home Screen app instead, copy this page's address and paste it there.</div><button class="btn primary" type="submit">Sign in here</button><button class="btn" type="button" id="linkBack">Send a new link</button></form>`;
+  document.getElementById("linkBack").onclick=()=>{clean();showLogin()};
+  document.getElementById("linkForm").addEventListener("submit",async e=>{e.preventDefault();
+    const bt=e.target.querySelector("button[type=submit]");if(bt.disabled)return;bt.disabled=true;
+    const{error}=await sb.auth.verifyOtp({token_hash:th,type:ty});clean();
+    if(error)showLogin("That link was already used or has expired. Send a new one.")});
+}
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
-  if(session)start();else showLogin();
+  const lp=new URLSearchParams(location.search),th=lp.get("token_hash");
+  if(session){if(th)try{history.replaceState(null,"",location.pathname+location.hash)}catch{}start()}
+  else if(th)showLink(th,lp.get("type")||"magiclink");else showLogin();
   sb.auth.onAuthStateChange((ev,s)=>{if(s&&!started)start()});
 })();
 </script>
