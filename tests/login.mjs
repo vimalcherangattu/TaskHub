@@ -15,4 +15,17 @@ await p.fill('#codeForm input','https://www.google.com/url?q=https%3A%2F%2Fx.sup
 await p.click('#codeBack');await p.fill('#loginForm input','me@example.com');await p.click('#loginForm button');await p.waitForSelector('#codeForm');
 console.log('second send (429):',await sub());
 console.log('calls',JSON.stringify(await p.evaluate(()=>calls)));
+// home-screen app: a double tap sends one email, the hint says not to tap the link, a used link explains why
+const q = await b.newPage({viewport:{width:390,height:844}}); q.on('pageerror',e=>errs.push(e.message));
+await q.addInitScript(()=>{Object.defineProperty(navigator,'standalone',{get:()=>true})});
+await q.goto(new URL('../index.html', import.meta.url).href); await q.waitForTimeout(1500);
+await q.evaluate(()=>{window.calls=[];
+  sb.auth.signInWithOtp=async o=>{calls.push(['otp',o.email]);await new Promise(r=>setTimeout(r,200));return{error:null}};
+  sb.auth.verifyOtp=async o=>{calls.push(['verify',o.token_hash]);return{error:{status:403}}}});
+await q.fill('#loginForm input','me@example.com');await q.evaluate(()=>{const f=document.getElementById('loginForm');f.requestSubmit();f.requestSubmit()});await q.waitForSelector('#codeForm');
+console.log('home app hint:',await q.textContent('.login .sub'));
+await q.fill('#codeForm input','https://x.supabase.co/auth/v1/verify?token=used1&type=magiclink');await q.click('#codeForm button[type=submit]');await q.waitForTimeout(100);
+console.log('home app used link:',await q.textContent('.login .sub'));
+const qc=await q.evaluate(()=>calls);console.log('home app calls',JSON.stringify(qc));
+if(qc.filter(c=>c[0]==='otp').length!==1)errs.push('double tap sent '+qc.filter(c=>c[0]==='otp').length+' emails');
 console.log('errors',errs);await b.close();if(errs.length)process.exit(1);

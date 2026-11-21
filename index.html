@@ -3866,19 +3866,27 @@ function showLogin(msg){
   document.getElementById("side").innerHTML="";document.getElementById("tabs").innerHTML="";
   document.getElementById("view").innerHTML=`<form class="login" id="loginForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${msg||"Sign in with your email. We'll send you a link."}</div><input type="email" name="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="btn primary" type="submit">Send sign-in link</button></form>`;
   document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();
+    const bt=e.target.querySelector("button");if(bt.disabled)return;bt.disabled=true; // one email per tap: a second one cancels the first
     const email=e.target.email.value.trim();
     const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
     if(error?.status===429)return showCode(email,"A sign-in email went out a moment ago. Use that one, or wait a minute before asking again.");
     error?showLogin("That email can't sign in here. Check the address and try again."):showCode(email)});
 }
 // the email's link (copied, not clicked) or its code signs in where a click can't reach, e.g. an app added to the Dock while links open in another browser
+// an app on the Home Screen keeps its own sign-in: a tapped link signs in Safari instead and is then used up
+const homeApp=()=>navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
 function showCode(email,msg){
-  document.getElementById("view").innerHTML=`<form class="login" id="codeForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${esc(msg||"Check your inbox. Tap the link, or right-click it, copy it and paste it here.")}</div><input name="code" required autocomplete="one-time-code" placeholder="Paste the link or code" aria-label="Sign-in link or code from the email"><button class="btn primary" type="submit">Sign in</button><button class="btn" type="button" id="codeBack">Use a different email</button></form>`;
+  const hint=homeApp()?"Check your inbox. Don't tap the link: it signs in your browser, not this app. Press and hold it, copy it and paste it here.":"Check your inbox. Tap the link, or right-click it, copy it and paste it here.";
+  document.getElementById("view").innerHTML=`<form class="login" id="codeForm"><h1>Ambalam</h1><div class="sub" style="color:var(--muted)">${esc(msg||hint)}</div><input name="code" required autocomplete="one-time-code" placeholder="Paste the link or code" aria-label="Sign-in link or code from the email"><button class="btn primary" type="submit">Sign in</button><button class="btn" type="button" id="codeBack">Use a different email</button></form>`;
   document.getElementById("codeBack").onclick=()=>showLogin();
   document.getElementById("codeForm").addEventListener("submit",async e=>{e.preventDefault();
+    const bt=e.target.querySelector("button[type=submit]");if(bt.disabled)return;bt.disabled=true;
     const v=e.target.code.value.trim(),u=(()=>{try{return decodeURIComponent(v)}catch{return v}})(),h=u.match(/[?&]token=([\w-]+)/),ty=u.match(/[?&]type=(\w+)/);
     const{error}=await sb.auth.verifyOtp(h?{token_hash:h[1],type:ty?.[1]||"magiclink"}:{email,token:v.replace(/\s/g,""),type:"email"});
-    if(error)showCode(email,"That didn't work. The link may have expired or been used, or a newer email replaced it.")});
+    if(!error){bt.disabled=false;return} // signed in: onAuthStateChange opens the app
+    // the link may already have signed this page in (opened in another tab of the same browser)
+    const{data:{session}}=await sb.auth.getSession();if(session){start();return}
+    showCode(email,h?(homeApp()?"That link was already used. Tapping it signs in your browser, not this app. Send a new email and copy the link without tapping it.":"That link was already used, or a newer email replaced it. If you tapped it, Ambalam is open in that tab. Otherwise send a new email."):"That code didn't work. It may have expired, or a newer email replaced it.")});
 }
 let started=false;
 async function start(){
