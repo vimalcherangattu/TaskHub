@@ -1,8 +1,20 @@
 # Status
 
-**Last updated:** 21 Nov 2026 (the Tharavad control room; earlier: the morning page, 19 Nov)
+**Last updated:** 22 Nov 2026 (Tharavad Library v2 and the Talent bench; earlier: the control room, 21 Nov)
 
 ## Current state
+- **Tharavad Library v2 and the Talent bench (22 Nov):** see `docs/tharavad-library-talent.md`. Database only; no app change.
+  - **New tables:** `library_sources` (the reading queue), `bench` (outside personas), `panels`.
+  - **New columns:**
+    - `library_cards`: `source_id`, `quote`, `at_ts`, `conflicts_with`, `right_n`, `wrong_n`, `weight`;
+    - `agents.library_domains`;
+    - `agent_decisions`: `cards_used`, `panel_id`.
+  - **Triggers:** `library_decision_acct` (citation counts, card weights and bench scores) and `panel_cast_count`.
+  - **Functions:** `library_search()`, `cards_for()`; `context_pack_library()` now prints each agent's top 6 cards and the panel rules.
+  - **Playbooks** (in `agent_config`): `playbook-librarian` (now weekly, demand-led hunt, free transcripts first) and `playbook-talent` (adds the bench) were rewritten; `playbook-panel` and `playbook-panel-rules` are new; `tharavad-sop-0-common` (panels, citing cards, a weekly reading hour) and `playbook-runner` (learning links go to the Librarian) were updated.
+  - **Tools:** `tools/library/fetch.py` and `find.py`. Tested from a cloud machine: podcast feed transcripts and Whisper are free (an hour takes about 3 minutes); YouTube subtitles get bot-blocked, so YouTube falls back to vidIQ; Open Library, OpenAlex and arXiv refused the cloud machine, so books and studies use Exa.
+  - **Still on Vimal:** add the TaskHub repo plus the vidIQ, Exa and ElevenLabs connectors to the runner (a step in the connectors task).
+  - **First panel:** on the Instantly plans (panel #3, decision #2, checked on 22 Dec).
 - **Tharavad control room (21 Nov, live at /tharavad.html):** `tharavad.html` is a separate page with Ambalam's sign-in and theme and its own home-screen manifest (`tharavad.webmanifest`). Views: Overview (money this month from the `unit_economics` view, queue size, agent health, the unit tree, the latest `weekly-report` note), Your queue (`alarms` with Seen; `asks` with Done or Can't do, which also close the mirrored task through the `ask_done_closes_task` trigger), Agents and runs (`agent_health`, `runs`), Companies (scorecard, money, Pause/Resume on `companies.paused_at`), Controls (`tharavad_flags` stop_all and away, with an inline confirm). It writes only `asks`, `alarms`, `companies.paused_at` and `tharavad_flags`, never tasks or notes. The Tharavad tables, functions and alarms are described in the constitution (https://claude.ai/artifact/RT833cWaTwN5ZMsa6bG9cq). Test: `tests/tharavad.mjs`. Known: `tests/brief.mjs` fails on main's index.html (a null `textContent`), unrelated to this change.
 - **The morning page (19 Nov, from Dia's "Thursday Brief" screenshots):** the brief is now its own moment on Today (`briefView`). It opens Today once a day in the morning (5 AM–2 PM IST, before Plan the day; until the day is planned; Plan the day has "Back to the brief"), and the chip on Today (named "Thursday brief", "Friday wrap"…) brings it back any time. Five parts: a big date and edition with a one-line feel for the day (the lead's headline, or the app's own "Thursday with a wide-open day…"); **Push your work forward** (one thing, "Let's do it →" opens claude.ai with the lead's `prompt`, or with a stalled / owed / starred task); **Top to-dos** with a tick to finish (agent items, hard deadlines without a time, owed_to, the lead's picks with Not useful, the triage line); **Your day** as a timeline (calls with "Prep me →", hard deadlines with a time, the lead's `ahead` items by `at`), picking a time shows its details; numbered **New updates** (agent updates and heads-up, then what moved per project) with the project in italics and a source label (Gmail, Linear, Calendar); **Your week** on Mondays and Fridays. The footer goes on to Plan the day (or the list).
   - Cut: the collapsible brief, "Needs you", "Picked for you" and "Heads up" as separate sections, the hard-deadline count line, "Plan my day in Claude" and "Daily wrap" buttons (Plan the day and Close the day cover them), Monday's separate Last week / This week.
