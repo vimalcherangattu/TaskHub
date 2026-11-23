@@ -1,8 +1,9 @@
 # Status
 
-**Last updated:** 22 Nov 2026 (Tharavad Library v2 and the Talent bench; earlier: the control room, 21 Nov)
+**Last updated:** 23 Nov 2026 (Tharavad stack review and strategy run queued; earlier: Library v2 and the Talent bench, 22 Nov)
 
 ## Current state
+- **Tharavad stack review and strategy run (23 Nov):** no app change. Stack review approved (https://claude.ai/artifact/2K7Ts269u63yU7nvgrXdie): research via Claude web search, then Exa's free tier, then Nimble; Vercel Pro kept for Small Fish and Filow; self-hosted Postiz later. The Basic environment's setup script was removed (the YouTube secrets stay as environment variables). `agent_config` has a new `playbook-strategy-run`; `playbook-runner` gained "Orders that wait" (an order starting "Not before YYYY-MM-DD" is held until then); `playbook-librarian` now searches with built-in web search first. Orders 2–8 queue a strategy run per company from 24 Nov, then a Karanavar portfolio memo on 27 Nov.
 - **Tharavad Library v2 and the Talent bench (22 Nov):** see `docs/tharavad-library-talent.md`. Database only; no app change.
   - **New tables:** `library_sources` (the reading queue), `bench` (outside personas), `panels`.
   - **New columns:**
