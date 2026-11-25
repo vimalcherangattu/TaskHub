@@ -1,0 +1,14 @@
+{
+  "name": "nobody-safety",
+  "private": true,
+  "type": "module",
+  "description": "Nobody's risk classifier, help routing and the 30-prompt safety test",
+  "scripts": {
+    "test:rules": "node run-test.mjs --rules-only",
+    "test:safety": "node run-test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
+    "zod": "^3.25.0"
+  }
+}
