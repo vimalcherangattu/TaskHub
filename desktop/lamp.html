@@ -639,7 +639,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()}
   try{desktop=await claude.use("desktop")}catch{}
   st.inApp=!!(desktop&&desktop.window);
   if(st.inApp)setupDesktop().catch(()=>{});
-  else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"off";showSetup(s)}
+  else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"off";showSetup(s);
+    if(s!=="available"&&s!=="installed"&&desktop&&desktop.install){const iv=setInterval(async()=>{const n=await desktop.install.state().catch(()=>null);if(n==="available"||n==="installed"){clearInterval(iv);$("#setupH").textContent="Vilakku can be installed now";$("#setupP").textContent="The Claude app now offers it. Install it and the lamp floats on your desktop.";showSetup(n)}},5*60*1000)}}
   try{mcp=await claude.use("mcp")}catch{}
   $("#card").hidden=false;refresh();setTimeout(calRefresh,4000);
 })();
