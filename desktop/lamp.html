@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: a fixed 360x640 stage. The brass lamp stands at the bottom, its speech card floats above it.
+/* Layout: a fixed 360x680 stage. The brass lamp stands at the bottom, its speech card floats above it.
    On the desktop the window is see-through and clicks pass through everything except the lamp and the card. */
 :root{
   --stage:#efe3cc; --card:#fffaf0; --ink:#2a1d10; --muted:#6a5436; --line:#e3d1b0;
@@ -28,13 +28,13 @@ html.float .wrap{display:block}
 #setup{max-width:360px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:10px}
 #setup h1{font:700 22px/1.1 var(--f-display);margin:0;text-wrap:balance}
 #setup p{margin:0;color:var(--muted)}
-.stage{position:relative;width:360px;height:640px;max-width:100%;flex:none}
+.stage{position:relative;width:360px;height:680px;max-width:100%;flex:none}
 html.float .stage{width:100vw;height:100vh;max-width:none}
 canvas#c{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#lampHit{position:absolute;left:50%;bottom:8px;width:156px;height:236px;transform:translateX(-50%);cursor:grab;border-radius:40% 40% 12px 12px;touch-action:none}
+#lampHit{position:absolute;left:50%;bottom:10px;width:180px;height:300px;transform:translateX(-50%);cursor:grab;border-radius:40% 40% 12px 12px;touch-action:none}
 #lampHit:active{cursor:grabbing}
 #lampHit:focus-visible{outline:2px dashed var(--accent);outline-offset:2px}
-#card{position:absolute;left:10px;right:10px;bottom:262px;max-height:calc(100% - 276px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;
+#card{position:absolute;left:10px;right:10px;bottom:318px;max-height:calc(100% - 330px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;
   padding:12px 14px;display:grid;gap:10px;box-shadow:0 10px 30px -12px rgba(60,30,0,.45);transform-origin:50% 100%;
   animation:pop .22s ease-out}
 #card::after{content:"";position:absolute;left:50%;bottom:-8px;width:14px;height:14px;background:var(--card);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:translateX(-50%) rotate(45deg)}
@@ -112,7 +112,7 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMo
 /* ---------- state ---------- */
 const st={data:null,err:null,queue:[],idx:0,lit:1,wick:[1,0,0,0,0],glow:.5,lean:0,flare:0,shiver:0,mood:"calm",
   focus:null,open:false,briefUntil:0,sound:ls.get("sound",true),voice:ls.get("voice",false),
-  cursor:null,bounds:null,inApp:false,float:false,ignore:null,lastDone:Date.now(),busy:false,line:"",rub:[],petals:[],sparks:[]};
+  cursor:null,bounds:null,inApp:false,float:false,ignore:null,lastDone:Date.now(),busy:false,line:"",rub:[],petals:[],sparks:[],events:[],calOff:false,festival:new Date().getDay()===5};
 let desktop=null,mcp=null,ps={};
 
 /* ---------- SQL ---------- */
@@ -130,6 +130,9 @@ select json_build_object(
  'quick',(select count(*) from o where quick),
  'inbox',(select count(*) from tasks where status='suggested' and coalesce(owner,'me')<>'agent'),
  'done_today',(select count(*) from tasks,d where status='done' and (done_at at time zone 'Asia/Kolkata')::date=td),
+ 'streak',(with dd as (select distinct (done_at at time zone 'Asia/Kolkata')::date dy from tasks where status='done' and done_at > now()-interval '400 days'),
+   s as (select dy, dy - (row_number() over (order by dy))::int g from dd)
+   select case when max(dy) >= (select td from d)-1 then (select count(*) from s s2 where s2.g=(select g from s where dy=(select max(dy) from dd))) else 0 end from dd),
  'done_week',(select count(*) from tasks,d where status='done' and (done_at at time zone 'Asia/Kolkata')::date>=td-((extract(isodow from td)::int)-1))
 ) as pet;`;
 const ACT="select set_config('app.actor','lamp',true);";
@@ -166,8 +169,8 @@ const CAP_SQL=t=>`${ACT} insert into tasks (title, status, source, source_chat, 
 function parse(p){
   if(p&&typeof p==="object"&&!Array.isArray(p)&&p.pet)return p.pet;
   const s=typeof p==="string"?p:(p&&typeof p.result==="string"?p.result:JSON.stringify(p));
-  const m=s.match(/<untrusted-data-[\w-]+>\s*([\s\S]*?)\s*<\/untrusted-data-[\w-]+>/);
-  const arr=JSON.parse(m?m[1]:s);const row=Array.isArray(arr)?arr[0]:arr;
+  const m=s.match(/<untrusted-data-([\w-]+)>\s*(\[[\s\S]*\]|\{[\s\S]*\})\s*<\/untrusted-data-\1>/);
+  const arr=JSON.parse(m?m[2]:s);const row=Array.isArray(arr)?arr[0]:arr;
   return row&&row.pet?row.pet:row;
 }
 async function sql(query){
@@ -206,12 +209,13 @@ function onData(pet){
   if(!prev)greet();
   mood();paint();sideUI();checkNudges();
 }
-const litFor=d=>1+(d>=3)+(d>=7)+(d>=12)+(d>=20);
+const litFor=d=>st.festival?5:1+(d>=3)+(d>=7)+(d>=12)+(d>=20);
 function setLit(done,anim){const n=litFor(done);if(n>st.lit&&anim){chime(2);say(pick(["Another wick lit. Look at that glow.","A new wick for you. Kollaam!","Five wicks is a festival. Keep going."]))}
   st.lit=n;for(let i=0;i<5;i++)if(i>=n)st.wick[i]=0}
 function mood(){
   const d=st.data,h=new Date().getHours();
-  st.mood=st.focus?"focus":(d&&d.slip&&d.slip.length)?"worried":(h>=23||h<6)?"sleepy":(Date.now()-st.lastDone>2*36e5&&h>=9&&h<21&&st.queue.length)?"idle":"calm";
+  st.festival=new Date().getDay()===5;
+  st.mood=st.focus?"focus":meeting()?"meeting":(d&&d.slip&&d.slip.length)?"worried":(h>=23||h<6)?"sleepy":(Date.now()-st.lastDone>2*36e5&&h>=9&&h<21&&st.queue.length)?"idle":"calm";
 }
 
 /* ---------- voice of the lamp ---------- */
@@ -220,7 +224,7 @@ function say(text,stay){st.line=text;$("#say").textContent=text;$("#card").hidde
   if(st.voice)speak(text);mouse()}
 function greet(){
   const d=st.data,c=st.queue[0],h=new Date().getHours();
-  const hi=h<12?"Good morning.":h<17?"Good afternoon.":"Good evening.";
+  let hi=h<12?"Good morning.":h<17?"Good afternoon.":"Good evening.";if(st.festival)hi+=" It's Friday, so all five wicks are lit.";
   if(st.mood==="worried")return say(`${hi} “${trunc(ttl(d.slip[0]),60)}” can't slip today${d.slip[0].due_time?`, due ${hhmm(d.slip[0].due_time)}`:""}.`);
   if(!c)return say(`${hi} Today is clear. ${d.inbox?`${d.inbox} things wait in your Inbox.`:"Light something new?"}`);
   say(`${hi} ${d.done_today?`${d.done_today} done already. `:""}First up: “${trunc(ttl(c),70)}”.`);
@@ -231,6 +235,7 @@ function localLine(){
     case "worried":{const s=d.slip[0];return `“${trunc(ttl(s),60)}” can't slip. ${s.due_time?`Due ${hhmm(s.due_time)}.`:"Due today."} I'm flickering until it's done.`}
     case "sleepy":return pick(["It's late. Close the day and rest. Naale kaanam.","Even lamps get trimmed at night. Wrap up?","The oil's low and so are you. Bed?"]);
     case "idle":return c?pick([`It's gone quiet. Two minutes on “${trunc(ttl(c),50)}”?`,`My flame's drooping. Feed it one small thing.`,`Start “${trunc(ttl(c),50)}” and I'll stand up straight again.`]):"Quiet hour. Anything in the Inbox worth five minutes?";
+    case "meeting":{const m=meeting(),k=Math.round((m.start-Date.now())/6e4);return k>0?`“${trunc(m.title,50)}” in ${k} min. I've dimmed so you can wrap up.`:`“${trunc(m.title,50)}” is on. I'll keep quiet.`}
     case "focus":return `Focusing on “${trunc(st.focus.title,60)}”. I'll keep the flame still.`;
   }
   const o=(d.owed||[])[0],days=o?Math.floor((Date.now()-new Date(o.created_at))/864e5):0;
@@ -238,6 +243,7 @@ function localLine(){
     d.done_today?`${d.done_today} done today, ${d.done_week} this week. Adipoli!`:"Nothing done yet. One small win lights the first wick.",
     c?`Next small step: “${trunc(ttl(c),60)}”.`:"Today's list is empty. Pick one from the Inbox?",
     d.quick?`${d.quick} two-minute tasks are waiting. Knock one out?`:"One wick at a time.",
+    d.streak>=2?`${d.streak} days in a row with something done. Don't break the chain.`:"Steady flame, steady day.",
     o&&days>=5?`${o.owed_to} has waited ${days} days on “${trunc(ttl(o),50)}”.`:"Steady flame, steady day.",
   ];
   return pick(opts);
@@ -295,6 +301,23 @@ function stopFocus(ask){
   if(ask&&f){chime(3);notify(`Focus done: ${f.title}. Finished it?`);st.askDone=f.id;openCard();say("Focus done. Did you finish it?",true);paint()}
 }
 
+/* ---------- calendar: dim before meetings ---------- */
+const CAL="Google Calendar";
+const isoLocal=d=>{const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`};
+const joinLink=e=>[e.hangoutLink,...((e.conferenceData&&e.conferenceData.entryPoints)||[]).filter(x=>x.entryPointType==="video").map(x=>x.uri)].find(u=>typeof u==="string"&&u.startsWith("https://"))||null;
+function meeting(){const n=Date.now();return (st.events||[]).find(e=>e.end>n&&e.start-n<=10*6e4&&e.start-n>-6*36e5)||null}
+async function calRefresh(){
+  if(!mcp||st.calOff)return;
+  try{const n=new Date(),r=await mcp.callTool(CAL,"list_events",{startTime:isoLocal(new Date(+n-3*36e5)),endTime:isoLocal(new Date(+n+12*36e5)),orderBy:"startTime",pageSize:25},{cache:false});
+    let p=r.payload!==undefined?r.payload:r;if(typeof p==="string")p=JSON.parse(p);
+    st.events=((p&&p.events)||[]).filter(e=>e&&e.start&&e.start.dateTime&&e.status!=="cancelled"&&e.transparency!=="transparent"&&(!e.eventType||e.eventType==="DEFAULT")
+      &&!(e.attendees||[]).some(a=>a.self&&a.responseStatus==="declined"))
+      .map(e=>({id:String(e.id),title:String(e.summary||"Busy"),start:Date.parse(e.start.dateTime),end:Date.parse((e.end&&e.end.dateTime)||e.start.dateTime),link:joinLink(e)}))
+      .filter(e=>!isNaN(e.start));
+    mood();paint();checkNudges()}
+  catch(e){if(["server_not_connected","not_in_manifest","blocked_by_policy","needs_reauth","selection_required"].includes(e&&e.code))st.calOff=true}
+}
+
 /* ---------- card ---------- */
 function openCard(){st.open=true;const c=$("#card");c.hidden=false;c.classList.remove("brief");$("#say").textContent=st.line||localLine();paint();mouse()}
 function closeCard(){st.open=false;$("#card").hidden=true;$("#cap").hidden=true;mouse()}
@@ -302,6 +325,10 @@ function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className
 function btn(label,fn,pri){const b=el("button",pri?"pri":"",label);b.type="button";b.onclick=fn;return b}
 function paint(){
   const d=st.data,now=$("#now");now.replaceChildren();
+  const mt=meeting();
+  if(mt){const k=Math.round((mt.start-Date.now())/6e4),box=el("div","now");box.append(el("div","eyebrow",k>0?`Meeting in ${k} min`:"In a meeting"),el("div","ttl",mt.title));
+    if(mt.link){const a=el("a","btn","Join");a.href=mt.link;a.target="_blank";a.rel="noopener";const r=el("div","row");r.append(a);box.append(r)}
+    now.before(box);if(paint.mt)paint.mt.remove();paint.mt=box}else if(paint.mt){paint.mt.remove();paint.mt=null}
   if(!d){
     if(st.err){now.append(el("div","err",errLine(st.err)));
       const r=el("div","row");r.append(btn("Connect",()=>{st.err=null;refresh()},true));now.append(r)}
@@ -332,14 +359,14 @@ function paint(){
   const ch=$("#chips");ch.replaceChildren();
   if(d){const left=(d.list||[]).length,add=(n,l,hot)=>{const s=el("span",hot?"hot":"");s.append(el("b",null,String(n))," "+l);ch.append(s)};
     if(d.slip&&d.slip.length)add(d.slip.length,"can't slip",true);
-    add(left,"on today");add(d.done_today,"done");if(d.quick)add(d.quick,"quick");if(d.inbox)add(d.inbox,"in inbox");if((d.owed||[]).length)add(d.owed.length,"waiting on you")}
+    add(left,"on today");add(d.done_today,"done");if(d.streak)add(d.streak,d.streak===1?"day streak":"days streak");if(d.quick)add(d.quick,"quick");if(d.inbox)add(d.inbox,"in inbox");if((d.owed||[]).length)add(d.owed.length,"waiting on you")}
   $("#bFocus").textContent=st.focus?"Stop focus":"Focus 25";
   $("#bSound").setAttribute("aria-pressed",st.sound);$("#bVoice").setAttribute("aria-pressed",st.voice);
   $("#upd").textContent=st.data?"Updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):"";
 }
 
 /* ---------- desktop: floating, shortcuts, menu bar, nudges ---------- */
-const WANT={frame:false,transparent:true,alwaysOnTop:true,hasShadow:false,resizable:false,width:360,height:640,dragHeight:0};
+const WANT={frame:false,transparent:true,alwaysOnTop:true,hasShadow:false,resizable:false,width:360,height:680,dragHeight:0};
 async function setupDesktop(){
   desktop.app.dock.setIcon(iconPng()).catch(()=>{});
   ps=await desktop.permissions.state().catch(()=>({}));
@@ -411,6 +438,10 @@ function checkNudges(){
   const d=st.data;if(!d)return;const now=new Date(),mins=now.getHours()*60+now.getMinutes();
   for(const s of d.slip||[]){if(!s.due_time||s.due!==d.today)continue;const [h,m]=String(s.due_time).split(":").map(Number),left=h*60+m-mins;
     if(left>0&&left<=15&&once("due:"+s.id)){notify(`“${ttl(s)}” is due at ${hhmm(s.due_time)}.`);say(`${left} minutes until “${trunc(ttl(s),50)}” is due.`);st.shiver=1}}
+  const mt=meeting();if(mt){const k=Math.round((mt.start-Date.now())/6e4);
+    if(k>0&&once("cal:"+mt.id)){notify(`“${mt.title}” starts in ${k} min.`);say(`“${trunc(mt.title,50)}” in ${k} min. I'll dim so you can wrap up.`,true)}
+    else if(k<=0&&once("calon:"+mt.id))say("You're on. I'll stay quiet.")}
+  if([3,7,14,21,30,50,100].includes(d.streak)&&d.done_today>0&&once("streak"+d.streak)){celebrate(1,false);say(`${d.streak} days in a row! The lamp hasn't gone out once.`,true)}
   if(mins>=21*60&&mins<23*60&&once("close")){notify("Time to close the day in Ambalam.");say("Nine o'clock. Close the day? I'll dim after.",true)}
   if(mins>=10*60+30&&once("owed")){const o=(d.owed||[])[0];if(o){const days=Math.floor((Date.now()-new Date(o.created_at))/864e5);if(days>=5)say(`${o.owed_to} has waited ${days} days on “${trunc(ttl(o),50)}”.`)}}
 }
@@ -472,85 +503,116 @@ function petals(n){for(let i=0;i<n;i++)st.petals.push({x:Math.random()*W,y:-20-M
   vr:(Math.random()-.5)*.08,jas:Math.random()<.6,s:.7+Math.random()*.6})}
 
 /* ---------- drawing ---------- */
-const cv=$("#c"),cx=cv.getContext("2d");let W=360,H=560,DPR=1,stageRect={left:0,top:0};
-function size(){const r=$("#stage").getBoundingClientRect();stageRect=r;W=r.width;H=r.height;DPR=devicePixelRatio||1;cv.width=W*DPR;cv.height=H*DPR}
+const cv=$("#c"),cx=cv.getContext("2d");let W=360,H=680,DPR=1,stageRect={left:0,top:0},bodyC=null,litC=null;
+function size(){const r=$("#stage").getBoundingClientRect();stageRect=r;W=r.width;H=r.height;DPR=devicePixelRatio||1;cv.width=W*DPR;cv.height=H*DPR;bodyC=null}
 addEventListener("resize",size);size();
-const WICKS=[[90,1],[180,.92],[0,.92],[-140,.72],[-40,.72]]; // angle on the bowl rim (deg), size; lit in this order
-function brass(c,x0,x1){const g=c.createLinearGradient(x0,0,x1,0);g.addColorStop(0,"#5a3a12");g.addColorStop(.22,"#b67d2a");g.addColorStop(.42,"#f3cf7a");g.addColorStop(.55,"#d9a441");g.addColorStop(1,"#6b4716");return g}
-function tier(c,x,y,rx,ry,h){c.fillStyle=brass(c,x-rx,x+rx);c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI);c.lineTo(x-rx,y-h);c.ellipse(x,y-h,rx,ry,0,Math.PI,0,true);c.closePath();c.fill();
-  c.fillStyle=brass(c,x-rx*1.3,x+rx*.7);c.beginPath();c.ellipse(x,y-h,rx,ry,0,0,Math.PI*2);c.fill();c.strokeStyle="rgba(60,35,5,.35)";c.lineWidth=1;c.stroke()}
-function knob(c,x,y,rx,ry){c.fillStyle=brass(c,x-rx,x+rx);c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();c.fillStyle="rgba(255,240,200,.35)";c.beginPath();c.ellipse(x-rx*.3,y-ry*.35,rx*.35,ry*.25,0,0,Math.PI*2);c.fill()}
-function lamp(c,x,y0,s){ // brass body: base tiers, stem with knobs, finial, oil bowl
-  c.save();c.translate(x,y0);c.scale(s,s);
-  c.fillStyle="rgba(40,20,0,.18)";c.beginPath();c.ellipse(0,4,74,10,0,0,Math.PI*2);c.fill();
-  tier(c,0,0,64,12,14);tier(c,0,-18,46,9,10);tier(c,0,-32,30,6,8);
-  c.fillStyle=brass(c,-6,6);c.fillRect(-5,-150,10,112);
-  knob(c,0,-58,15,7);knob(c,0,-92,12,6);knob(c,0,-124,16,8);knob(c,0,-146,22,7);
-  // finial (a small bud) rising from the bowl's centre
-  c.fillStyle=brass(c,-3,3);c.fillRect(-2.5,-212,5,50);knob(c,0,-190,8,4);
-  c.fillStyle=brass(c,-9,9);c.beginPath();c.moveTo(0,-238);c.bezierCurveTo(9,-226,9,-214,0,-210);c.bezierCurveTo(-9,-214,-9,-226,0,-238);c.fill();
-  // bowl
-  const by=-162;c.fillStyle=brass(c,-72,72);c.beginPath();c.moveTo(-72,by);c.bezierCurveTo(-60,by+22,-26,by+26,0,by+26);c.bezierCurveTo(26,by+26,60,by+22,72,by);c.closePath();c.fill();
-  c.fillStyle=brass(c,-90,60);c.beginPath();c.ellipse(0,by,72,15,0,0,Math.PI*2);c.fill();
-  c.fillStyle="#5c3a0c";c.beginPath();c.ellipse(0,by+1,63,11.5,0,0,Math.PI*2);c.fill();
-  const oil=c.createRadialGradient(-10,by-2,2,0,by+1,64);oil.addColorStop(0,"#d99a2b");oil.addColorStop(1,"#6b430d");c.fillStyle=oil;c.beginPath();c.ellipse(0,by+2,60,10,0,0,Math.PI*2);c.fill();
-  // spouts where the wicks sit
-  for(const [a] of WICKS){const r=a*Math.PI/180,px=Math.cos(r)*72,py=by+Math.sin(r)*15;c.fillStyle=brass(c,px-8,px+8);c.beginPath();c.ellipse(px*1.06,py+Math.sin(r)*2,7,3.5,0,0,Math.PI*2);c.fill()}
-  c.restore();
+/* The lamp is turned brass, so it is drawn like a lathe: a profile of [y, radius] pairs, in lamp units
+   (y runs up from the foot at 0 to the spire tip at -290). Rows are shaded as a polished cylinder, shelves get elliptical caps. */
+const FOOT=[[0,72],[-3,75],[-7,74],[-9,68],[-12,66],[-15,68],[-17,65],[-24,56],[-31,46],[-37,38],[-41,34],[-43,36],[-46,34],[-50,26],[-54,19],[-56,21],[-59,18],[-62,11]];
+const STEM=[[-62,9],[-78,8],[-81,12],[-83,15],[-85,12],[-88,8],[-104,7],[-107,11],[-109,16],[-111,11],[-114,7],[-132,7],[-135,11],[-137,7],[-150,6],[-154,9],[-158,15],[-161,20],[-163,24]];
+const SPIRE=[[-190,6],[-204,5],[-207,10],[-210,5],[-226,4],[-229,8],[-232,4],[-240,5],[-247,10],[-254,11],[-262,10],[-270,7],[-278,4],[-286,1]];
+const BY=-190,BR=80,SQ=.2;
+const WICKS=[90,162,18,234,306]; // the five lobe tips, in lighting order: front, left, right, back-left, back-right
+const lobeR=a=>BR*(1+.13*Math.pow(Math.max(0,Math.cos(5*(a-Math.PI/2))),6));
+function rowG(c,r){const g=c.createLinearGradient(-r,0,r,0);
+  g.addColorStop(0,"#3a2306");g.addColorStop(.1,"#77490f");g.addColorStop(.28,"#dcae52");g.addColorStop(.36,"#fff0c2");g.addColorStop(.44,"#e6ad48");
+  g.addColorStop(.7,"#9c641c");g.addColorStop(.88,"#c99038");g.addColorStop(1,"#47290a");return g}
+function capG(c,r,y){const g=c.createLinearGradient(-r,y-r*SQ,r*.6,y+r*SQ);g.addColorStop(0,"#fff3cf");g.addColorStop(.4,"#e3b35a");g.addColorStop(1,"#8a571a");return g}
+function lathe(c,P){
+  for(let i=0;i<P.length-1;i++){const [y0,r0]=P[i],[y1,r1]=P[i+1];
+    for(let y=y0;y>=y1;y-=.6){const r=r0+(r1-r0)*((y0-y)/((y0-y1)||1));c.fillStyle=rowG(c,r);c.fillRect(-r,y-1,2*r,1.4)}}
+  for(let i=1;i<P.length-1;i++){const [y,r]=P[i];if(r>P[i+1][1]+1&&r>=P[i-1][1]){c.fillStyle=capG(c,r,y);c.beginPath();c.ellipse(0,y,r,r*SQ*.85,0,0,Math.PI*2);c.fill();
+    c.strokeStyle="rgba(255,240,200,.35)";c.lineWidth=.6;c.beginPath();c.ellipse(0,y,r,r*SQ*.85,0,Math.PI*.05,Math.PI*.95);c.stroke()}}
 }
-function wickPos(i,x,y0,s){const r=WICKS[i][0]*Math.PI/180;return{x:x+Math.cos(r)*76*s,y:y0+(-162+Math.sin(r)*16-2)*s,k:WICKS[i][1]}}
-function flame(c,x,y,h,w,lean,heat){
-  const tipx=x+lean*h,tipy=y-h;
-  const g=c.createRadialGradient(x,y-h*.28,1,x,y-h*.35,h*.95);
-  g.addColorStop(0,"rgba(255,252,230,1)");g.addColorStop(.25,heat>.5?"rgba(255,170,70,.98)":"rgba(255,206,90,.98)");g.addColorStop(.6,heat>.5?"rgba(225,70,25,.85)":"rgba(245,130,30,.85)");g.addColorStop(1,"rgba(200,60,10,0)");
-  c.fillStyle=g;c.beginPath();c.moveTo(x,y);c.bezierCurveTo(x-w,y-h*.2,x-w*.55+lean*h*.45,y-h*.72,tipx,tipy);c.bezierCurveTo(x+w*.55+lean*h*.45,y-h*.72,x+w,y-h*.2,x,y);c.fill();
-  c.fillStyle="rgba(255,255,240,.9)";const ih=h*.45,iw=w*.42;c.beginPath();c.moveTo(x,y-1);c.bezierCurveTo(x-iw,y-ih*.25,x-iw*.4+lean*ih*.4,y-ih*.75,x+lean*ih,y-ih);c.bezierCurveTo(x+iw*.4+lean*ih*.4,y-ih*.75,x+iw,y-ih*.25,x,y-1);c.fill();
-  c.fillStyle="rgba(90,130,255,.35)";c.beginPath();c.ellipse(x,y-1.5,w*.45,2.4,0,0,Math.PI*2);c.fill();
+function lobe(c,k,dy){c.beginPath();for(let i=0;i<=160;i++){const a=i/160*Math.PI*2,r=lobeR(a)*k,x=Math.cos(a)*r,y=BY+dy+Math.sin(a)*r*SQ;i?c.lineTo(x,y):c.moveTo(x,y)}c.closePath()}
+function drawBody(c){
+  c.fillStyle="rgba(30,15,0,.22)";c.beginPath();c.ellipse(0,5,84,12,0,0,Math.PI*2);c.fill();
+  c.fillStyle=rowG(c,72);c.beginPath();c.ellipse(0,0,72,13,0,0,Math.PI);c.fill();
+  lathe(c,FOOT);lathe(c,STEM);
+  for(let y=-163;y>=BY;y-=.6){const t=(-163-y)/(-163-BY),r=24+(BR-24)*Math.sin(t*Math.PI/2);c.fillStyle=rowG(c,r);c.fillRect(-r,y-1,2*r,1.4)}
+  lobe(c,1.01,3);c.fillStyle="#6d4512";c.fill();
+  lobe(c,1,0);const rg=c.createLinearGradient(-BR,BY-16,BR*.7,BY+16);rg.addColorStop(0,"#fff1c6");rg.addColorStop(.35,"#e5b257");rg.addColorStop(1,"#8d5a1b");c.fillStyle=rg;c.fill();
+  c.strokeStyle="rgba(60,30,0,.45)";c.lineWidth=.8;c.stroke();
+  lobe(c,.9,1);c.fillStyle="#3d2405";c.fill();
+  lobe(c,.86,2);const og=c.createRadialGradient(-14,BY-2,2,0,BY+2,70);og.addColorStop(0,"#e3a238");og.addColorStop(.55,"#9a5f14");og.addColorStop(1,"#4c2c06");c.fillStyle=og;c.fill();
+  lathe(c,SPIRE);
+  c.fillStyle="rgba(255,250,225,.9)";c.beginPath();c.ellipse(-2.5,-262,1.6,5,0,0,Math.PI*2);c.fill();
+}
+function wickXY(i){const a=WICKS[i]*Math.PI/180,r=lobeR(a)*.97;return{x:Math.cos(a)*r,y:BY+Math.sin(a)*r*SQ-1,k:Math.sin(a)<0?.74:i===0?1:.9,a}}
+function ensureBody(){if(bodyC)return;bodyC=document.createElement("canvas");bodyC.width=cv.width;bodyC.height=cv.height;litC=document.createElement("canvas");litC.width=cv.width;litC.height=cv.height;
+  const g=bodyC.getContext("2d");g.setTransform(DPR,0,0,DPR,0,0);g.translate(W/2,H-26);drawBody(g)}
+function flame(c,x,y,h,w,lean,heat,t,i){
+  const tipx=x+lean*h+Math.sin(t*9.7+i*2.3)*w*.22,tipy=y-h;
+  c.globalCompositeOperation="lighter";
+  const og=c.createRadialGradient(x,y-h*.4,0,x,y-h*.4,h*1.05);og.addColorStop(0,"rgba(255,150,40,.32)");og.addColorStop(1,"rgba(255,110,20,0)");
+  c.fillStyle=og;c.beginPath();c.arc(x,y-h*.4,h*1.05,0,6.3);c.fill();c.globalCompositeOperation="source-over";
+  const path=(sx,sy,hh,ww)=>{const tx=sx+(tipx-x)*hh/h,ty=sy-hh;c.beginPath();c.moveTo(sx,sy);c.bezierCurveTo(sx-ww,sy-hh*.18,sx-ww*.5+(tx-sx)*.45,sy-hh*.7,tx,ty);c.bezierCurveTo(sx+ww*.5+(tx-sx)*.45,sy-hh*.7,sx+ww,sy-hh*.18,sx,sy)};
+  const g=c.createRadialGradient(x,y-h*.25,1,x,y-h*.4,h*.95);
+  g.addColorStop(0,"rgba(255,250,228,1)");g.addColorStop(.28,heat?"rgba(255,160,60,.97)":"rgba(255,208,96,.97)");g.addColorStop(.62,heat?"rgba(226,64,22,.85)":"rgba(246,128,30,.86)");g.addColorStop(1,"rgba(200,60,10,0)");
+  c.fillStyle=g;path(x,y,h,w);c.fill();
+  c.fillStyle="rgba(255,253,236,.92)";path(x,y-1,h*.5,w*.45);c.fill();
+  c.fillStyle="rgba(110,50,10,.35)";c.beginPath();c.ellipse(x,y-2.5,w*.22,3,0,0,6.3);c.fill();
+  c.fillStyle="rgba(90,130,255,.4)";c.beginPath();c.ellipse(x,y-1,w*.48,2.2,0,0,6.3);c.fill();
+}
+function garland(c,t){ // Friday: marigold and jasmine strung between the side lobes
+  const L=wickXY(1),R=wickXY(2);
+  for(const [sag,n,jas] of [[44,30,false],[30,24,true]]){for(let k=0;k<=n;k++){const u=k/n,x=L.x+(R.x-L.x)*u,y=L.y+6+(R.y-L.y)*u+sag*Math.sin(Math.PI*u)+Math.sin(t*1.3+u*6)*.8;
+    c.fillStyle=jas?"#fffaf0":(k%2?"#f7c948":"#ef8a0c");c.beginPath();c.arc(x,y,jas?2.1:3.6,0,6.3);c.fill();
+    if(!jas&&k%6===3){c.fillStyle="#3f7a3a";c.beginPath();c.ellipse(x,y+4,1.8,3.4,.5,0,6.3);c.fill()}}}
+  for(const P of [L,R])for(let k=0;k<5;k++){c.fillStyle=k%2?"#f7c948":"#ef8a0c";c.beginPath();c.arc(P.x,P.y+10+k*7,3.2,0,6.3);c.fill()}
 }
 let t0=performance.now(),last=t0;
 function frame(now){
-  const t=(now-t0)/1000,dt=Math.min(.05,(now-last)/1000);last=now;
+  const t=(now-t0)/1000,dt=Math.min(.05,(now-last)/1000);last=now;ensureBody();
   cx.setTransform(DPR,0,0,DPR,0,0);cx.clearRect(0,0,W,H);
-  const s=1,LX=W/2,LY=H-22;
-  // where's the cursor? closer = brighter, and the flame leans toward it
-  const front=wickPos(0,LX,LY,s);let prox=0,lt=0;
-  if(st.cursor&&st.mood!=="focus"){const dx=st.cursor.x-front.x,dy=st.cursor.y-(front.y-20),dd=Math.hypot(dx,dy);prox=Math.max(0,1-dd/320)**1.4;lt=Math.max(-.4,Math.min(.4,dx/220))*Math.min(1,prox*1.6)}
-  const base={calm:.5,worried:.62,sleepy:.18,idle:.3,focus:.55}[st.mood]||.5;
-  st.glow+=((base+.6*prox+.5*st.flare)-st.glow)*Math.min(1,dt*4);
+  const LX=W/2,LY=H-26,f0=wickXY(0),front={x:LX+f0.x,y:LY+f0.y};
+  let prox=0,lt=0;
+  if(st.cursor&&st.mood!=="focus"&&st.mood!=="meeting"){const dx=st.cursor.x-front.x,dy=st.cursor.y-(front.y-20),dd=Math.hypot(dx,dy);prox=Math.max(0,1-dd/320)**1.4;lt=Math.max(-.4,Math.min(.4,dx/220))*Math.min(1,prox*1.6)}
+  const base={calm:.5,worried:.62,sleepy:.18,idle:.3,focus:.55,meeting:.16}[st.mood]||.5;
+  st.glow+=((base+(st.festival?.15:0)+.6*prox+.5*st.flare)-st.glow)*Math.min(1,dt*4);
   st.lean+=(lt-st.lean)*Math.min(1,dt*5);st.flare=Math.max(0,st.flare-dt*.5);st.shiver=Math.max(0,st.shiver-dt*.7);
-  const heat=st.mood==="worried"?1:0,jit=(reduce?.3:1)*(st.mood==="focus"?.25:st.mood==="worried"?1.7:1)+st.shiver*3;
-  // halo
+  const heat=st.mood==="worried"?1:0,jit=(reduce?.3:1)*(st.mood==="focus"||st.mood==="meeting"?.25:st.mood==="worried"?1.7:1)+st.shiver*3;
   const hg=cx.createRadialGradient(front.x,front.y-26,4,front.x,front.y-26,Math.max(10,70+150*st.glow));
   hg.addColorStop(0,`rgba(255,190,80,${.42*st.glow})`);hg.addColorStop(.45,`rgba(255,150,40,${.16*st.glow})`);hg.addColorStop(1,"rgba(255,140,30,0)");
   cx.fillStyle=hg;cx.fillRect(0,0,W,H);
-  lamp(cx,LX,LY,s);
-  // wicks: back ones first so the front flame sits on top
-  const order=[3,4,1,2,0];
-  for(const i of order){if(i>=st.lit)continue;st.wick[i]=Math.min(1,st.wick[i]+dt*1.2);const p=wickPos(i,LX,LY,s),k=p.k*st.wick[i];
+  // the brass, lit by its own flames
+  const lc=litC.getContext("2d");lc.setTransform(1,0,0,1,0,0);lc.globalCompositeOperation="source-over";lc.clearRect(0,0,litC.width,litC.height);lc.drawImage(bodyC,0,0);
+  lc.setTransform(DPR,0,0,DPR,0,0);lc.globalCompositeOperation="source-atop";
+  lc.fillStyle=`rgba(25,12,0,${Math.max(0,.42-.5*st.glow)})`;lc.fillRect(0,0,W,H);
+  for(let i=0;i<st.lit;i++){const p=wickXY(i),x=LX+p.x,y=LY+p.y-14,r=40+110*st.glow*st.wick[i];const g=lc.createRadialGradient(x,y,2,x,y,r);
+    g.addColorStop(0,`rgba(255,200,110,${.5*st.glow*st.wick[i]})`);g.addColorStop(1,"rgba(255,160,60,0)");lc.fillStyle=g;lc.fillRect(x-r,y-r,2*r,2*r)}
+  cx.setTransform(1,0,0,1,0,0);cx.drawImage(litC,0,0);cx.setTransform(DPR,0,0,DPR,0,0);
+  // streak studs on the foot: one per day in a row, up to 14
+  const sk=Math.min(14,(st.data&&st.data.streak)||0);
+  for(let k=0;k<14;k++){const a=(25+130*(k+.5)/14)*Math.PI/180,x=LX+Math.cos(a)*67,y=LY-13+Math.sin(a)*67*SQ*.85;
+    if(k<sk){cx.fillStyle=`rgba(255,200,90,${.25+.2*st.glow})`;cx.beginPath();cx.arc(x,y,4.2,0,6.3);cx.fill();cx.fillStyle="#ffe7a6";cx.beginPath();cx.arc(x,y,1.9,0,6.3);cx.fill()}
+    else{cx.fillStyle="rgba(60,35,5,.55)";cx.beginPath();cx.arc(x,y,1.4,0,6.3);cx.fill()}}
+  if(st.festival)garland(cx,t);
+  // wicks and flames: back ones first
+  for(const i of [3,4,1,2,0]){const p=wickXY(i),x=LX+p.x,y=LY+p.y,lit=i<st.lit;
+    cx.strokeStyle="#eadcbc";cx.lineWidth=2.4;cx.lineCap="round";cx.beginPath();cx.moveTo(x-Math.cos(p.a)*6,y+1);cx.quadraticCurveTo(x,y,x+Math.cos(p.a)*1.5,y-4);cx.stroke();
+    cx.fillStyle=lit?"#ff9a3c":"#2a1706";cx.beginPath();cx.arc(x+Math.cos(p.a)*1.5,y-4.5,1.6,0,6.3);cx.fill();
+    if(!lit)continue;st.wick[i]=Math.min(1,st.wick[i]+dt*1.2);const k=p.k*st.wick[i];if(k<.03)continue;
     const fl=1+.07*jit*Math.sin(t*7.3+i*1.7)+.05*jit*Math.sin(t*13.1+i*3.1)+.04*jit*Math.sin(t*23.7+i);
-    const droop=st.mood==="idle"?.78:st.mood==="sleepy"?.55:1;
-    if(k<.03)continue;
+    const droop=st.mood==="idle"?.78:st.mood==="sleepy"?.55:st.mood==="meeting"?.6:1;
     const h=Math.max(2,(30+34*st.glow)*k*Math.max(.4,fl)*droop),w=Math.max(1,(9+5*st.glow)*k);
     const sway=.06*jit*Math.sin(t*2.1+i)+(st.shiver?Math.sin(t*40)*.25*st.shiver:0)+(st.mood==="idle"?-.12:0);
-    flame(cx,p.x,p.y,h,w,st.lean+sway,heat)}
-  // sparks drift up from the front flame
+    cx.fillStyle=`rgba(255,215,150,${.45*st.glow})`;cx.beginPath();cx.ellipse(LX+p.x*.72,LY+BY+3+p.y*0,7*k,1.6,0,0,6.3);cx.fill();
+    flame(cx,x,y-4,h,w,st.lean+sway,heat,t,i)}
   if(!reduce&&Math.random()<dt*(1+5*st.glow))st.sparks.push({x:0,y:0,vx:(Math.random()-.5)*.6,vy:-.6-Math.random()*1.2,life:1});
+  if(st.festival&&!reduce&&Math.random()<dt*.3)petals(1);
   cx.globalCompositeOperation="lighter";
   st.sparks=st.sparks.filter(p=>(p.life-=dt*(p.big?.7:.9))>0);
-  for(const p of st.sparks){p.x+=p.vx;p.y+=p.vy;p.vy*=.985;cx.fillStyle=`rgba(255,${180+60*p.life|0},90,${p.life})`;cx.beginPath();cx.arc(front.x+p.x,front.y-40+p.y,(p.big?2.2:1.3)*p.life+.3,0,6.3);cx.fill()}
+  for(const p of st.sparks){p.x+=p.vx;p.y+=p.vy;p.vy*=.985;cx.fillStyle=`rgba(255,${180+60*p.life|0},90,${p.life})`;cx.beginPath();cx.arc(front.x+p.x,front.y-44+p.y,(p.big?2.2:1.3)*p.life+.3,0,6.3);cx.fill()}
   cx.globalCompositeOperation="source-over";
-  // jasmine and marigold petals after a Done
   st.petals=st.petals.filter(p=>p.y<H+20);
   for(const p of st.petals){p.y+=p.vy*60*dt;p.sw+=dt*2;p.x+=Math.sin(p.sw)*.6;p.r+=p.vr;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);
     cx.fillStyle=p.jas?"#fffaf0":"#f29f05";cx.strokeStyle=p.jas?"rgba(140,120,80,.35)":"rgba(150,70,0,.4)";cx.lineWidth=.6;
     cx.beginPath();cx.ellipse(0,0,6*p.s,2.8*p.s,0,0,6.3);cx.fill();cx.stroke();cx.restore()}
-  // sleepy: a few z's
   if(st.mood==="sleepy"){cx.fillStyle="rgba(200,170,120,.7)";cx.font="600 14px "+getComputedStyle(document.body).fontFamily;
-    for(let i=0;i<3;i++){const ph=(t*.4+i/3)%1;cx.globalAlpha=1-ph;cx.fillText("z",front.x+22+ph*20,front.y-60-ph*50);}cx.globalAlpha=1}
-  // focus: a thin ring that empties as the 25 minutes run
+    for(let i=0;i<3;i++){const ph=(t*.4+i/3)%1;cx.globalAlpha=1-ph;cx.fillText("z",front.x+26+ph*20,front.y-70-ph*50)}cx.globalAlpha=1}
   if(st.focus){const f=Math.max(0,(st.focus.end-Date.now())/(25*60e3));cx.strokeStyle="rgba(255,190,90,.8)";cx.lineWidth=3;cx.lineCap="round";
-    cx.beginPath();cx.arc(LX,LY-162-46,36,-Math.PI/2,-Math.PI/2+f*Math.PI*2);cx.stroke();
-    if(f<=0)stopFocus(true)}
+    cx.beginPath();cx.arc(LX,LY-262,26,-Math.PI/2,-Math.PI/2+f*Math.PI*2);cx.stroke();if(f<=0)stopFocus(true)}
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -558,8 +620,8 @@ requestAnimationFrame(frame);
 /* icons, drawn rather than shipped */
 function iconPng(){const c=document.createElement("canvas");c.width=c.height=256;const g=c.getContext("2d");
   const bg=g.createRadialGradient(128,90,10,128,128,180);bg.addColorStop(0,"#5a2d0c");bg.addColorStop(1,"#1a0e05");g.fillStyle=bg;g.beginPath();g.roundRect(8,8,240,240,54);g.fill();
-  const hg=g.createRadialGradient(128,70,4,128,70,120);hg.addColorStop(0,"rgba(255,190,80,.6)");hg.addColorStop(1,"rgba(255,140,30,0)");g.fillStyle=hg;g.fillRect(0,0,256,256);
-  lamp(g,128,226,.78);for(const i of [3,4,1,2,0]){const p=wickPos(i,128,226,.78);flame(g,p.x,p.y,34*p.k,10*p.k,0,0)}return c.toDataURL("image/png")}
+  const hg=g.createRadialGradient(128,90,4,128,90,120);hg.addColorStop(0,"rgba(255,190,80,.6)");hg.addColorStop(1,"rgba(255,140,30,0)");g.fillStyle=hg;g.fillRect(0,0,256,256);
+  g.save();g.translate(128,236);g.scale(.72,.72);drawBody(g);for(const i of [3,4,1,2,0]){const p=wickXY(i);flame(g,p.x,p.y-4,44*p.k,12*p.k,0,0,0,i)}g.restore();return c.toDataURL("image/png")}
 function trayPng(){const c=document.createElement("canvas");c.width=c.height=36;const g=c.getContext("2d");g.fillStyle="#000";
   g.beginPath();g.moveTo(18,4);g.bezierCurveTo(26,14,26,22,18,26);g.bezierCurveTo(10,22,10,14,18,4);g.fill();
   g.fillRect(6,28,24,3);g.fillRect(15,26,6,4);return c.toDataURL("image/png")}
@@ -569,6 +631,7 @@ setInterval(()=>{mood();if(st.focus||st.open)paint();sideUI();checkNudges()},100
 setInterval(()=>{if(st.focus&&st.open)paint();if(st.focus)sideUI()},1000);
 setInterval(()=>{if(!st.open&&$("#card").hidden&&st.data&&Math.random()<.5)say(localLine())},1000*60*40);
 setInterval(refresh,90*1000);
+setInterval(calRefresh,5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
 (async()=>{
   try{desktop=await claude.use("desktop")}catch{}
@@ -576,7 +639,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()}
   if(st.inApp)setupDesktop().catch(()=>{});
   else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"unavailable";showSetup(s)}
   try{mcp=await claude.use("mcp")}catch{}
-  $("#card").hidden=false;refresh();
+  $("#card").hidden=false;refresh();setTimeout(calRefresh,4000);
 })();
 })();
 </script>
