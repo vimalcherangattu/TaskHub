@@ -450,6 +450,8 @@ function showSetup(kind){
   if(kind==="available"){b.hidden=false;b.textContent="Install as app";b.onclick=()=>desktop.install.request().catch(()=>{})}
   else if(kind==="installed"){$("#setupP").textContent="Vilakku is installed on this Mac. Open it from your Dock or Applications. This copy is a preview."}
   else if(kind==="float"){$("#setupH").textContent="Let the lamp float";$("#setupP").textContent="Allow floating so I can sit on your desktop over other windows. I'll also ask for a hotkey (⌥⇧Space to capture), the menu bar and notifications.";b.hidden=false;b.textContent="Let it float";b.onclick=askAll}
+  else if(kind==="off"){$("#setupH").textContent="Install isn't offered here";$("#setupP").textContent="This Claude app didn't offer desktop apps (code: off). Update the Claude desktop app (Claude menu, Check for Updates), restart it, and open this artifact again. Desktop apps may also not be switched on for your account yet. Until then the lamp works right here."}
+  else if(kind==="unavailable"){$("#setupH").textContent="Install isn't offered in this view";$("#setupP").textContent="This view can't install apps (code: unavailable). In the Claude desktop app, open the artifact's full page (your artifacts gallery, then Vilakku) and look for Install as app there. If it's still missing, update the Claude app and restart it. Until then the lamp works right here."}
   else if(kind==="reopen"){$("#setupH").textContent="Almost there";$("#setupP").textContent="Quit Vilakku (⌘Q) and open it again. Then it floats."}
 }
 
@@ -637,7 +639,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()}
   try{desktop=await claude.use("desktop")}catch{}
   st.inApp=!!(desktop&&desktop.window);
   if(st.inApp)setupDesktop().catch(()=>{});
-  else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"unavailable";showSetup(s)}
+  else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"off";showSetup(s)}
   try{mcp=await claude.use("mcp")}catch{}
   $("#card").hidden=false;refresh();setTimeout(calRefresh,4000);
 })();
