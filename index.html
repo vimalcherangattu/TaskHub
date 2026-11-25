@@ -1053,6 +1053,41 @@ button.bi-t:hover,a.bi-t:hover{text-decoration:underline;text-underline-offset:3
   .pd-go{align-items:stretch;width:100%}
   .tchip,.ptabs button,.cd-row button,.pk-panel .tool,.in-keys .act{min-height:44px}
 }
+/* ---------- threads (25 Nov 2026): one row per line of work, its summary and checkpoints ---------- */
+.thr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 14px;align-items:baseline;width:100%;border:0;background:none;text-align:left;padding:10px 14px;border-radius:var(--radius-m);transition:background .18s;color:var(--ink)}
+.thr:hover{background:var(--surface);box-shadow:var(--lift)}
+.thr .t1{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.thr b{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.thr .tm{font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap;text-align:right}
+.thr .tn{grid-column:1/-1;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thr.off b{color:var(--muted)}
+.thb{flex:none;font-family:var(--mono);font-size:11px;line-height:1;padding:4px 7px;border-radius:999px;background:var(--sunken);color:var(--muted)}
+.thb.pend{background:var(--accent-soft);color:var(--accent)}
+.thb.stale{color:var(--warn)}
+.thb.new{background:var(--accent-soft);color:var(--accent)}
+.live{flex:none;display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.th-sub{margin:0 0 4px 14px;padding:6px 0 2px;font-size:13px;color:var(--faint)}
+.th-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.th-tools .chips{display:flex;gap:6px;flex-wrap:wrap}
+.th-box{border:1px solid var(--line);border-radius:var(--radius-m);padding:14px 16px;margin:0 0 10px;background:var(--surface)}
+.th-box.pend{border-color:var(--accent);border-style:dashed}
+.th-box .th-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--faint);margin-bottom:6px}
+.th-box .md{color:var(--ink);overflow-wrap:anywhere}
+.th-box .md a{color:var(--accent)}
+.th-next{font-size:14px;color:var(--muted);margin:8px 0 0}.th-next b{color:var(--ink);font-weight:600}
+.th-box details summary{cursor:pointer;font-size:13px;color:var(--muted);list-style-position:outside}
+.th-box details[open] summary{margin-bottom:6px}
+.th-merge{display:flex;flex-direction:column;gap:6px;margin:0 0 18px}
+.th-merge .pick{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 12px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--surface);text-align:left;color:var(--ink)}
+.th-merge .pick[aria-checked="true"]{border-color:var(--strong);box-shadow:inset 0 0 0 1px var(--strong)}
+.th-merge .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.th-live{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:14px}
+.th-live a{color:var(--accent)}
+@media (max-width:820px){
+  .thr{grid-template-columns:minmax(0,1fr);min-height:44px}
+  .thr .tm{text-align:left}
+  .th-tools .chip,.th-tools .btn{min-height:44px}
+}
 </style>
 </head>
 <body>
@@ -1318,7 +1353,7 @@ const COLORS=["#2F6DB5","#C4412F","#3E8A57","#E0A21A","#7A4FB0","#1F8A8A","#D066
 const AREAS=["Career","Products","Life"];
 const PR={high:0,med:1,low:2};
 let _ac=[];try{_ac=JSON.parse(localStorage.getItem("hub-areas")||"[]")}catch{}
-const S={day_briefs:[],focus_themes:[],people:[],links:[],life_areas:[],goals:[],habits:[],habit_logs:[],daily_log:[],compass:[],reviews:[],records:[],metrics:[],metric_logs:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
+const S={threads:[],tcps:[],tsess:[],thid:null,thf:"",thClosed:false,thMerge:null,thTo:null,day_briefs:[],focus_themes:[],people:[],links:[],life_areas:[],goals:[],habits:[],habit_logs:[],daily_log:[],compass:[],reviews:[],records:[],metrics:[],metric_logs:[],topicBriefs:{},peek:null,focusAll:false,areasClosed:new Set(_ac),series:[],agenda_items:[],prep:{},prepAll:new Set(),cs:null,inputs:[],iuses:[],copen:new Set(),sopen:new Set(),briefs:{},segs:[],sources:[],changes:[],bopenB:new Set(),notes:[],bsel:"root",bopen:new Set(),bq:"",zt:null,q:"",fs:"open",sort:"due",db:null,projects:[],tasks:[],view:"today",pid:null,day:null,ready:{p:false,t:false}};
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -1472,9 +1507,9 @@ function attentionLine(){
   return `${cap(word(tot))} need${tot===1?"s":""} attention${list?": "+list:""}.`}
 /* ---------- simplify (9 Nov 2026): five places (Today, Inbox, Plan, Projects, Notes), Today shows one moment at a time,
    new and past-date work waits in Inbox, a task row carries a star, one status and a real deadline ---------- */
-const PLANV=["plan","week","followups","calls","agents","reviews","review","attention","life","area","goals","goal","habits","log","admin"];
+const PLANV=["plan","week","followups","calls","agents","threads","thread","reviews","review","attention","life","area","goals","goal","habits","log","admin"];
 const placeOf=v=>v==="today"||v==="close"?"today":v==="inbox"||v==="suggested"?"inbox":PLANV.includes(v)?"plan":["notes","people","person","topics","topic","brain","archive"].includes(v)?"notes":["projects","project","all"].includes(v)?"projects":"";
-const planTab=v=>["week","followups","calls","agents"].includes(v)?v:"reviews";
+const planTab=v=>v==="thread"?"threads":["week","followups","calls","agents","threads"].includes(v)?v:"reviews";
 // Today's list has one definition, used by the header, the sidebar and the phone bar. Started work that has stalled waits as a candidate in Plan the day
 const todayT=x=>open(x)&&!bot(x)&&!parked(x)&&(onToday(x)||(doing(x)&&!stalled(x))||slip(x)||fuDue(x)||startNow(x)||hiTask(x));
 const todayList=()=>{const f=focusIds("day");return S.tasks.filter(x=>todayT(x)||(open(x)&&!bot(x)&&!parked(x)&&f.has(x.id)))};
@@ -1615,7 +1650,7 @@ async function closeDay(){const t=T(),nx=tmrw(),cd=S.cd||{},wk=week();let n=0;
   flagSet(CLOSEK);S.cd={};S.cdF={};S.ci=null;S.view="today";render();document.querySelector("main").scrollTo(0,0);toast(n?`Day closed. ${cap(word(n))} task${n===1?"":"s"} placed.`:"Day closed.")}
 /* Plan: one place for the week, waiting, calls, agents and reviews (goals, areas, habits, the log and life admin live under Review) */
 function planTabs(){const cur=planTab(S.view),wn=S.tasks.filter(waiting).length,an=S.tasks.filter(x=>open(x)&&bot(x)).length;
-  return `<div class="ptabs" role="tablist" aria-label="Plan views">${[["week","Week",""],["followups","Waiting",wn],["calls","Calls",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["agents","Agents",an],["reviews","Review",rvDue().length||""]].map(([v,l,c])=>`<button role="tab" data-go="${v}" aria-selected="${cur===v}">${l}${c?` <span>${c}</span>`:""}</button>`).join("")}</div>`}
+  return `<div class="ptabs" role="tablist" aria-label="Plan views">${[["week","Week",""],["followups","Waiting",wn],["calls","Calls",S.series.filter(x=>{const n=S.prep[x.id]?.next_at;return n&&new Date(n)-Date.now()<24*36e5&&new Date(n)-Date.now()>-90*6e4}).length],["agents","Agents",an],["threads","Threads",thAll().filter(x=>x.status==="active"&&thPend(x.id).length).length||""],["reviews","Review",rvDue().length||""]].map(([v,l,c])=>`<button role="tab" data-go="${v}" aria-selected="${cur===v}">${l}${c?` <span>${c}</span>`:""}</button>`).join("")}</div>`}
 function reviewMore(){const at=attentionCount(),gs=liveGoals().length,hs=habitsOn().length,lg=(S.daily_log||[]).length,rc=recLive().length,ar=(S.life_areas||[]).filter(a=>a.standard&&!/^\[/.test(a.standard)).length;
   const it=[["attention","Needs attention",at?`${at} to look at`:""],["life","Life areas",ar?`${ar} with a standard`:""],["goals","Goals",gs?`${gs} active`:""],["habits","Habits",hs?`${hs} active`:""],["log","Log",lg?`${lg} days`:""],["admin","Life admin",rc?`${rc} records`:""]];
   const on=it.filter(x=>x[2]),off=it.filter(x=>!x[2]);
@@ -2194,6 +2229,72 @@ function nextCallCard(){const t=Date.now();
   return h+`<div class="nc-a"><button class="more" data-cs="${esc(s.id)}">Open prep</button>${started?`<button class="more" data-callfu="${esc(s.id)}">Add follow-ups</button>`:""}</div></section>`}
 function changesBlock(ids){const cs=S.changes.filter(c=>ids.includes(c.projectId)).slice(0,10);if(!cs.length)return"";
   return `<section><div class="sh"><h2>What changed</h2><span class="n">last 14 days</span></div><ul class="changes">${cs.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span>${ids.length>1?`<span class="cp">${esc(proj(c.projectId)?.name||"")}</span>`:""}<span>${esc(c.summary)}</span><span class="who">${esc(c.actor)}</span></li>`).join("")}</ul></section>`}
+/* ---------- threads (25 Nov 2026): a line of work a chat resumes with "continue <name>". The summary is the handoff; each session adds a checkpoint,
+   and wrap-up merges pending ones into the summary. The app reads the tables and closes, reopens or merges; it never deletes ---------- */
+const TH={n:0},TLIVE=3*36e5,TSTALE=14*864e5;
+const thAll=()=>S.threads||[];
+const thOf=id=>thAll().find(x=>x.id===id);
+const thPend=id=>(S.tcps||[]).filter(c=>c.threadId===id&&!c.mergedAt).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+const thLive=id=>(S.tsess||[]).filter(s=>s.threadId===id&&Date.now()-new Date(s.updatedAt)<TLIVE);
+// last activity: the thread's own stamp, or a newer checkpoint or live session
+const thAt=t=>{const ms=[t.lastActivityAt||t.updatedAt||t.createdAt,...thPend(t.id).map(c=>c.createdAt),...thLive(t.id).map(s=>s.updatedAt)].map(x=>Date.parse(x)).filter(n=>!isNaN(n));return ms.length?new Date(Math.max(...ms)).toISOString():""};
+const thStale=t=>t.status==="active"&&!thLive(t.id).length&&Date.now()-new Date(thAt(t))>=TSTALE;
+const thSort=l=>l.slice().sort((a,b)=>String(thAt(b)).localeCompare(String(thAt(a))));
+const thPname=(t,root)=>{const p=proj(t.projectId);if(!p)return"Unsorted";const c=chain(p);const i=root?c.findIndex(x=>x.id===root):-1;return(i>=0&&i<c.length-1?c.slice(i+1):c).map(x=>x.name).join(" › ")};
+const thLink=s=>s.replace(/(^|>)([^<]+)/g,(m,a,t)=>a+t.replace(/https?:\/\/[^\s<"')\]]+/g,u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`));
+const thMd=s=>thLink(md(s));
+function thRow(t,{root=null,showProj=true}={}){const pn=thPend(t.id).length,live=thLive(t.id).length,st=thStale(t);
+  const tag=t.status==="closed"?`<span class="thb">closed</span>`:t.status==="merged"?`<span class="thb">merged</span>`:"";
+  const lab=[t.private?"Private thread":"Thread",t.name,pn?`${pn} pending`:"",live?"live now":"",st?"stale":"",t.status!=="active"?t.status:""].filter(Boolean).join(", ");
+  return `<button class="thr${t.private?" priv":""}${t.status!=="active"?" off":""}" data-thread="${esc(t.id)}" aria-label="${esc(lab)}"><span class="t1">${live?`<span class="live" title="A chat is on it now"></span>`:""}<b>${t.private?'<svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':""}${esc(t.name)}</b>${pn?`<span class="thb pend">${pn} pending</span>`:""}${st?`<span class="thb stale">stale</span>`:""}${tag}</span><span class="tm">${showProj?esc(thPname(t,root))+" · ":""}updated ${esc(agoTxt(thAt(t)))}</span>${t.nextStep?`<span class="tn">Next: ${esc(t.nextStep)}</span>`:""}</button>`}
+// the list grouped by top project, its own threads first, then each sub-project; newest activity first throughout
+function thGroups(list){const g=new Map();
+  for(const t of list){const p=proj(t.projectId),r=p?topOf(p):null,k=r?.id||"";if(!g.has(k))g.set(k,{r,ts:[]});g.get(k).ts.push(t)}
+  const gs=[...g.values()].map(x=>({...x,ts:thSort(x.ts)})).sort((a,b)=>String(thAt(b.ts[0])).localeCompare(String(thAt(a.ts[0]))));
+  return gs.map(({r,ts})=>{const own=ts.filter(t=>!r||t.projectId===r.id),sub=new Map();
+    for(const t of ts)if(r&&t.projectId!==r.id){if(!sub.has(t.projectId))sub.set(t.projectId,[]);sub.get(t.projectId).push(t)}
+    return `<section><div class="sh"><h2>${esc(r?.name||"Unsorted")}</h2><span class="n">${ts.length}</span>${r?`<button class="act" data-proj="${esc(r.id)}">Open</button>`:""}</div>${own.map(t=>thRow(t,{showProj:false})).join("")}${[...sub.entries()].map(([pid,l])=>`<div class="th-sub">${esc(thPname(l[0],r.id))}</div>${l.map(t=>thRow(t,{root:r.id,showProj:false})).join("")}`).join("")}</section>`}).join("")}
+const TF=[["","All",()=>true],["pending","Has pending",t=>thPend(t.id).length>0],["live","Live",t=>thLive(t.id).length>0],["stale","Stale",thStale]];
+function threadsView(){const base=thAll().filter(t=>t.status==="active"||(S.thClosed&&t.status!=="active")),f=TF.find(x=>x[0]===S.thf)||TF[0],list=base.filter(f[2]);
+  const act=thAll().filter(t=>t.status==="active").length,shut=thAll().length-act;
+  let h=`<div class="head"><div><h1>Threads</h1><div class="sub">Each line of work your chats pick up with “continue …”. Newest activity first.</div></div><div class="right"><div class="meter">${act}<span> active</span></div></div></div>`;
+  h+=`<div class="th-tools"><div class="chips" role="group" aria-label="Filter threads">${TF.map(([k,l,fn])=>`<button class="chip" data-thf="${k}" aria-pressed="${(S.thf||"")===k}">${l} <span>${base.filter(fn).length}</span></button>`).join("")}</div><button class="chip" data-thclosed aria-pressed="${S.thClosed}">Show closed${shut?` <span>${shut}</span>`:""}</button></div>`;
+  if(!S.thReady&&!thAll().length)return h+`<div class="empty">Loading threads…</div>`;
+  if(!list.length)return h+`<div class="empty">${!thAll().length?"No threads yet. Start a chat with “continue &lt;topic&gt;” and it opens one.":S.thf==="pending"?"Nothing pending. Every checkpoint is merged into its summary.":S.thf==="live"?"No chat is on a thread right now.":S.thf==="stale"?"Nothing stale. Every thread moved in the last 14 days.":"No threads here."}</div>`;
+  return h+thGroups(list)}
+// a project page: its threads (a workspace: every level under it)
+function threadsBlock(ids,ws){const ts=thSort(thAll().filter(t=>ids.includes(t.projectId)));const act=ts.filter(t=>t.status==="active"),shut=ts.length-act.length;
+  if(!ts.length)return"";const root=ids[0];
+  return `<section><div class="sh"><h2>Threads</h2><span class="n">${act.length||""}</span><button class="act" data-go="threads">All threads</button></div>${act.length?act.map(t=>thRow(t,{root,showProj:ws})).join(""):`<div class="empty">No active thread here.</div>`}${shut?`<p class="cap-line">${cap(word(shut))} closed or merged. <button class="act" data-go="threads" data-thshut>Show them</button></p>`:""}</section>`}
+function threadView(){const t=thOf(S.thid);
+  if(!t)return `<div class="head"><div><h1>Thread</h1><div class="sub"><button class="crumb" data-go="threads">Threads</button></div></div></div><div class="empty">${S.thReady?`No thread called “${esc(S.thid||"")}”. It may have been merged or renamed.`:"Loading the thread…"}</div>`;
+  const p=proj(t.projectId),pend=thPend(t.id),live=thLive(t.id),hist=(S.tcps||[]).filter(c=>c.threadId===t.id&&c.mergedAt).sort((a,b)=>String(b.mergedAt||b.createdAt).localeCompare(String(a.mergedAt||a.createdAt))||String(b.createdAt).localeCompare(String(a.createdAt)));
+  const into=t.mergedInto&&thOf(t.mergedInto),from=thAll().filter(x=>x.mergedInto===t.id),ch=(S.changes||[]).filter(c=>c.refId===t.id&&(c.kind==="thread"||c.refTable==="threads")).slice(0,10);
+  const st=t.status==="active"?(thStale(t)?`<span class="thb stale">stale</span>`:""):`<span class="thb">${esc(t.status)}</span>`;
+  let h=`<div class="head"><div><div class="sub" style="margin:0 0 6px"><button class="crumb" data-go="threads">Threads</button> · ${p?chain(p).map(x=>`<button class="crumb" data-proj="${esc(x.id)}">${esc(x.name)}</button>`).join(" › "):"Unsorted"}</div><h1>${live.length?`<span class="live" title="A chat is on it now" style="vertical-align:.3em;margin-right:10px"></span>`:""}${esc(t.name)}</h1><div class="sub">${t.private?"Private · ":""}Version ${esc(t.version??1)} · updated ${esc(agoTxt(thAt(t)))}${pend.length?` · <span class="thb pend">${pend.length} pending</span>`:""} ${st}</div></div>
+    <div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn primary" data-thcopy="${esc(t.id)}">Copy resume prompt</button>${t.status==="active"?`<button class="btn" data-thmerge="${esc(t.id)}" aria-expanded="${S.thMerge===t.id}">Merge into…</button><button class="btn" data-thclose="${esc(t.id)}">Close</button>`:t.status==="closed"?`<button class="btn" data-threopen="${esc(t.id)}">Reopen</button>`:""}</div></div>`;
+  if(S.thMerge===t.id){const cand=thSort(thAll().filter(x=>x.status==="active"&&x.id!==t.id&&x.projectId===t.projectId));
+    h+=`<section class="th-merge" aria-label="Merge this thread"><div class="sh"><h2>Merge “${esc(t.name)}” into</h2></div>${cand.length?`<div role="radiogroup" aria-label="Thread to merge into" style="display:flex;flex-direction:column;gap:6px">${cand.map(x=>`<button class="pick" role="radio" aria-checked="${S.thTo===x.id}" data-thto="${esc(x.id)}"><b style="font-weight:500">${esc(x.name)}</b><span class="when" style="margin-left:auto">updated ${esc(agoTxt(thAt(x)))}</span></button>`).join("")}</div>
+      <p class="th-next">Its summary becomes a pending checkpoint on the thread you pick, its pending checkpoints and chats move there, and this one is marked merged. Nothing is deleted.</p>`:`<div class="empty">No other active thread on ${esc(p?.name||"this project")} to merge into.</div>`}
+      <div class="row">${cand.length?`<button class="btn primary" data-thmgo="${esc(t.id)}"${S.thTo&&cand.some(x=>x.id===S.thTo)?"":" disabled"}>Merge</button>`:""}<button class="btn" data-thmcancel>Cancel</button></div></section>`}
+  if(into)h+=`<p class="cap-line">Merged into <button class="act" data-thread="${esc(into.id)}">${esc(into.name)}</button>. Pick it up there.</p>`;
+  else if(t.mergedInto)h+=`<p class="cap-line">Merged into ${esc(t.mergedInto)}.</p>`;
+  if(t.nextStep)h+=`<p class="th-next" style="margin:0 0 18px"><b>Next:</b> ${esc(t.nextStep)}</p>`;
+  if(live.length)h+=`<section><div class="sh"><h2>On it now</h2><span class="n">${live.length}</span></div>${live.map(s=>`<div class="th-live"><span class="live"></span><span>${s.url&&/^https:\/\//.test(s.url)?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||s.sessionId)}</a>`:esc(s.title||s.sessionId)}</span><span class="when">${esc(s.kind||"chat")} · active ${esc(agoTxt(s.updatedAt))}</span></div>`).join("")}</section>`;
+  if(pend.length)h+=`<section><div class="sh"><h2>Pending checkpoints</h2><span class="n">${pend.length}</span></div>${pend.map(c=>`<div class="th-box pend"><div class="th-h"><span class="thb new">newer than summary</span><span>${esc(whenIST(c.createdAt))}</span>${c.sessionId?`<span>· ${esc(c.sessionId)}</span>`:""}${c.baseVersion!=null?`<span>· on v${esc(c.baseVersion)}</span>`:""}</div><div class="md">${thMd(c.body)}</div>${c.nextStep?`<p class="th-next"><b>Next:</b> ${esc(c.nextStep)}</p>`:""}</div>`).join("")}</section>`;
+  h+=`<section><div class="sh"><h2>Summary</h2><span class="n">v${esc(t.version??1)}</span></div><div class="th-box th-sum">${t.summary?`<div class="md">${thMd(t.summary)}</div>`:`<div class="md">No summary yet.</div>`}</div></section>`;
+  if(hist.length)h+=`<section><div class="sh"><h2>History</h2><span class="n">${hist.length} merged</span></div>${hist.map(c=>`<div class="th-box"><details><summary>${esc(whenIST(c.createdAt))}${c.mergedIntoVersion!=null?` · merged into v${esc(c.mergedIntoVersion)}`:""}${c.sessionId?` · ${esc(c.sessionId)}`:""}</summary><div class="md">${thMd(c.body)}</div>${c.nextStep?`<p class="th-next"><b>Next:</b> ${esc(c.nextStep)}</p>`:""}</details></div>`).join("")}</section>`;
+  if(from.length)h+=`<section><div class="sh"><h2>Merged in</h2><span class="n">${from.length}</span></div>${from.map(x=>thRow(x)).join("")}</section>`;
+  if(!live.length)h+=`<p class="cap-line">No chat is on this thread right now. Copy the resume prompt to pick it up.</p>`;
+  if(ch.length)h+=`<section><div class="sh"><h2>What changed</h2></div><ul class="changes">${ch.map(c=>`<li><span class="when">${esc(whenIST(c.at))}</span><span>${esc(c.summary)}</span><span class="who">${esc(c.actor||"")}</span></li>`).join("")}</ul></section>`;
+  return h}
+function openThread(id){S.view="thread";S.thid=id;S.thMerge=null;S.thTo=null;S.pid=null;S.day=null;setPeek(null);try{history.replaceState(null,"","#thread/"+encodeURIComponent(id))}catch{}render();document.querySelector("main").scrollTo(0,0)}
+addEventListener("hashchange",()=>{const m=location.hash.match(/^#thread\/(.+)/);if(!m||!S.ready.t)return;let id=m[1];try{id=decodeURIComponent(id)}catch{}if(id!==S.thid||S.view!=="thread")openThread(id)});
+// local change first, put back if the database says no
+async function thWrite(id,patch,run,ok,bad){const t=thOf(id);if(!t)return;const old={};for(const k in patch)old[k]=t[k];Object.assign(t,patch);TH.n++;paint();
+  let err=null;try{const r=await run();err=r?.error||null}catch(e){err=e}finally{TH.n--}
+  if(err){Object.assign(t,old);paint();toast(bad,false,true);return false}
+  toast(ok,false);setTimeout(saveCache,400);return true}
 /* ---------- people: one page per person note, pulling together what's scattered (waiting_on, inputs, calls, agenda, decisions) ---------- */
 const pName=n=>String(n?.title||"").split(/[:(–—]/)[0].trim();
 const pRole=n=>String(n?.title||"").slice(pName(n).length).replace(/^\s*[:–—]\s*/,"").replace(/^\((.*)\)$/,"$1").trim();
@@ -2656,6 +2757,8 @@ function renderView(){
     for(const p of S.projects)h+=sec(esc(fullName(p)),sortT(ss.filter(t=>t.projectId===p.id)));
     h+=sec("Unsorted",sortT(ss.filter(t=>!proj(t.projectId))));
   }
+  else if(S.view==="threads")h+=threadsView();
+  else if(S.view==="thread")h+=threadView();
   else if(S.view==="agents"){
     const as=S.tasks.filter(x=>open(x)&&bot(x));
     h+=`<div class="head"><div><h1>Run by agents</h1><div class="sub">Work your scheduled Claude runs do themselves. It stays off Today and This week, but anything overdue still shows in Needs attention.</div></div></div>`;
@@ -2750,7 +2853,7 @@ function renderView(){
     h+=sec("General",sortT(S.tasks.filter(t=>t.projectId===p.id&&open(t)&&!overdue(t))));
     h+=sec("Suggested by Claude",sortT(all.filter(sugg)));
     h+=sec("Done recently",all.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,10));
-    h+=inputsBlock(ids)+callsBlock(ids,"Calls across "+esc(p.name))+changesBlock(ids);
+    h+=threadsBlock(ids,true)+inputsBlock(ids)+callsBlock(ids,"Calls across "+esc(p.name))+changesBlock(ids);
   }
   else if(S.view==="project"){
     const inbox=S.pid==="__inbox";const p=proj(S.pid);const par=parentOf(p);
@@ -2764,7 +2867,7 @@ function renderView(){
     h+=sec("To do",sortT(ts.filter(x=>x.status==="todo"&&!overdue(x))),{empty:"No open tasks here."});
     h+=sec("Waiting on someone",sortT(ts.filter(x=>x.status==="waiting"&&!overdue(x))));
     h+=sec("Done",ts.filter(x=>x.status==="done").sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))).slice(0,15));
-    if(p)h+=inputsBlock([p.id])+callsBlock([p.id])+changesBlock([p.id]);
+    if(p)h+=threadsBlock([p.id],false)+inputsBlock([p.id])+callsBlock([p.id])+changesBlock([p.id]);
   }
   else{
     const fc={open:S.tasks.filter(open).length,suggested:S.tasks.filter(sugg).length,done:S.tasks.filter(x=>x.status==="done").length,all:S.tasks.length};
@@ -3013,6 +3116,22 @@ document.addEventListener("click",async e=>{
   if(b.dataset.step){const t=S.tasks.find(x=>x.id===b.dataset.step);if(!t)return;const i=+b.dataset.i;
     const st=(t.steps||[]).map((x,j)=>j===i?{...x,done:!x.done}:x);await upd(t.id,{steps:st});
     toast(st[i].done?(st.every(x=>x.done)?"All steps done. Tick the task when you're ready.":"Step done"):"Step reopened");return}
+  if(b.dataset.thread){openThread(b.dataset.thread);return}
+  if(b.dataset.thf!=null){S.thf=b.dataset.thf;render();return}
+  if("thclosed" in b.dataset){S.thClosed=!S.thClosed;render();return}
+  if(b.dataset.thcopy){const t=thOf(b.dataset.thcopy);if(!t)return;
+    try{await navigator.clipboard.writeText("continue "+t.name);toast(`Copied “continue ${t.name}”. Paste it into a new Claude chat.`,false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
+  if(b.dataset.thclose){const id=b.dataset.thclose;S.thMerge=null;
+    await thWrite(id,{status:"closed"},()=>sb.rpc("thread_close",{p_thread:id,p_reason:"closed in Ambalam"}),"Thread closed. Reopen it any time.","Hmm, couldn't close that thread. Mind trying again?");return}
+  if(b.dataset.threopen){const id=b.dataset.threopen;
+    await thWrite(id,{status:"active"},()=>sb.from("threads").update({status:"active"}).eq("id",id),"Thread reopened.","Hmm, couldn't reopen that thread. Mind trying again?");return}
+  if(b.dataset.thmerge){S.thMerge=S.thMerge===b.dataset.thmerge?null:b.dataset.thmerge;S.thTo=null;render();return}
+  if(b.dataset.thto){S.thTo=b.dataset.thto;render();document.querySelector(`[data-thto="${CSS.escape(S.thTo)}"]`)?.focus();return}
+  if("thmcancel" in b.dataset){S.thMerge=null;S.thTo=null;render();return}
+  if(b.dataset.thmgo){const from=b.dataset.thmgo,to=S.thTo,a=thOf(from),z=thOf(to);if(!a||!z||a.projectId!==z.projectId||z.status!=="active")return;
+    const moved=(S.tcps||[]).filter(c=>c.threadId===from&&!c.mergedAt);
+    const ok=await thWrite(from,{status:"merged",mergedInto:to},()=>sb.rpc("thread_merge",{p_from:from,p_into:to}),`Merged into “${z.name}”.`,"Hmm, couldn't merge those threads. Mind trying again?");
+    if(ok){moved.forEach(c=>c.threadId=to);(S.tsess||[]).forEach(x=>{if(x.threadId===from)x.threadId=to});openThread(to);refresh()}return}
   if(b.dataset.cs){S.view="calls";S.cs=b.dataset.cs;S.pid=null;S.day=null;try{history.replaceState(null,"","#call/"+S.cs)}catch{}render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.acov){try{await S.db.doc("agenda_items/"+b.dataset.acov).update({status:"covered",coveredAt:now()});toast("Covered")}catch{toast("Hmm, couldn't update that. Mind trying again?")}return}
   if(b.dataset.adrop){try{await S.db.doc("agenda_items/"+b.dataset.adrop).update({status:"dropped"});toast("Removed from the agenda")}catch{toast("Hmm, couldn't update that. Mind trying again?")}return}
@@ -3020,7 +3139,7 @@ document.addEventListener("click",async e=>{
   if(b.dataset.copyprep){const{data,error}=await sb.rpc("call_prep_md",{s:b.dataset.copyprep});
     if(error||!data){toast("Hmm, couldn't build the text. Mind trying again?",false);return}
     try{await navigator.clipboard.writeText(data);toast("Prep copied. Paste it into your notes or the meeting chat.",false)}catch{toast("Couldn't copy. Your browser blocked the clipboard.",false)}return}
-  if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;if(b.dataset.ikgo)S.ik=b.dataset.ikgo;if(S.view==="today"&&b.closest("#side,#tabs"))S.tmode=null;render();document.querySelector("main").scrollTo(0,0);return}
+  if(b.dataset.go){if(location.hash)try{history.replaceState(null,"",location.pathname)}catch{}S.view=b.dataset.go;S.pid=null;S.day=null;if(b.dataset.ikgo)S.ik=b.dataset.ikgo;if("thshut" in b.dataset)S.thClosed=true;if(S.view==="today"&&b.closest("#side,#tabs"))S.tmode=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.areaGo){S.view="area";S.area=b.dataset.areaGo;S.pid=null;render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.goal){S.view="goal";S.goal=b.dataset.goal;S.pid=null;setPeek(null);render();document.querySelector("main").scrollTo(0,0);return}
   if(b.dataset.newgoal){openGoal(null,{horizon:b.dataset.newgoal,area:b.dataset.garea,parent:b.dataset.parent,period:b.dataset.gperiod});return}
@@ -3669,7 +3788,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={pausedAt:"paused_at",owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={lastActivityAt:"last_activity_at",mergedInto:"merged_into",nextStep:"next_step",threadId:"thread_id",sessionId:"session_id",baseVersion:"base_version",mergedAt:"merged_at",mergedIntoVersion:"merged_into_version",pausedAt:"paused_at",owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -3809,6 +3928,8 @@ async function doRefresh(){
   const lnk=(async()=>{try{return await sb.from("links").select("*")}catch{return{error:1}}})();
   const LIFE=[["life_areas",q=>q],["goals",q=>q],["habits",q=>q],["habit_logs",q=>q.gte("day",addDays(T(),-400))],["daily_log",q=>q.gte("day",addDays(T(),-400))],["compass",q=>q],["reviews",q=>q.gte("period_start",addDays(T(),-400))],["records",q=>q],["metrics",q=>q],["metric_logs",q=>q.gte("day",addDays(T(),-400))]];
   const life=Promise.all(LIFE.map(async([t,f])=>{try{return await f(sb.from(t).select("*"))}catch{return{error:1}}}));
+  const thr=(async()=>{try{const r=await Promise.all([sb.from("threads").select("*"),sb.from("thread_checkpoints").select("*").order("created_at",{ascending:false}).limit(1000),
+    sb.from("hub_sessions").select("session_id,thread_id,title,url,kind,updated_at").gte("updated_at",new Date(Date.now()-TLIVE).toISOString())]);return r.some(x=>x.error)?{error:1}:r}catch{return{error:1}}})();
   const feeds=(async()=>{try{return await sb.from("sync_state").select("source,last_run_at,note")}catch{return{error:1}}})();
   const[p,t]=await core;
   if(p.error||t.error){if(!S.ready.t)document.getElementById("view").innerHTML=`<div class="notice">Your tasks couldn't load. Reload the page to try again.</div>`;return}
@@ -3822,6 +3943,7 @@ async function doRefresh(){
   if(!ll.error&&Array.isArray(ll.data)&&W.n===0&&W.seq===seq0)S.links=ll.data.map(fromRow);
   const lf=await life;LIFE.forEach(([t],i)=>{const r=lf[i];if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S[t]=r.data.map(fromRow)});
   queueMicrotask(()=>{rollRenewals();tidyReviews();if(S.tasks.some(x=>x.status==="done"&&REP[x.repeat])){HIST.begin();rollRepeats()}});
+  {const r=await thr;if(!r.error&&TH.n===0){S.threads=r[0].data.map(fromRow);S.tcps=r[1].data.map(fromRow);S.tsess=(r[2].data||[]).filter(x=>x.thread_id).map(fromRow);S.thReady=true}}
   {const r=await dbr;if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S.day_briefs=r.data.map(fromRow)}
   if(!tb.error&&Array.isArray(tb.data))S.topicBriefs=Object.fromEntries(tb.data.map(x=>[String(x.tag).toLowerCase(),fromRow(x)]));
   if(!fo.error&&Array.isArray(fo.data)&&W.n===0&&W.seq===seq0)S.focus_themes=fo.data.map(fromRow);
@@ -3848,9 +3970,9 @@ async function doRefresh(){
 }
 // last good snapshot, so the app paints at once on the next open and fills in fresh data after
 const CACHE="ambalam.cache.v1";
-function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,dbriefs:S.day_briefs,tbriefs:S.topicBriefs,people:S.people,links:S.links,life:{life_areas:S.life_areas,goals:S.goals,habits:S.habits,habit_logs:S.habit_logs,daily_log:S.daily_log,compass:S.compass,reviews:S.reviews,records:S.records,metrics:S.metrics,metric_logs:S.metric_logs}}))}catch{}}
+function saveCache(){try{localStorage.setItem(CACHE,JSON.stringify({at:Date.now(),projects:S.projects,tasks:S.tasks,notes:S.notes,briefs:S.briefs,segs:S.segs,sources:S.sources,inputs:S.inputs,iuses:S.iuses,focus:S.focus_themes,dbriefs:S.day_briefs,tbriefs:S.topicBriefs,people:S.people,links:S.links,threads:S.threads,tcps:S.tcps,life:{life_areas:S.life_areas,goals:S.goals,habits:S.habits,habit_logs:S.habit_logs,daily_log:S.daily_log,compass:S.compass,reviews:S.reviews,records:S.records,metrics:S.metrics,metric_logs:S.metric_logs}}))}catch{}}
 function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE)||"null");if(!c||!Array.isArray(c.tasks)||Date.now()-c.at>14*864e5)return false;
-  Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[],day_briefs:c.dbriefs||[],topicBriefs:c.tbriefs||{},people:c.people||[],links:c.links||[],...(c.life||{})});S.ready.p=S.ready.t=true;return true}catch{return false}}
+  Object.assign(S,{projects:c.projects,tasks:c.tasks,notes:c.notes||[],briefs:c.briefs||{},segs:c.segs||[],sources:c.sources||[],inputs:c.inputs||[],iuses:c.iuses||[],focus_themes:c.focus||[],day_briefs:c.dbriefs||[],topicBriefs:c.tbriefs||{},people:c.people||[],links:c.links||[],threads:c.threads||[],tcps:c.tcps||[],...(c.life||{})});S.ready.p=S.ready.t=true;return true}catch{return false}}
 let rt;function soon(){clearTimeout(rt);rt=setTimeout(refresh,250)}
 let lt;function later(){clearTimeout(lt);lt=setTimeout(refresh,2500)}
 // redraw once, right after the current handler finishes (before the next frame), however many rows it changed
@@ -3892,6 +4014,7 @@ let started=false;
 async function start(){
   if(started)return;started=true;
   const hm=location.hash.match(/^#call\/([\w-]+)/);if(hm){S.view="calls";S.cs=hm[1]}
+  const th=location.hash.match(/^#thread\/(.+)/);if(th){S.view="thread";try{S.thid=decodeURIComponent(th[1])}catch{S.thid=th[1]}}
   if(loadCache())render();
   paintOutbox();OB.flush();
   // shared from another app, a bookmarklet or a shortcut: ?title=&text=&url= or ?capture=

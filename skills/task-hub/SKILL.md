@@ -219,7 +219,7 @@ People have their own records: `people(id, name, aliases, emails, org, role, cir
   - X joins or works on a project: a `member` link from the person to the project, with the role in `note`.
   - A note or task about someone: a `mentions` or `about` link to the person.
 - **Never delete a person**; set `status = 'archived'`. A link that is wrong can be removed in the app (the × on the person page); don't delete links from chat.
-- **Private:** `private = true` on notes, tasks and people means it never goes into pushes, digests or Zen.
+- **Private:** `private = true` on notes, tasks, people and threads means it never goes into pushes, digests or Zen. The app still shows private threads (blurred in lists).
 - **Archive:** a finished project has `projects.archived_at` set (the app's Archive). Don't file new work into an archived project; ask first.
 - **Email captures:** Vimal can forward any email to `vimalcherangattu+ambalam@gmail.com`; the hourly agent files it into the Notes inbox.
 

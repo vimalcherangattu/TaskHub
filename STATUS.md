@@ -1,8 +1,16 @@
 # Status
 
-**Last updated:** 23 Nov 2026 (Tharavad stack review and strategy run queued; earlier: Library v2 and the Talent bench, 22 Nov)
+**Last updated:** 25 Nov 2026 (Threads view in the app; earlier: Tharavad stack review and strategy run queued, 23 Nov)
 
 ## Current state
+- **Threads view (25 Nov, app):** handoffs now live in `threads` and `thread_checkpoints` (decision note "Threads replace handoff notes (25 Nov 2026)"); the app shows them. No schema or function change.
+  - **Plan › Threads** (tab between Agents and Review; its count is threads with pending checkpoints): active threads grouped by top project, sub-projects under it, newest activity first. A row: name, live dot (a `hub_sessions` row on it in the last 3 hours), "n pending" (checkpoints with `merged_at` null), "stale" (14+ days idle), "updated 35 min ago", next step. Filters All / Has pending / Live / Stale and "Show closed" (closed and merged).
+  - **Thread page** (`#thread/<id>`, also follows hash changes): next step, "On it now" sessions, pending checkpoints marked "newer than summary" above the summary (line breaks, bullets and links), merged history newest first, threads merged into it, its `changes` rows. Copy resume prompt copies `continue <name>`. Close calls `thread_close`, Reopen sets `status = 'active'`, Merge into… lists other active threads on the same project and calls `thread_merge`. Changes show at once and are put back if the database refuses. Nothing is deleted.
+  - **Project pages:** a Threads section (a workspace covers every level), with "n closed or merged" leading to the list.
+  - **Reads:** the app loads all threads and checkpoints itself and computes pending, live and stale the way `threads_for` does, because `threads_for` returns at most 12 and no `project_id` or `private`. Threads and checkpoints are in the local cache.
+  - **Private:** private threads show in the app, blurred in lists like private notes. The skill's privacy rule now names threads (re-upload the skill). The live meeting agent's rule (`agent_config` `meeting-agent-9f-people-links`, mirrored in `agents/meeting-agent.md`) still lists notes, tasks, sources and people only; it was not changed.
+  - **Data on 25 Nov:** 38 active threads, 2 private, 0 closed or merged. `zenara:weekly-plan` has 2 merged checkpoints. No checkpoint was pending (including `zenara-website:revamp`) and no `hub_sessions` row had a `thread_id`, so pending and live were tested with the mock only.
+  - Test: new `threads.mjs`. `brief.mjs` fails in the evening IST because it expects the morning page; that is unrelated and was failing before this change.
 - **Tharavad stack review and strategy run (23 Nov):** no app change. Stack review approved (https://claude.ai/artifact/2K7Ts269u63yU7nvgrXdie): research via Claude web search, then Exa's free tier, then Nimble; Vercel Pro kept for Small Fish and Filow; self-hosted Postiz later. The Basic environment's setup script was removed (the YouTube secrets stay as environment variables). `agent_config` has a new `playbook-strategy-run`; `playbook-runner` gained "Orders that wait" (an order starting "Not before YYYY-MM-DD" is held until then); `playbook-librarian` now searches with built-in web search first. Orders 2–8 queue a strategy run per company from 24 Nov, then a Karanavar portfolio memo on 27 Nov.
 - **Tharavad Library v2 and the Talent bench (22 Nov):** see `docs/tharavad-library-talent.md`. Database only; no app change.
   - **New tables:** `library_sources` (the reading queue), `bench` (outside personas), `panels`.
