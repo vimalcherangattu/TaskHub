@@ -33,10 +33,10 @@ html.float .wrap{display:block}
 .stage{position:relative;width:340px;height:600px;max-width:100%;flex:none}
 html.float .stage{width:100vw;height:100vh;max-width:none}
 canvas#c{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#lampHit{position:absolute;left:50%;bottom:10px;width:132px;height:218px;transform:translateX(-50%);cursor:grab;border-radius:40% 40% 12px 12px;touch-action:none}
+#lampHit{position:absolute;left:50%;bottom:10px;width:70px;height:104px;transform:translateX(-50%);cursor:grab;border-radius:40% 40% 12px 12px;touch-action:none}
 #lampHit:active{cursor:grabbing}
 #lampHit:focus-visible{outline:2px dashed var(--accent);outline-offset:2px}
-#card{position:absolute;left:8px;right:8px;bottom:236px;max-height:calc(100% - 246px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;
+#card{position:absolute;left:8px;right:8px;bottom:120px;max-height:calc(100% - 130px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;
   padding:12px 14px;display:grid;gap:10px;box-shadow:0 10px 30px -12px rgba(60,30,0,.45);transform-origin:50% 100%;
   animation:pop .22s ease-out}
 #card::after{content:"";position:absolute;left:50%;bottom:-8px;width:14px;height:14px;background:var(--card);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:translateX(-50%) rotate(45deg)}
@@ -508,7 +508,7 @@ function petals(n){for(let i=0;i<n;i++)st.petals.push({x:Math.random()*W,y:-20-M
   vr:(Math.random()-.5)*.08,jas:Math.random()<.6,s:.7+Math.random()*.6})}
 
 /* ---------- drawing ---------- */
-const cv=$("#c"),cx=cv.getContext("2d");let W=340,H=600,S=.72,DPR=1,stageRect={left:0,top:0},bodyC=null,litC=null;
+const cv=$("#c"),cx=cv.getContext("2d");let W=340,H=600,S=.3,DPR=1,stageRect={left:0,top:0},bodyC=null,litC=null;
 function size(){const r=$("#stage").getBoundingClientRect();stageRect=r;W=r.width;H=r.height;DPR=devicePixelRatio||1;cv.width=W*DPR;cv.height=H*DPR;bodyC=null}
 addEventListener("resize",size);size();
 /* The lamp is turned brass, so it is drawn like a lathe: a profile of [y, radius] pairs, in lamp units
@@ -577,7 +577,7 @@ function frame(now){
   st.glow+=((base+(st.festival?.15:0)+.6*prox+.5*st.flare)-st.glow)*Math.min(1,dt*4);
   st.lean+=(lt-st.lean)*Math.min(1,dt*5);st.flare=Math.max(0,st.flare-dt*.5);st.shiver=Math.max(0,st.shiver-dt*.7);
   const heat=st.mood==="worried"?1:0,jit=(reduce?.3:1)*(st.mood==="focus"||st.mood==="meeting"?.25:st.mood==="worried"?1.7:1)+st.shiver*3;
-  const hg=cx.createRadialGradient(front.x,front.y-26,4,front.x,front.y-26,Math.max(10,70+150*st.glow));
+  const hg=cx.createRadialGradient(front.x,front.y-26,4,front.x,front.y-26,Math.max(10,(70+150*st.glow)*.55));
   hg.addColorStop(0,`rgba(255,190,80,${.42*st.glow})`);hg.addColorStop(.45,`rgba(255,150,40,${.16*st.glow})`);hg.addColorStop(1,"rgba(255,140,30,0)");
   cx.fillStyle=hg;cx.fillRect(0,0,W,H);
   // the brass, lit by its own flames
@@ -590,8 +590,8 @@ function frame(now){
   // streak studs on the foot: one per day in a row, up to 14
   const sk=Math.min(14,(st.data&&st.data.streak)||0);
   for(let k=0;k<14;k++){const a=(25+130*(k+.5)/14)*Math.PI/180,x=LX+Math.cos(a)*67*S,y=LY+(-13+Math.sin(a)*67*SQ*.85)*S;
-    if(k<sk){cx.fillStyle=`rgba(255,200,90,${.25+.2*st.glow})`;cx.beginPath();cx.arc(x,y,3.4,0,6.3);cx.fill();cx.fillStyle="#ffe7a6";cx.beginPath();cx.arc(x,y,1.5,0,6.3);cx.fill()}
-    else{cx.fillStyle="rgba(60,35,5,.55)";cx.beginPath();cx.arc(x,y,1.4,0,6.3);cx.fill()}}
+    if(k<sk){cx.fillStyle=`rgba(255,200,90,${.25+.2*st.glow})`;cx.beginPath();cx.arc(x,y,2,0,6.3);cx.fill();cx.fillStyle="#ffe7a6";cx.beginPath();cx.arc(x,y,.9,0,6.3);cx.fill()}
+    else{cx.fillStyle="rgba(60,35,5,.55)";cx.beginPath();cx.arc(x,y,.8,0,6.3);cx.fill()}}
   cx.save();cx.translate(LX,LY);cx.scale(S,S);
   if(st.festival)garland(cx,t);
   // wicks and flames: back ones first
@@ -610,16 +610,16 @@ function frame(now){
   if(st.festival&&!reduce&&Math.random()<dt*.3)petals(1);
   cx.globalCompositeOperation="lighter";
   st.sparks=st.sparks.filter(p=>(p.life-=dt*(p.big?.7:.9))>0);
-  for(const p of st.sparks){p.x+=p.vx;p.y+=p.vy;p.vy*=.985;cx.fillStyle=`rgba(255,${180+60*p.life|0},90,${p.life})`;cx.beginPath();cx.arc(front.x+p.x,front.y-34+p.y,(p.big?2.2:1.3)*p.life+.3,0,6.3);cx.fill()}
+  for(const p of st.sparks){p.x+=p.vx;p.y+=p.vy;p.vy*=.985;cx.fillStyle=`rgba(255,${180+60*p.life|0},90,${p.life})`;cx.beginPath();cx.arc(front.x+p.x*.5,front.y-16+p.y*.5,((p.big?2.2:1.3)*p.life+.3)*.7,0,6.3);cx.fill()}
   cx.globalCompositeOperation="source-over";
   st.petals=st.petals.filter(p=>p.y<H+20);
   for(const p of st.petals){p.y+=p.vy*60*dt;p.sw+=dt*2;p.x+=Math.sin(p.sw)*.6;p.r+=p.vr;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);
     cx.fillStyle=p.jas?"#fffaf0":"#f29f05";cx.strokeStyle=p.jas?"rgba(140,120,80,.35)":"rgba(150,70,0,.4)";cx.lineWidth=.6;
     cx.beginPath();cx.ellipse(0,0,6*p.s,2.8*p.s,0,0,6.3);cx.fill();cx.stroke();cx.restore()}
-  if(st.mood==="sleepy"){cx.fillStyle="rgba(200,170,120,.7)";cx.font="600 14px "+getComputedStyle(document.body).fontFamily;
-    for(let i=0;i<3;i++){const ph=(t*.4+i/3)%1;cx.globalAlpha=1-ph;cx.fillText("z",front.x+20+ph*16,front.y-56-ph*40)}cx.globalAlpha=1}
+  if(st.mood==="sleepy"){cx.fillStyle="rgba(200,170,120,.7)";cx.font="600 10px "+getComputedStyle(document.body).fontFamily;
+    for(let i=0;i<3;i++){const ph=(t*.4+i/3)%1;cx.globalAlpha=1-ph;cx.fillText("z",front.x+10+ph*10,front.y-30-ph*24)}cx.globalAlpha=1}
   if(st.focus){const f=Math.max(0,(st.focus.end-Date.now())/(25*60e3));cx.strokeStyle="rgba(255,190,90,.8)";cx.lineWidth=3;cx.lineCap="round";
-    cx.beginPath();cx.arc(LX,LY-262*S,20,-Math.PI/2,-Math.PI/2+f*Math.PI*2);cx.stroke();if(f<=0)stopFocus(true)}
+    cx.beginPath();cx.arc(LX,LY-262*S,10,-Math.PI/2,-Math.PI/2+f*Math.PI*2);cx.stroke();if(f<=0)stopFocus(true)}
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
