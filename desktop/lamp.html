@@ -55,6 +55,7 @@ button:hover,.btn:hover{border-color:var(--accent)}
 button:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 button[aria-pressed="true"]{background:var(--soft);border-color:var(--accent)}
+#snd button[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 button:disabled{opacity:.5;cursor:default}
 .chips{display:flex;flex-wrap:wrap;gap:4px 10px;font:500 12px/1.4 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
 .chips b{color:var(--ink);font-weight:500}
@@ -65,6 +66,11 @@ button:disabled{opacity:.5;cursor:default}
 .foot small{color:var(--muted);font-size:11px}
 .timer{font:500 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
 .err{color:var(--warn)}
+#snd{display:grid;gap:8px;padding:10px;background:var(--soft);border-radius:10px}
+#snd .modes{display:flex;flex-wrap:wrap;gap:6px}
+#snd .hint{color:var(--muted);font-size:12px;margin:0}
+#snd label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+#snd input[type=range]{flex:1;accent-color:var(--accent);min-height:24px}
 @media (prefers-reduced-motion: reduce){#card{animation:none}}
 </style>
 
@@ -85,7 +91,20 @@ button:disabled{opacity:.5;cursor:default}
         <button id="bFocus" type="button">Focus 25</button>
         <button id="bCap" type="button">Capture</button>
         <button id="bTalk" type="button">Say something</button>
+        <button id="bSnd" type="button" aria-expanded="false" aria-controls="snd">Sound</button>
         <a class="btn" href="https://task-hub-one-delta.vercel.app/" target="_blank" rel="noopener">Ambalam</a>
+      </div>
+      <div id="snd" hidden>
+        <div class="eyebrow">Soundscape</div>
+        <div class="modes" role="radiogroup" aria-label="Soundscape">
+          <button type="button" role="radio" data-m="off" aria-checked="true">Off</button>
+          <button type="button" role="radio" data-m="heal" aria-checked="false">Heal</button>
+          <button type="button" role="radio" data-m="focus" aria-checked="false">Focus</button>
+          <button type="button" role="radio" data-m="uplift" aria-checked="false">Uplift</button>
+          <button type="button" role="radio" data-m="rest" aria-checked="false">Rest</button>
+        </div>
+        <p class="hint" id="sndHint">A low tanpura drone with singing bowls, made live. Use headphones for the gentle beat.</p>
+        <label>Volume <input type="range" id="sndVol" min="0" max="100" value="45" aria-label="Soundscape volume"></label>
       </div>
       <div class="foot">
         <div class="row"><button id="bSound" type="button" aria-pressed="true">Bell</button><button id="bVoice" type="button" aria-pressed="false">Voice</button><button id="bAwake" type="button" aria-pressed="false" title="When you're idle for a minute, nudge the mouse and tap Shift so you stay active (⌥⇧A)">Stay active</button></div>
@@ -426,12 +445,13 @@ function sideUI(){
   desktop.app.dock.setBadge(st.focus?"":left?String(left):"").catch(()=>{});
   if(ps["menu-bar"]!=="granted")return;
   const ft=st.focus?(()=>{const l=Math.max(0,st.focus.end-Date.now());return `${Math.floor(l/6e4)}m`})():"";
-  const key=[ft,left,c&&c.id,!!st.focus,st.awake].join("|");if(key===trayKey)return;trayKey=key;
+  const key=[ft,left,c&&c.id,!!st.focus,st.awake,st.drone].join("|");if(key===trayKey)return;trayKey=key;
   desktop.tray.set({icon:trayPng(),title:st.focus?ft:left?String(left):"",toolTip:c?trunc(ttl(c),90):"Nothing left on Today",
     menu:[{label:c?trunc(ttl(c),48):"Nothing left on Today",enabled:false},
       {label:"Mark done",enabled:!!c,click:()=>doneTask(c)},
       {label:st.focus?"Stop focus":"Focus 25 minutes",click:()=>st.focus?stopFocus(false):startFocus()},
       {label:"Capture…  (⌥⇧Space)",click:()=>{desktop.window.show().catch(()=>{});openCard();openCap()}},
+      {label:"Sound",submenu:Object.keys(MODES).map(k=>({label:MODES[k].label,type:"radio",checked:st.drone===k,click:()=>droneSet(k)}))},
       {label:"Stay active  (⌥⇧A)",type:"checkbox",checked:st.awake,click:()=>awakeToggle()},
       {type:"separator"},
       {label:"Open Ambalam",href:APP_URL},
@@ -512,8 +532,8 @@ const inCallNow=()=>{const n=Date.now();return (st.events||[]).find(e=>e.start-n
 let callSeen=new Set();
 function callGuard(){
   if(!st.inApp)return;const c=inCallNow();
-  if(c&&!callSeen.has(c.id)){callSeen.add(c.id);st.callHidden=c.id;closeCard();desktop.window.hide().catch(()=>{})}
-  else if(!c&&st.callHidden){st.callHidden=null;lastGreet=Date.now()-8*60e3;desktop.window.show().catch(()=>{});setTimeout(()=>say(pick(["Call's done. Welcome back.","Back on the desk. What's next?","That's the call. One small thing now?"])),800)}
+  if(c&&!callSeen.has(c.id)){callSeen.add(c.id);st.callHidden=c.id;closeCard();droneDuck(true);desktop.window.hide().catch(()=>{})}
+  else if(!c&&st.callHidden){st.callHidden=null;droneDuck(false);lastGreet=Date.now()-8*60e3;desktop.window.show().catch(()=>{});setTimeout(()=>say(pick(["Call's done. Welcome back.","Back on the desk. What's next?","That's the call. One small thing now?"])),800)}
 }
 function showDuringCall(){if(st.callHidden)st.callHidden=null}
 
@@ -578,11 +598,91 @@ let dict=null;
   dict.onState(({state})=>{m.setAttribute("aria-pressed",state==="listening");m.textContent=state==="listening"?"Stop":"Mic"});
   m.onclick=()=>{if(m.getAttribute("aria-pressed")==="true"){dict.stop().catch(()=>{});return}base=$("#capIn").value;dict.start().catch(e=>{if(e&&e.code==="not_granted")m.hidden=true})}})();
 
-/* ---------- sound: a small temple bell ---------- */
-let ac=null;function unlockAudio(){try{ac=ac||new AudioContext();if(ac.state==="suspended")ac.resume()}catch{}}
-function chime(n=1){if(!st.sound||!ac)return;for(let k=0;k<n;k++){const t0=ac.currentTime+k*.28,base=k%2?988:784;
-  [[1,.5,2.6],[2.76,.22,1.4],[5.4,.1,.8],[8.93,.05,.5]].forEach(([r,g,dec])=>{const o=ac.createOscillator(),v=ac.createGain();o.frequency.value=base*r;
-    v.gain.setValueAtTime(0,t0);v.gain.linearRampToValueAtTime(g*.22,t0+.005);v.gain.exponentialRampToValueAtTime(1e-4,t0+dec);o.connect(v).connect(ac.destination);o.start(t0);o.stop(t0+dec+.05)})}}
+/* ---------- sound: one audio graph ----------
+   master -> compressor -> speakers, with a send into a generated room reverb. The bell and the soundscapes share it. */
+let ac=null,AU=null;
+function unlockAudio(){try{if(!ac){ac=new AudioContext();buildAudio()}if(ac.state==="suspended")ac.resume()}catch{}}
+function buildAudio(){
+  const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;comp.connect(ac.destination);
+  const master=ac.createGain();master.gain.value=.9;master.connect(comp);
+  const rev=ac.createConvolver(),len=ac.sampleRate*3.2,ir=ac.createBuffer(2,len,ac.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2)}
+  rev.buffer=ir;const wet=ac.createGain();wet.gain.value=.32;rev.connect(wet).connect(master);
+  const noise=ac.createBuffer(1,ac.sampleRate*6,ac.sampleRate),nd=noise.getChannelData(0);let lastN=0; // brown noise
+  for(let i=0;i<nd.length;i++){lastN=(lastN+.02*(Math.random()*2-1))/1.02;nd[i]=lastN*3.5}
+  AU={master,rev,noise};
+}
+const out=(node,send=.5)=>{node.connect(AU.master);if(send){const g=ac.createGain();g.gain.value=send;node.connect(g).connect(AU.rev)}};
+
+/* A brass temple bell (mani): a low hum, a strike, then inharmonic partials, each a slightly detuned pair
+   so the ring wobbles, the lower ones ringing longest. */
+const BELL=[[.5,.32,7],[1,1,5.5],[1.19,.45,4.2],[1.5,.3,3.6],[2,.55,3.2],[2.51,.22,2.3],[2.99,.18,1.8],[4.17,.12,1.2],[5.43,.08,.8],[6.8,.05,.5]];
+function bell(t0,base,vol=.22){
+  for(const [r,g,dec] of BELL){for(const det of [-1,1]){const o=ac.createOscillator(),v=ac.createGain();
+    o.frequency.value=base*r+det*(.35+r*.25);v.gain.setValueAtTime(0,t0);v.gain.linearRampToValueAtTime(g*vol*.5,t0+.004);
+    v.gain.exponentialRampToValueAtTime(1e-4,t0+dec);o.connect(v);out(v,.45);o.start(t0);o.stop(t0+dec+.1)}}
+  const n=ac.createBufferSource(),bp=ac.createBiquadFilter(),v=ac.createGain();n.buffer=AU.noise;bp.type="bandpass";bp.frequency.value=base*4;bp.Q.value=1.2;
+  v.gain.setValueAtTime(vol*.9,t0);v.gain.exponentialRampToValueAtTime(1e-4,t0+.06);n.connect(bp).connect(v);out(v,.3);n.start(t0,Math.random()*4);n.stop(t0+.08);
+}
+function chime(n=1){if(!st.sound)return;unlockAudio();if(!ac)return;for(let k=0;k<n;k++)bell(ac.currentTime+.02+k*.9,k%2?587:523)}
+
+/* ---------- soundscapes ----------
+   Each is a plucked tanpura drone (Pa, Sa, Sa, low Sa, round and round), a soft pad, a binaural beat
+   (left and right a few Hz apart, felt in headphones), and optionally brown noise and singing bowls.
+   These are relaxing sounds; the beat frequencies follow common practice, not proven effects. */
+const MODES={
+  off:{label:"Off"},
+  heal:{label:"Heal",sa:136.1,cut:900,pluck:1.5,beat:6,noise:0,bowl:[16,28],pad:.5,hint:"Om tone (136 Hz) drone, singing bowls, a slow 6 Hz beat. Unhurried."},
+  focus:{label:"Focus",sa:110,cut:650,pluck:1.9,beat:14,noise:.5,bowl:null,pad:.35,hint:"Brown noise to mask the room, a quiet low drone, a 14 Hz beat. Nothing to listen to, on purpose."},
+  uplift:{label:"Uplift",sa:196,cut:1700,pluck:1.1,beat:18,noise:0,bowl:[40,70],pad:.45,hint:"Brighter tanpura in G, a little quicker, a 18 Hz beat. For getting going."},
+  rest:{label:"Rest",sa:98,cut:480,pluck:2.6,beat:3,noise:.35,bowl:[35,60],pad:.6,hint:"Very low drone, ocean-like swells, a slow 3 Hz beat. For winding down."}};
+const TAN=[.75,1,1,.5];
+st.drone="off";let D=null,droneVol=ls.get("sndVol",45)/100;
+function droneSet(m){
+  if(m!=="off")unlockAudio();if(!ac&&m!=="off")return;
+  droneStop();st.drone=m;if(m!=="off")droneStart(MODES[m]);
+  for(const b of document.querySelectorAll("#snd [data-m]"))b.setAttribute("aria-checked",b.dataset.m===m);
+  $("#sndHint").textContent=MODES[m].hint||"A low tanpura drone with singing bowls, made live. Use headphones for the gentle beat.";
+  $("#bSnd").textContent=m==="off"?"Sound":"Sound: "+MODES[m].label;sideUI();
+}
+function droneStart(M){
+  const t=ac.currentTime,bus=ac.createGain();bus.gain.setValueAtTime(0,t);bus.gain.linearRampToValueAtTime(droneVol*.55,t+4);out(bus,.55);
+  const nodes=[];const keep=n=>(nodes.push(n),n);
+  // pad: two soft sines on Sa, an octave apart
+  for(const [r,g] of [[.5,.35],[1,.25]]){const o=keep(ac.createOscillator()),v=ac.createGain();o.frequency.value=M.sa*r;v.gain.value=g*M.pad*.25;o.connect(v).connect(bus);o.start()}
+  // binaural beat around low Sa
+  const mer=ac.createChannelMerger(2),bg=ac.createGain();bg.gain.value=.05;mer.connect(bg).connect(bus);
+  [0,M.beat].forEach((d,ch)=>{const o=keep(ac.createOscillator());o.frequency.value=M.sa*.5+d;o.connect(mer,0,ch);o.start()});
+  // brown noise, slowly swelling for Rest
+  if(M.noise){const n=keep(ac.createBufferSource()),lp=ac.createBiquadFilter(),v=ac.createGain();n.buffer=AU.noise;n.loop=true;lp.type="lowpass";lp.frequency.value=420;v.gain.value=M.noise*.5;
+    if(M===MODES.rest){const l=keep(ac.createOscillator()),lg=ac.createGain();l.frequency.value=.075;lg.gain.value=M.noise*.35;l.connect(lg).connect(v.gain);l.start()}
+    n.connect(lp).connect(v).connect(bus);n.start()}
+  D={bus,nodes,M,next:t+.3,i:0,bowlAt:M.bowl?t+6:Infinity,iv:null};
+  D.iv=setInterval(droneTick,500);droneTick();
+}
+function pluck(t,f,M){ // a tanpura string: buzzy saw through a closing lowpass, long ring
+  const o=ac.createOscillator(),o2=ac.createOscillator(),lp=ac.createBiquadFilter(),v=ac.createGain();o.type="sawtooth";o2.type="sawtooth";o.frequency.value=f;o2.frequency.value=f*1.003;
+  lp.type="lowpass";lp.Q.value=4;lp.frequency.setValueAtTime(M.cut*2.2,t);lp.frequency.exponentialRampToValueAtTime(M.cut*.6,t+2.5);
+  v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.12,t+.03);v.gain.exponentialRampToValueAtTime(1e-4,t+M.pluck*4.5);
+  o.connect(lp);o2.connect(lp);lp.connect(v).connect(D.bus);o.start(t);o2.start(t);o.stop(t+M.pluck*4.6);o2.stop(t+M.pluck*4.6)}
+function bowl(t,f){ // a singing bowl: few partials, beating pairs, very long ring
+  for(const [r,g,dec] of [[1,1,14],[2.71,.4,9],[5.15,.15,5],[8.4,.06,3]])for(const det of [-1,1]){const o=ac.createOscillator(),v=ac.createGain();
+    o.frequency.value=f*r+det*.6*r;v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.07*g,t+.02);v.gain.exponentialRampToValueAtTime(1e-4,t+dec);
+    o.connect(v).connect(D.bus);o.start(t);o.stop(t+dec+.1)}}
+function droneTick(){
+  if(!D)return;const M=D.M,ahead=ac.currentTime+8;
+  while(D.next<ahead){pluck(D.next,M.sa*TAN[D.i%4],M);D.i++;D.next+=M.pluck*(D.i%4===0?1.35:1)*(.96+Math.random()*.08)}
+  if(D.bowlAt<ahead){bowl(D.bowlAt,M.sa*2*(Math.random()<.3?1.5:1));D.bowlAt+=M.bowl[0]+Math.random()*(M.bowl[1]-M.bowl[0])}
+}
+function droneStop(){if(!D)return;const d=D;D=null;clearInterval(d.iv);const t=ac.currentTime;
+  d.bus.gain.cancelScheduledValues(t);d.bus.gain.setValueAtTime(d.bus.gain.value,t);d.bus.gain.linearRampToValueAtTime(0,t+2);
+  setTimeout(()=>{for(const n of d.nodes)try{n.stop()}catch{}d.bus.disconnect()},2300)}
+let ducked=null;
+function droneDuck(on){if(on){if(st.drone!=="off"){ducked=st.drone;droneSet("off")}}else if(ducked){const m=ducked;ducked=null;droneSet(m)}}
+$("#bSnd").onclick=()=>{const p=$("#snd"),o=p.hidden;p.hidden=!o;$("#bSnd").setAttribute("aria-expanded",o);unlockAudio()};
+for(const b of document.querySelectorAll("#snd [data-m]"))b.onclick=()=>droneSet(b.dataset.m);
+$("#sndVol").value=Math.round(droneVol*100);
+$("#sndVol").oninput=e=>{droneVol=e.target.value/100;ls.set("sndVol",+e.target.value);if(D)D.bus.gain.setTargetAtTime(droneVol*.55,ac.currentTime,.2)};
 
 /* ---------- celebrations ---------- */
 function celebrate(n,mine){st.lastDone=Date.now();st.flare=1;chime(mine?2:1);burst(18);petals(reduce?8:26+n*6);
