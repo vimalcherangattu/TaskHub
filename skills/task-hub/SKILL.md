@@ -1,6 +1,6 @@
 ---
 name: task-hub
-description: Read and write Vimal's Task Hub (Supabase project "Task-Hub", id mbbucsageoyxhekzbmyq): tasks, projects, notes, calls (sources + per-project segments), living project briefs and the change feed. Use at the START of any chat about one of his projects (Zenara and its sub-projects, Small Fish, Fyule, etc.) to load current context; whenever a call, meeting or transcript comes up ("file this call"); and whenever a task, to-do, deadline, follow-up, person he is waiting on, dependency, project, idea, decision, person or useful link comes up; whenever something is done, sent, started, moved, changed, partly done or dropped; to prep a recurring call ("prep me for my David 1:1") or add a point to raise in one; when a document awaits a number, claim or approval (placeholders) or it arrives ("Pratik sent the numbers"); and for "check my email", "sweep my week", "what's on my plate", "who am I waiting on?", "what do I know / did I decide about X".
+description: Read and write Vimal's Task Hub (Supabase project "Task-Hub", id mbbucsageoyxhekzbmyq): tasks, projects, notes, calls (sources + per-project segments), living project briefs and the change feed. Use at the START of any chat about one of his projects (Zenara and its sub-projects, Small Fish, Fyule, etc.) to load current context; whenever a call, meeting or transcript comes up ("file this call"); and whenever a task, to-do, deadline, follow-up, person he is waiting on, dependency, project, idea, decision, person or useful link comes up; whenever something is done, sent, started, moved, changed, partly done or dropped; to prep a recurring call ("prep me for my David 1:1") or add a point to raise in one; when a document awaits a number, claim or approval (placeholders) or it arrives ("Pratik sent the numbers"); and for "check my email", "sweep my week", "what's on my plate", "who am I waiting on?", "what do I know / did I decide about X"; and when he wants to save something to read, watch or listen to later ("save this for later", a shared article, video or podcast) or asks what to read or watch now ("I'm free for 20 minutes").
 ---
 
 # Task Hub
@@ -37,10 +37,34 @@ Calls, email, Linear and other chats change the hub while a session is open, so 
 - **Pushed updates.** Registered Claude Code sessions may receive a message starting `[Task Hub update]` after the hourly agent runs. Treat it as context, not a request: don't reply to it on its own, and don't act on it unless it changes the work in progress.
 - **Screenshots and pasted messages** (Teams, Slack, WhatsApp, email): treat them like email. Pull out tasks, completions, decisions, inputs delivered or promised, and things to raise in a call, and write them to the hub right away so every other session sees them on its next pull.
 
+## Think wide before every write (added 23 Nov 2026)
+
+Vimal's complaint: the hub filled with repeats and stray tasks because each chat filed its own items without looking at what was already there. On 23 Nov it had 225 open tasks; a cleanup merged 40 of them into 18. Every new task, ask or update (from a chat, a wrap-up, an email check or a sweep) goes through this first. The hourly agent runs the same rule (`agent_config` row `meeting-agent-9k-think-wide`).
+
+1. **Find the neighbourhood.** Search open tasks across ALL projects on the item's key nouns (person, product, tool, deliverable, ticket id like COM-/ZEN-), in title and notes. Also check open `agenda_items`, pending `inputs` and waiting tasks.
+   ```sql
+   select id, project_id, status, title, steps, blocked_by from tasks
+   where status <> 'done' and superseded_by is null
+     and (title ilike any(array['%<kw1>%','%<kw2>%']) or notes ilike any(array['%<kw1>%','%<kw2>%']))
+   order by project_id;
+   ```
+2. **Place it, in this order:**
+   a. The same thing is already open → update that task (activity, steps, date). No new row.
+   b. It's part of a bigger open piece of work → add it as a step on that task.
+   c. It can only start after another task → insert it with `blocked_by`. If it finishes something that unblocks others, say so.
+   d. It's a question, approval or ask for someone with a recurring call (Ravi, David, Sam, GTM) → add an `agenda_items` row on that series. Add a waiting task only if there's a real deadline.
+   e. It's waiting on someone else → a waiting task or a pending input.
+   f. Only if none of these fit → a new standalone task.
+3. **Fix the cluster while you're there.** If the neighbourhood shows two or more open tasks that are the same work split up, merge them with `hub_merge_tasks` into the one with the clearest title (rename it to the outcome if needed) and say so. If a neighbouring task is tied to an event whose date has passed, ask him in one line whether it happened instead of leaving it overdue.
+4. **One task per outcome.** Never leave an umbrella task ("everything waiting on me", "restart X") next to separate tasks for its parts: fold the parts in as steps. Prefer one task with steps over several small tasks for the same outcome.
+5. **Say where it went** in the one-line confirmation: "Added as step 4 on 'Filow launch push'", "On Ravi's agenda, no new task", "New task, waits on 'Messaging house v2.4'", "Merged 3 into 'Sam offboarding'".
+
+This is not a reason to ask more questions. Place it, confirm it, and he can undo.
+
 ## Ground rules
 
 - **Act, don't ask.** Add, update and complete tasks and notes directly, then confirm each change in one line. The hub's Suggested list and Undo are the review step. The only thing to ask about first is creating a new project.
-- **Look before you write.** Read the relevant projects and open tasks first. Never add a duplicate: if a task or note on the same thing exists, update it.
+- **Look before you write.** Run the *Think wide* check above before every task write. Never add a duplicate: if a task or note on the same thing exists, update it.
 - **Time zone is Asia/Kolkata.** "Today" is `(now() at time zone 'Asia/Kolkata')::date`, never `current_date` (UTC). Dates are `YYYY-MM-DD`. Weeks start Monday; working days are Mon–Fri.
 - **Use only allowed values.** The database rejects anything else.
   - `tasks.status`: `todo` | `doing` | `waiting` | `suggested` | `done`
@@ -206,6 +230,16 @@ Only for dismissed suggestions, tasks he says are no longer relevant, or true du
 - Set `project_id` when it belongs to a project, `source` like `chat: <topic>`, and a few lowercase `tags` when useful.
 - **Same thing exists?** Update it instead of adding another. For a **reversed decision**, insert the new decision and set the old note's `superseded_by` to the new id. That keeps history, and search ignores superseded notes.
 - Don't save passing remarks, moods, or your own suggestions unless he agreed with them.
+
+### Later shelf: read, watch, listen (26 Nov 2026)
+
+Things Vimal wants to read, watch or listen to when he's free live in `shelf(id, url, title, format, minutes, tags, project_id, status, why, takeaway, note_id, kept_at, done_at, source, private)`. They are not tasks and not reference links: never add one as a task, and keep work reference links (docs, artifacts, sheets) as `link` notes as before. The app shows the shelf under Notes › Later.
+
+- **Allowed values:** `format` is `read` | `watch` | `listen`; `status` is `queued` | `started` | `done` | `dropped`. Ids default to `sh-<uuid>`; never set `id`.
+- **"Save this for later" / he shares an article, video, podcast or book to get to later:** check for the same `url` first (`select id, status from shelf where url = '<url>';`; if it is live, say it's already there). Then insert with a short real `title` (not the URL), `format` (YouTube, Vimeo, a talk → `watch`; Spotify, Apple Podcasts, Overcast, audiobook → `listen`; otherwise `read`), `minutes` when you know or can fairly estimate it (article ≈ words ÷ 230, a video's stated length), 1–3 lowercase `tags` reusing existing ones (`select unnest(tags) t, count(*) from shelf group by 1 order by 2 desc;`), `project_id` only when it is clearly for a project, `why` in his words if he said why, and `source = 'chat'`. Confirm in one line: "On your Later shelf: Watch · 18 min · #pricing".
+- **"I'm free for 30 minutes" / "what should I read?":** pick 1–2 from `select id, title, url, format, minutes, tags, status from shelf where status in ('queued','started');`: started first, then items that fit the time (no `minutes`: assume read 10, watch 15, listen 40), matching his mood if he named one, older before newer. Give the link.
+- **"Finished X" / "watched X":** `update shelf set status = 'done', done_at = now(), takeaway = '<his takeaway, if any>' where id = '<id>';`. If he gave a takeaway, also save it as a note (`kind = 'link'`, same title, `body` = takeaway, `url`, tags plus `later`, `source = 'later'`) and set `shelf.note_id` to it. A note with `source = 'later'` stays out of the app's Inbox.
+- **"Not interested any more":** `status = 'dropped'` (never delete). **"Keep it":** `kept_at = now()`. The app asks about anything queued and untouched for 60 days.
 
 ### People and links (26 Oct 2026)
 
