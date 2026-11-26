@@ -1,0 +1,700 @@
+<title>Vilakku</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<script type="application/json" id="claude-artifacts-manifest">{"permissions": ["overlay", "shortcuts", "notifications", "menu-bar", "full-access"]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a fixed 340x600 stage. The brass lamp stands at the bottom, its speech card floats above it.
+   On the desktop the window is see-through and clicks pass through everything except the lamp and the card. */
+:root{
+  --stage:#efe3cc; --card:#fffaf0; --ink:#2a1d10; --muted:#6a5436; --line:#e3d1b0;
+  --accent:#9c5416; --accent-ink:#ffffff; --soft:#f6ecd8; --good:#2f6f47; --warn:#a63a1b;
+  --f-display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --stage:#140e09; --card:#211912; --ink:#f6ead6; --muted:#c7ae8a; --line:#3e2f1f;
+  --accent:#e3a548; --accent-ink:#1d140b; --soft:#2b2117; --good:#79c99a; --warn:#ff9270; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --stage:#140e09; --card:#211912; --ink:#f6ead6; --muted:#c7ae8a; --line:#3e2f1f;
+  --accent:#e3a548; --accent-ink:#1d140b; --soft:#2b2117; --good:#79c99a; --warn:#ff9270; color-scheme:dark}
+body{background:var(--stage);color:var(--ink);font:14px/1.45 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px}
+[hidden]{display:none!important}
+html.float,html.float body{background:transparent!important;padding:0;overflow:hidden}
+/* a dark color-scheme inside a light window paints an opaque canvas, so the floating lamp never asks for one */
+html.float,html.float:root{color-scheme:light!important}
+.wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+html.float .wrap{display:block}
+#setup{max-width:360px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:10px}
+#setup h1{font:700 22px/1.1 var(--f-display);margin:0;text-wrap:balance}
+#setup p{margin:0;color:var(--muted)}
+.stage{position:relative;width:340px;height:600px;max-width:100%;flex:none}
+html.float .stage{width:100vw;height:100vh;max-width:none}
+canvas#c{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#lampHit{position:absolute;left:50%;bottom:10px;width:70px;height:104px;transform:translateX(-50%);cursor:grab;border-radius:40% 40% 12px 12px;touch-action:none}
+#lampHit:active{cursor:grabbing}
+#lampHit:focus-visible{outline:2px dashed var(--accent);outline-offset:2px}
+#card{position:absolute;left:8px;right:8px;bottom:120px;max-height:calc(100% - 130px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:12px 14px;display:grid;gap:10px;box-shadow:0 10px 30px -12px rgba(60,30,0,.45);transform-origin:50% 100%;
+  animation:pop .22s ease-out}
+#card::after{content:"";position:absolute;left:50%;bottom:-8px;width:14px;height:14px;background:var(--card);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:translateX(-50%) rotate(45deg)}
+@keyframes pop{from{transform:scale(.92);opacity:.4}to{transform:none;opacity:1}}
+#say{margin:0;font:600 16px/1.3 var(--f-display);text-wrap:balance}
+#card.brief>*:not(#say){display:none}
+.now{display:grid;gap:6px;padding:10px;background:var(--soft);border-radius:10px;min-width:0}
+.eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ttl{font-weight:600;overflow-wrap:anywhere}
+.ttl.priv{font-style:italic;color:var(--muted)}
+.meta{color:var(--muted);font-size:12px}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+button,.btn{font:500 13px/1 var(--f-body);border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+  padding:8px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button:hover,.btn:hover{border-color:var(--accent)}
+button:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button[aria-pressed="true"]{background:var(--soft);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:4px 10px;font:500 12px/1.4 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.chips b{color:var(--ink);font-weight:500}
+.chips .hot b{color:var(--warn)}
+#cap{display:flex;gap:6px}
+#cap input{flex:1;min-width:0;font:14px var(--f-body);padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.foot small{color:var(--muted);font-size:11px}
+.timer{font:500 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.err{color:var(--warn)}
+@media (prefers-reduced-motion: reduce){#card{animation:none}}
+</style>
+
+<div class="wrap">
+  <div id="setup" hidden>
+    <h1 id="setupH">Vilakku lives on your desktop</h1>
+    <p id="setupP">Install it from the Claude desktop app. The lamp then floats over your other windows, watches your Today list and cheers you on.</p>
+    <div class="row"><button id="setupBtn" class="pri" hidden>Install as app</button></div>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+    <div id="card" class="hit brief" hidden aria-live="polite">
+      <p id="say">Lighting the wicks…</p>
+      <div class="now" id="now"></div>
+      <div class="chips" id="chips"></div>
+      <form id="cap" hidden><input id="capIn" placeholder="Capture to Inbox…" maxlength="200" autocomplete="off" aria-label="Capture a task to your Inbox"><button type="button" id="mic" hidden aria-label="Speak the task">Mic</button><button class="pri" type="submit">Add</button></form>
+      <div class="row">
+        <button id="bFocus" type="button">Focus 25</button>
+        <button id="bCap" type="button">Capture</button>
+        <button id="bTalk" type="button">Say something</button>
+        <a class="btn" href="https://task-hub-one-delta.vercel.app/" target="_blank" rel="noopener">Ambalam</a>
+      </div>
+      <div class="foot">
+        <div class="row"><button id="bSound" type="button" aria-pressed="true">Bell</button><button id="bVoice" type="button" aria-pressed="false">Voice</button><button id="bAwake" type="button" aria-pressed="false" title="When you're idle for a minute, nudge the mouse and tap Shift so you stay active (⌥⇧A)">Stay active</button></div>
+        <small id="upd"></small>
+      </div>
+    </div>
+    <div id="lampHit" class="hit" role="button" tabindex="0" aria-label="Vilakku, the lamp. Click to open, drag to move."></div>
+  </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const SERVER="Supabase Connector", APP_URL="https://task-hub-one-delta.vercel.app/";
+const $=s=>document.querySelector(s);
+const ls={get(k,d){try{const v=localStorage.getItem("vilakku."+k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem("vilakku."+k,JSON.stringify(v))}catch{}}};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const q=s=>"'"+String(s).replace(/\u0000/g,"").replace(/'/g,"''")+"'";
+const okId=id=>typeof id==="string"&&/^t-[0-9a-f-]{36}$/.test(id);
+const ttl=t=>t?(t.private?"Private task":t.title):"";
+const trunc=(s,n)=>s.length>n?s.slice(0,n-1)+"…":s;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const hhmm=s=>s?String(s).slice(0,5):"";
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+
+/* ---------- state ---------- */
+const st={data:null,err:null,queue:[],idx:0,lit:1,wick:[1,0,0,0,0],glow:.5,lean:0,flare:0,shiver:0,mood:"calm",
+  focus:null,open:false,briefUntil:0,sound:ls.get("sound",true),voice:ls.get("voice",false),
+  cursor:null,bounds:null,inApp:false,float:false,ignore:null,lastDone:Date.now(),busy:false,line:"",rub:[],petals:[],sparks:[],events:[],calOff:false,awake:false,awakeN:0,awakeMsg:"",festival:new Date().getDay()===5};
+let desktop=null,mcp=null,ps={};
+
+/* ---------- SQL ---------- */
+const READ_SQL=`with d as (select (now() at time zone 'Asia/Kolkata')::date td),
+pz as (select distinct unnest(project_tree(id)) pid from projects where paused_at is not null),
+o as (select t.*, p.name pname from tasks t left join projects p on p.id=t.project_id
+  where t.status in ('todo','doing','waiting') and coalesce(t.owner,'me')<>'agent' and t.superseded_by is null
+  and (t.project_id is null or t.project_id not in (select pid from pz)))
+select json_build_object(
+ 'today',(select td from d),
+ 'doing',(select coalesce(json_agg(x),'[]') from (select id,title,pname,status,private,resume_note,due,due_firm,due_time from o where status='doing' order by started_at desc nulls last limit 3) x),
+ 'list',(select coalesce(json_agg(x),'[]') from (select id,title,pname,status,priority,private,due,due_firm,due_time,quick,owed_to,highlight_day=(select td from d) star from o,d where status<>'waiting' and (today_date=td or due=td or (due_firm and due<td)) order by (highlight_day=td) desc nulls last,(due_firm and due<=td) desc nulls last, due_time nulls last, case priority when 'high' then 0 when 'med' then 1 else 2 end limit 12) x),
+ 'slip',(select coalesce(json_agg(x),'[]') from (select id,title,due,due_time,private from o,d where due_firm and due<=td order by due,due_time nulls last limit 5) x),
+ 'owed',(select coalesce(json_agg(x),'[]') from (select id,title,owed_to,created_at,private from o where owed_to is not null order by created_at limit 5) x),
+ 'quick',(select count(*) from o where quick),
+ 'inbox',(select count(*) from tasks where status='suggested' and coalesce(owner,'me')<>'agent'),
+ 'done_today',(select count(*) from tasks,d where status='done' and (done_at at time zone 'Asia/Kolkata')::date=td),
+ 'streak',(with dd as (select distinct (done_at at time zone 'Asia/Kolkata')::date dy from tasks where status='done' and done_at > now()-interval '400 days'),
+   s as (select dy, dy - (row_number() over (order by dy))::int g from dd)
+   select case when max(dy) >= (select td from d)-1 then (select count(*) from s s2 where s2.g=(select g from s where dy=(select max(dy) from dd))) else 0 end from dd),
+ 'done_week',(select count(*) from tasks,d where status='done' and (done_at at time zone 'Asia/Kolkata')::date>=td-((extract(isodow from td)::int)-1))
+) as pet;`;
+const ACT="select set_config('app.actor','lamp',true);";
+const DONE_SQL=id=>`${ACT}
+with o as (select * from tasks where id = ${q(id)} and repeat is not null),
+d as (
+  update tasks set status = 'done', done_at = now(), repeat = null,
+    activity = coalesce(activity,'[]'::jsonb) || jsonb_build_object('at',now(),'by','lamp','text','Done from the desk lamp; next one added')
+  where id = (select id from o) returning id
+),
+n as (
+  select o.*, (select min(x)::date from generate_series(coalesce(o.due,current_date)::timestamp, current_date + 400,
+      case o.repeat when 'daily' then interval '1 day' when 'weekdays' then interval '1 day' when 'weekly' then interval '7 days'
+                    when 'fortnightly' then interval '14 days' else interval '1 month' end) x
+    where x::date > coalesce(o.due,current_date) and x::date >= (now() at time zone 'Asia/Kolkata')::date
+      and (o.repeat <> 'weekdays' or extract(isodow from x) < 6)) as next_due
+  from o join d using (id)
+)
+insert into tasks (title, project_id, priority, notes, steps, repeat, due, due_firm, due_time, owner, private, quick, effort_days, source, status, activity)
+select title, project_id, priority, notes,
+  coalesce((select jsonb_agg(jsonb_build_object('text', s->>'text', 'done', false)) from jsonb_array_elements(n.steps) s), '[]'::jsonb),
+  repeat, next_due, due_firm, due_time, owner, private, quick, effort_days, 'hub', 'todo',
+  jsonb_build_array(jsonb_build_object('at',now(),'by','lamp','text','Repeats; follows the one just done'))
+from n
+where not exists (select 1 from tasks x where x.title = n.title and x.project_id is not distinct from n.project_id
+  and x.repeat = n.repeat and x.status in ('todo','doing','waiting') and x.id <> n.id);
+update tasks set status = 'done', done_at = now(),
+  activity = coalesce(activity,'[]'::jsonb) || jsonb_build_object('at',now(),'by','lamp','text','Done from the desk lamp')
+where id = ${q(id)} and status <> 'done';`;
+const START_SQL=id=>`${ACT} update tasks set status = 'doing', started_at = coalesce(case when status = 'doing' then started_at end, now()) where id = ${q(id)};`;
+const CAP_SQL=t=>`${ACT} insert into tasks (title, status, source, source_chat, activity) values (${q(t)}, 'suggested', 'hub', 'Lamp capture',
+  jsonb_build_array(jsonb_build_object('at',now(),'by','lamp','text','Captured from the desk lamp'))) returning id;`;
+
+function parse(p){
+  if(p&&typeof p==="object"&&!Array.isArray(p)&&p.pet)return p.pet;
+  const s=typeof p==="string"?p:(p&&typeof p.result==="string"?p.result:JSON.stringify(p));
+  const m=s.match(/<untrusted-data-([\w-]+)>\s*(\[[\s\S]*\]|\{[\s\S]*\})\s*<\/untrusted-data-\1>/);
+  const arr=JSON.parse(m?m[2]:s);const row=Array.isArray(arr)?arr[0]:arr;
+  return row&&row.pet?row.pet:row;
+}
+async function sql(query){
+  if(!mcp)throw{code:"nomcp"};
+  const r=await mcp.callTool(SERVER,"execute_sql",{query},{cache:false});
+  return r.payload!==undefined?r.payload:r;
+}
+
+/* ---------- data ---------- */
+async function refresh(){
+  if(st.busy)return;st.busy=true;
+  try{onData(parse(await sql(READ_SQL)))}
+  catch(e){st.err=e;if(!st.data)say(errLine(e),true);paint()}
+  finally{st.busy=false}
+}
+function errLine(e){
+  switch(e&&e.code){
+    case "nomcp":return "I can't reach your tasks from here. Open me in the Claude app.";
+    case "server_not_connected":return "Add the Supabase Connector in claude.ai Settings, Connectors, and I'll find your tasks.";
+    case "needs_reauth":return "Reconnect the Supabase Connector in claude.ai Settings, Connectors.";
+    case "approval_required":case "not_in_manifest":return "I need your OK to read your tasks. Tap Connect.";
+    case "selection_required":return "Pick which Supabase Connector to use when Claude asks.";
+    case "server_unavailable":case "upstream_error":return "The database didn't answer. I'll try again in a minute.";
+    case "tool_error":return "The database refused that. "+trunc(String(e.message||""),120);
+    default:return "Something blocked me: "+trunc(String((e&&e.message)||e),120);
+  }
+}
+function onData(pet){
+  const prev=st.data;st.data=pet;st.err=null;
+  const seen=new Set(),qu=[];
+  for(const t of [...(pet.doing||[]),...(pet.list||[])])if(!seen.has(t.id)){seen.add(t.id);qu.push(t)}
+  const cur=st.queue[st.idx];st.queue=qu;
+  const k=cur?qu.findIndex(x=>x.id===cur.id):-1;st.idx=k>=0?k:0;
+  if(prev&&pet.done_today>prev.done_today)celebrate(pet.done_today-prev.done_today,false);
+  setLit(pet.done_today,!!prev);
+  if(!prev)greet();
+  mood();paint();sideUI();checkNudges();
+}
+const litFor=d=>st.festival?5:1+(d>=3)+(d>=7)+(d>=12)+(d>=20);
+function setLit(done,anim){const n=litFor(done);if(n>st.lit&&anim){chime(2);say(pick(["Another wick lit. Look at that glow.","A new wick for you. Kollaam!","Five wicks is a festival. Keep going."]))}
+  st.lit=n;for(let i=0;i<5;i++)if(i>=n)st.wick[i]=0}
+function mood(){
+  const d=st.data,h=new Date().getHours();
+  st.festival=new Date().getDay()===5;
+  st.mood=st.focus?"focus":meeting()?"meeting":(d&&d.slip&&d.slip.length)?"worried":(h>=23||h<6)?"sleepy":(Date.now()-st.lastDone>2*36e5&&h>=9&&h<21&&st.queue.length)?"idle":"calm";
+}
+
+/* ---------- voice of the lamp ---------- */
+function say(text,stay){st.line=text;$("#say").textContent=text;$("#card").hidden=false;
+  if(!st.open){$("#card").classList.add("brief");clearTimeout(say.t);if(!stay)say.t=setTimeout(()=>{if(!st.open)$("#card").hidden=true},7000)}
+  if(st.voice)speak(text);mouse()}
+function greet(){
+  const d=st.data,c=st.queue[0],h=new Date().getHours();
+  let hi=h<12?"Good morning.":h<17?"Good afternoon.":"Good evening.";if(st.festival)hi+=" It's Friday, so all five wicks are lit.";
+  if(st.mood==="worried")return say(`${hi} “${trunc(ttl(d.slip[0]),60)}” can't slip today${d.slip[0].due_time?`, due ${hhmm(d.slip[0].due_time)}`:""}.`);
+  if(!c)return say(`${hi} Today is clear. ${d.inbox?`${d.inbox} things wait in your Inbox.`:"Light something new?"}`);
+  say(`${hi} ${d.done_today?`${d.done_today} done already. `:""}First up: “${trunc(ttl(c),70)}”.`);
+}
+function localLine(){
+  const d=st.data;if(!d)return "Lighting the wicks…";const c=st.queue[st.idx];
+  switch(st.mood){
+    case "worried":{const s=d.slip[0];return `“${trunc(ttl(s),60)}” can't slip. ${s.due_time?`Due ${hhmm(s.due_time)}.`:"Due today."} I'm flickering until it's done.`}
+    case "sleepy":return pick(["It's late. Close the day and rest. Naale kaanam.","Even lamps get trimmed at night. Wrap up?","The oil's low and so are you. Bed?"]);
+    case "idle":return c?pick([`It's gone quiet. Two minutes on “${trunc(ttl(c),50)}”?`,`My flame's drooping. Feed it one small thing.`,`Start “${trunc(ttl(c),50)}” and I'll stand up straight again.`]):"Quiet hour. Anything in the Inbox worth five minutes?";
+    case "meeting":{const m=meeting(),k=Math.round((m.start-Date.now())/6e4);return k>0?`“${trunc(m.title,50)}” in ${k} min. I've dimmed so you can wrap up.`:`“${trunc(m.title,50)}” is on. I'll keep quiet.`}
+    case "focus":return `Focusing on “${trunc(st.focus.title,60)}”. I'll keep the flame still.`;
+  }
+  const o=(d.owed||[])[0],days=o?Math.floor((Date.now()-new Date(o.created_at))/864e5):0;
+  const opts=[
+    d.done_today?`${d.done_today} done today, ${d.done_week} this week. Adipoli!`:"Nothing done yet. One small win lights the first wick.",
+    c?`Next small step: “${trunc(ttl(c),60)}”.`:"Today's list is empty. Pick one from the Inbox?",
+    d.quick?`${d.quick} two-minute tasks are waiting. Knock one out?`:"One wick at a time.",
+    d.streak>=2?`${d.streak} days in a row with something done. Don't break the chain.`:"Steady flame, steady day.",
+    o&&days>=5?`${o.owed_to} has waited ${days} days on “${trunc(ttl(o),50)}”.`:"Steady flame, steady day.",
+  ];
+  return pick(opts);
+}
+async function claudeLine(){
+  const b=$("#bTalk");b.disabled=true;say("Thinking…",true);
+  try{
+    const sample=await claude.use("sample");if(!sample)throw 0;
+    const d=st.data||{},pub=t=>t&&!t.private;
+    const facts=[`Local time: ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`,
+      `Done today: ${d.done_today??"?"}; this week: ${d.done_week??"?"}`,
+      st.queue[st.idx]&&pub(st.queue[st.idx])?`Working on: ${st.queue[st.idx].title}`:"",
+      `Next up: ${st.queue.filter(pub).slice(0,3).map(t=>t.title).join(" | ")||"nothing on today"}`,
+      (d.slip||[]).filter(pub).length?`Hard deadlines today: ${(d.slip||[]).filter(pub).map(t=>t.title+(t.due_time?" by "+hhmm(t.due_time):"")).join(" | ")}`:"",
+      (d.owed||[]).filter(pub).length?`People waiting on him: ${(d.owed||[]).filter(pub).slice(0,3).map(t=>`${t.owed_to} (${Math.floor((Date.now()-new Date(t.created_at))/864e5)} days, ${t.title})`).join(" | ")}`:"",
+      `Inbox items waiting: ${d.inbox??0}; two-minute tasks: ${d.quick??0}`].filter(Boolean).join("\n- ");
+    const r=await sample(`You are Vilakku, a brass Kerala nilavilakku (oil lamp) that stands on Vimal's desk and keeps him going through the day. Write ONE line, at most 22 words, to motivate him right now. Warm, a little playful, and specific to the facts below. You may use at most one Malayalam word in Latin letters (for example adipoli, kollaam, naale kaanam). No emoji, no hashtags, no quotation marks around the line.\n\nFacts:\n- ${facts}\n\nReturn only the line.`,{modelTier:"quick",cache:false});
+    say((r.text||"").trim().replace(/^["“]|["”]$/g,"")||localLine());st.flare=Math.max(st.flare,.5);
+  }catch(e){say(localLine())}
+  finally{b.disabled=false}
+}
+let ttsP=null;
+async function speak(text){try{ttsP=ttsP||claude.use("tts");const t=await ttsP;if(t)t.speak(text.slice(0,2000),{voice:"rounded"}).catch(()=>{})}catch{}}
+
+/* ---------- actions ---------- */
+async function doneTask(t){
+  if(!t||!okId(t.id))return;
+  const d=st.data;st.queue=st.queue.filter(x=>x.id!==t.id);if(st.idx>=st.queue.length)st.idx=0;
+  if(d){d.done_today++;d.done_week++;d.list=(d.list||[]).filter(x=>x.id!==t.id);d.doing=(d.doing||[]).filter(x=>x.id!==t.id);d.slip=(d.slip||[]).filter(x=>x.id!==t.id)}
+  if(st.focus&&st.focus.id===t.id)stopFocus(false);
+  celebrate(1,true);setLit(d?d.done_today:0,true);mood();paint();sideUI();
+  try{await sql(DONE_SQL(t.id))}catch(e){say("Not sure that saved: "+errLine(e)+" Checking…",true)}
+  setTimeout(refresh,800);
+}
+async function startTask(t){
+  if(!t||!okId(t.id))return;t.status="doing";paint();
+  say(pick([`Started “${trunc(ttl(t),60)}”. I've got the light.`,"Off you go. Flame's steady.","Started. One thing at a time."]));
+  try{await sql(START_SQL(t.id))}catch(e){say("Not sure that saved: "+errLine(e),true)}
+  setTimeout(refresh,800);
+}
+async function capture(text){
+  text=text.trim().replace(/\s+/g," ");if(!text)return;
+  $("#capIn").value="";
+  try{await sql(CAP_SQL(text.slice(0,200)));if(st.data)st.data.inbox++;st.flare=Math.max(st.flare,.4);
+    say(pick(["Caught it. It's waiting in your Inbox.","Into the Inbox. Back to what you were doing.","Saved to the Inbox. Forget it for now."]));paint()}
+  catch(e){$("#capIn").value=text;say("That didn't save: "+errLine(e),true)}
+}
+function startFocus(){
+  const c=st.queue[st.idx];
+  st.focus={id:c?c.id:null,title:c?ttl(c):"whatever matters most",end:Date.now()+25*60e3};
+  chime(1);mood();say(`25 minutes on “${trunc(st.focus.title,60)}”. I'll keep the flame still.`);paint();sideUI();
+}
+function stopFocus(ask){
+  const f=st.focus;st.focus=null;mood();paint();sideUI();
+  if(ask&&f){chime(3);notify(`Focus done: ${f.title}. Finished it?`);st.askDone=f.id;openCard();say("Focus done. Did you finish it?",true);paint()}
+}
+
+/* ---------- calendar: dim before meetings ---------- */
+const CAL="Google Calendar";
+const isoLocal=d=>{const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`};
+const joinLink=e=>[e.hangoutLink,...((e.conferenceData&&e.conferenceData.entryPoints)||[]).filter(x=>x.entryPointType==="video").map(x=>x.uri)].find(u=>typeof u==="string"&&u.startsWith("https://"))||null;
+function meeting(){const n=Date.now();return (st.events||[]).find(e=>e.end>n&&e.start-n<=10*6e4&&e.start-n>-6*36e5)||null}
+async function calRefresh(){
+  if(!mcp||st.calOff)return;
+  try{const n=new Date(),r=await mcp.callTool(CAL,"list_events",{startTime:isoLocal(new Date(+n-3*36e5)),endTime:isoLocal(new Date(+n+12*36e5)),orderBy:"startTime",pageSize:25},{cache:false});
+    let p=r.payload!==undefined?r.payload:r;if(typeof p==="string")p=JSON.parse(p);
+    st.events=((p&&p.events)||[]).filter(e=>e&&e.start&&e.start.dateTime&&e.status!=="cancelled"&&e.transparency!=="transparent"&&(!e.eventType||e.eventType==="DEFAULT")
+      &&!(e.attendees||[]).some(a=>a.self&&a.responseStatus==="declined"))
+      .map(e=>({id:String(e.id),title:String(e.summary||"Busy"),start:Date.parse(e.start.dateTime),end:Date.parse((e.end&&e.end.dateTime)||e.start.dateTime),link:joinLink(e)}))
+      .filter(e=>!isNaN(e.start));
+    mood();paint();checkNudges()}
+  catch(e){if(["server_not_connected","not_in_manifest","blocked_by_policy","needs_reauth","selection_required"].includes(e&&e.code))st.calOff=true}
+}
+
+/* ---------- card ---------- */
+function openCard(){st.open=true;const c=$("#card");c.hidden=false;c.classList.remove("brief");$("#say").textContent=st.line||localLine();paint();mouse()}
+function closeCard(){st.open=false;$("#card").hidden=true;$("#cap").hidden=true;mouse()}
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
+function btn(label,fn,pri){const b=el("button",pri?"pri":"",label);b.type="button";b.onclick=fn;return b}
+function paint(){
+  const d=st.data,now=$("#now");now.replaceChildren();
+  const mt=meeting();
+  if(mt){const k=Math.round((mt.start-Date.now())/6e4),box=el("div","now");box.append(el("div","eyebrow",k>0?`Meeting in ${k} min`:"In a meeting"),el("div","ttl",mt.title));
+    if(mt.link){const a=el("a","btn","Join");a.href=mt.link;a.target="_blank";a.rel="noopener";const r=el("div","row");r.append(a);box.append(r)}
+    now.before(box);if(paint.mt)paint.mt.remove();paint.mt=box}else if(paint.mt){paint.mt.remove();paint.mt=null}
+  if(!d){
+    if(st.err){now.append(el("div","err",errLine(st.err)));
+      const r=el("div","row");r.append(btn("Connect",()=>{st.err=null;refresh()},true));now.append(r)}
+    else now.append(el("div","meta","Reading your Today list…"));
+  }else if(st.focus){
+    const left=Math.max(0,st.focus.end-Date.now()),m=Math.floor(left/6e4),s=Math.floor(left/1e3)%60;
+    now.append(el("div","eyebrow","Focus"),el("div","ttl",st.focus.title),el("div","timer",`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`));
+    const r=el("div","row");const ft=st.queue.find(x=>x.id===st.focus.id);
+    if(ft)r.append(btn("Done",()=>doneTask(ft),true));r.append(btn("Stop focus",()=>stopFocus(false)));now.append(r);
+  }else if(st.askDone&&st.queue.find(x=>x.id===st.askDone)){
+    const t=st.queue.find(x=>x.id===st.askDone);
+    now.append(el("div","eyebrow","Just focused on"),el("div","ttl"+(t.private?" priv":""),ttl(t)));
+    const r=el("div","row");r.append(btn("Yes, done",()=>{st.askDone=null;doneTask(t)},true),btn("Not yet",()=>{st.askDone=null;say("No rush. It'll keep.");paint()}));now.append(r);
+  }else{
+    const c=st.queue[st.idx];
+    if(!c){now.append(el("div","eyebrow","Today"),el("div","ttl","Nothing left on Today."),el("div","meta",d.inbox?`${d.inbox} items wait in your Inbox.`:"Enjoy the quiet."))}
+    else{
+      const slip=c.due_firm&&c.due&&c.due<=d.today;
+      now.append(el("div","eyebrow",c.status==="doing"?"Doing now":slip?"Can't slip":c.star?"High impact":"Up next"),el("div","ttl"+(c.private?" priv":""),ttl(c)));
+      const meta=[c.pname,slip&&c.due_time?`due ${hhmm(c.due_time)}`:"",c.owed_to?`${c.owed_to} is waiting`:"",c.quick?"2 min":""].filter(Boolean).join(" · ");
+      if(meta)now.append(el("div","meta",meta));
+      const r=el("div","row");r.append(btn("Done",()=>doneTask(c),true));
+      if(c.status!=="doing")r.append(btn("Start",()=>startTask(c)));
+      if(st.queue.length>1)r.append(btn(`Next (${st.idx+1}/${st.queue.length})`,()=>{st.idx=(st.idx+1)%st.queue.length;paint();sideUI()}));
+      now.append(r);
+    }
+  }
+  const ch=$("#chips");ch.replaceChildren();
+  if(d){const left=(d.list||[]).length,add=(n,l,hot)=>{const s=el("span",hot?"hot":"");s.append(el("b",null,String(n))," "+l);ch.append(s)};
+    if(d.slip&&d.slip.length)add(d.slip.length,"can't slip",true);
+    add(left,"on today");add(d.done_today,"done");if(d.streak)add(d.streak,d.streak===1?"day streak":"days streak");if(d.quick)add(d.quick,"quick");if(d.inbox)add(d.inbox,"in inbox");if((d.owed||[]).length)add(d.owed.length,"waiting on you")}
+  if(st.awake){const s=el("span");s.append(el("b",null,"●")," staying active"+(st.awakeN?` · ${st.awakeN} nudges`:""));ch.append(s)}
+  $("#bFocus").textContent=st.focus?"Stop focus":"Focus 25";
+  $("#bSound").setAttribute("aria-pressed",st.sound);$("#bVoice").setAttribute("aria-pressed",st.voice);$("#bAwake").setAttribute("aria-pressed",st.awake);$("#bAwake").hidden=!st.inApp;
+  $("#upd").textContent=st.data?"Updated "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):"";
+}
+
+/* ---------- desktop: floating, shortcuts, menu bar, nudges ---------- */
+const WANT={frame:false,transparent:true,alwaysOnTop:true,hasShadow:false,resizable:false,width:340,height:600,dragHeight:0};
+async function setupDesktop(){
+  desktop.app.dock.setIcon(iconPng()).catch(()=>{});
+  ps=await desktop.permissions.state().catch(()=>({}));
+  if(ps.overlay==="granted")await float();else showSetup("float");
+  if(ps.shortcuts==="granted")keys();
+  if(ps["menu-bar"]==="granted")sideUI();
+  if(ls.get("awake",false)&&(await desktop.permissions.state("full-access").catch(()=>""))==="granted")awakeOn(false);
+}
+async function askAll(){
+  try{ps=await desktop.permissions.request(["overlay","shortcuts","notifications","menu-bar"])}catch(e){$("#setupP").textContent="Click again with the window in front: "+e.message;return}
+  if(ps.shortcuts==="granted")keys();
+  sideUI();
+  if(ps.overlay==="granted")await float();
+  else{$("#setupP").textContent="Floating is off, so I'll stay in this window. You can turn it on in this app's Permissions.";$("#setupBtn").textContent="Open Permissions";$("#setupBtn").onclick=()=>desktop.permissions.manage().catch(()=>{})}
+}
+async function float(){
+  try{
+    const g=await desktop.window.getOptions();const a=g.applied||{};
+    if(!(a.frame===false&&a.transparent===true&&a.alwaysOnTop===true)){
+      const r=await desktop.window.setOptions(WANT);
+      if(r.reloading)return;
+      if(r.applied==="next_open"){showSetup("reopen");return}
+    }
+  }catch(e){showSetup("float");$("#setupP").textContent="I couldn't float yet: "+e.message;return}
+  document.documentElement.classList.add("float");st.float=true;$("#setup").hidden=true;
+  const b=ls.get("bounds",null);
+  try{if(b&&b.x!=null)await desktop.window.setBounds({x:b.x,y:b.y,width:340,height:600});else await desktop.window.place({anchor:"bottom_right",margin:24,width:340,height:600})}catch{}
+  size();
+  desktop.window.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true}).catch(()=>{});
+  st.bounds=await desktop.window.getBounds().catch(()=>null);
+  setIgnore(true);pollCursor();
+}
+function setIgnore(v){if(!st.float||st.ignore===v)return;st.ignore=v;desktop.window.setIgnoreMouseEvents(v,{forward:true}).catch(()=>{st.ignore=null})}
+function mouse(){if(!st.float)return;const c=st.cursor;
+  if(st.dragging||document.activeElement===$("#capIn")){setIgnore(false);return}
+  if(!c){return}const e=document.elementFromPoint(c.x,c.y);setIgnore(!(e&&e.closest(".hit")))}
+async function pollCursor(){
+  let n=0;const loop=async()=>{
+    try{
+      if(n++%25===0&&!st.dragging)st.bounds=await desktop.window.getBounds();
+      const p=await desktop.screen.getCursorScreenPoint();
+      if(st.bounds)st.cursor={x:p.x-st.bounds.x,y:p.y-st.bounds.y};mouse();
+    }catch{}
+    setTimeout(loop,st.focus?250:70)};loop();
+}
+let keysOn=false;
+async function keys(){if(keysOn)return;keysOn=true;
+  try{await desktop.globalShortcut.register("Alt+Shift+Space",()=>{desktop.window.show().catch(()=>{});openCard();openCap()});
+      await desktop.globalShortcut.register("Alt+Shift+L",()=>{desktop.window.show().catch(()=>{});st.open?closeCard():openCard()});
+      await desktop.globalShortcut.register("Alt+Shift+A",()=>awakeToggle())}catch{keysOn=false}}
+let trayKey="";
+function sideUI(){
+  if(!st.inApp)return;const d=st.data,c=st.queue[st.idx],left=d?(d.list||[]).length:0;
+  desktop.app.dock.setBadge(st.focus?"":left?String(left):"").catch(()=>{});
+  if(ps["menu-bar"]!=="granted")return;
+  const ft=st.focus?(()=>{const l=Math.max(0,st.focus.end-Date.now());return `${Math.floor(l/6e4)}m`})():"";
+  const key=[ft,left,c&&c.id,!!st.focus,st.awake].join("|");if(key===trayKey)return;trayKey=key;
+  desktop.tray.set({icon:trayPng(),title:st.focus?ft:left?String(left):"",toolTip:c?trunc(ttl(c),90):"Nothing left on Today",
+    menu:[{label:c?trunc(ttl(c),48):"Nothing left on Today",enabled:false},
+      {label:"Mark done",enabled:!!c,click:()=>doneTask(c)},
+      {label:st.focus?"Stop focus":"Focus 25 minutes",click:()=>st.focus?stopFocus(false):startFocus()},
+      {label:"Capture…  (⌥⇧Space)",click:()=>{desktop.window.show().catch(()=>{});openCard();openCap()}},
+      {label:"Stay active  (⌥⇧A)",type:"checkbox",checked:st.awake,click:()=>awakeToggle()},
+      {type:"separator"},
+      {label:"Open Ambalam",href:APP_URL},
+      {label:"Show lamp",click:()=>desktop.window.show().catch(()=>{})},
+      {label:"Hide lamp",click:()=>desktop.window.hide().catch(()=>{})}]}).catch(()=>{});
+}
+function notify(body){if(st.inApp&&ps.notifications==="granted")desktop.notification.show({body:trunc(body,300)}).catch(()=>{})}
+function once(key){const k=todayStr()+":"+key,s=ls.get("told",{});if(s[k])return false;
+  for(const x in s)if(!x.startsWith(todayStr()))delete s[x];s[k]=1;ls.set("told",s);return true}
+function checkNudges(){
+  const d=st.data;if(!d)return;const now=new Date(),mins=now.getHours()*60+now.getMinutes();
+  for(const s of d.slip||[]){if(!s.due_time||s.due!==d.today)continue;const [h,m]=String(s.due_time).split(":").map(Number),left=h*60+m-mins;
+    if(left>0&&left<=15&&once("due:"+s.id)){notify(`“${ttl(s)}” is due at ${hhmm(s.due_time)}.`);say(`${left} minutes until “${trunc(ttl(s),50)}” is due.`);st.shiver=1}}
+  const mt=meeting();if(mt){const k=Math.round((mt.start-Date.now())/6e4);
+    if(k>0&&once("cal:"+mt.id)){notify(`“${mt.title}” starts in ${k} min.`);say(`“${trunc(mt.title,50)}” in ${k} min. I'll dim so you can wrap up.`,true)}
+    else if(k<=0&&once("calon:"+mt.id))say("You're on. I'll stay quiet.")}
+  if([3,7,14,21,30,50,100].includes(d.streak)&&d.done_today>0&&once("streak"+d.streak)){celebrate(1,false);say(`${d.streak} days in a row! The lamp hasn't gone out once.`,true)}
+  if(mins>=21*60&&mins<23*60&&once("close")){notify("Time to close the day in Ambalam.");say("Nine o'clock. Close the day? I'll dim after.",true)}
+  if(mins>=10*60+30&&once("owed")){const o=(d.owed||[])[0];if(o){const days=Math.floor((Date.now()-new Date(o.created_at))/864e5);if(days>=5)say(`${o.owed_to} has waited ${days} days on “${trunc(ttl(o),50)}”.`)}}
+}
+function showSetup(kind){
+  const s=$("#setup"),b=$("#setupBtn");s.hidden=false;
+  if(kind==="available"){b.hidden=false;b.textContent="Install as app";b.onclick=()=>desktop.install.request().catch(()=>{})}
+  else if(kind==="installed"){$("#setupP").textContent="Vilakku is installed on this Mac. Open it from your Dock or Applications. This copy is a preview."}
+  else if(kind==="float"){$("#setupH").textContent="Let the lamp float";$("#setupP").textContent="Allow floating so I can sit on your desktop over other windows. I'll also ask for a hotkey (⌥⇧Space to capture), the menu bar and notifications.";b.hidden=false;b.textContent="Let it float";b.onclick=askAll}
+  else if(kind==="off"){$("#setupH").textContent="Install isn't offered here";$("#setupP").textContent="This Claude app didn't offer desktop apps (code: off). Update the Claude desktop app (Claude menu, Check for Updates), restart it, and open this artifact again. Desktop apps may also not be switched on for your account yet. Until then the lamp works right here."}
+  else if(kind==="unavailable"){$("#setupH").textContent="Install isn't offered in this view";$("#setupP").textContent="This view can't install apps (code: unavailable). In the Claude desktop app, open the artifact's full page (your artifacts gallery, then Vilakku) and look for Install as app there. If it's still missing, update the Claude app and restart it. Until then the lamp works right here."}
+  else if(kind==="reopen"){$("#setupH").textContent="Almost there";$("#setupP").textContent="Quit Vilakku (⌘Q) and open it again. Then it floats."}
+}
+
+/* ---------- stay active: simulated mouse and keystrokes (macOS) ----------
+   Every 20 s, read how long the Mac has had no real input (HIDIdleTime). Once it passes IDLE_S, nudge the
+   cursor a few pixels and back and tap Shift, posted as real HID events, so idle timers and "away" statuses reset.
+   It never acts while you're using the machine. Needs full access (to run osascript) and, once, the
+   Claude app in System Settings > Privacy & Security > Accessibility (macOS drops posted events otherwise). */
+const IDLE_S=60,AWAKE_MS=20e3;
+const JXA_NUDGE=`ObjC.import("CoreGraphics");var p=$.CGEventGetLocation($.CGEventCreate(null));`+
+  `var dx=3+Math.floor(Math.random()*6),dy=3+Math.floor(Math.random()*6);`+
+  `function mv(x,y){$.CGEventPost(0,$.CGEventCreateMouseEvent(null,5,{x:x,y:y},0))}`+
+  `mv(p.x+dx,p.y+dy);delay(0.08);mv(p.x,p.y);`+
+  `function k(d){$.CGEventPost(0,$.CGEventCreateKeyboardEvent(null,56,d))}k(true);delay(0.03);k(false);"ok"`;
+const JXA_TRUST=prompt=>`ObjC.import("ApplicationServices");`+(prompt?`$.AXIsProcessTrustedWithOptions($({AXTrustedCheckOptionPrompt:true}))`:`$.AXIsProcessTrusted()`);
+const sh1=s=>"'"+s.replace(/'/g,"'\\''")+"'";
+const AWAKE_CMD=`i=$(ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print int($NF/1000000000); exit}'); echo "idle=$i"; `+
+  `if [ "\${i:-0}" -ge ${IDLE_S} ]; then /usr/bin/osascript -l JavaScript -e ${sh1(JXA_NUDGE)}; fi`;
+let awakeT=null;
+async function awakeToggle(){if(st.awake)awakeOff();else awakeOn(true)}
+async function awakeOn(fromClick){
+  if(!desktop||!desktop.childProcess){say("Stay active works only in the installed lamp.",true);return}
+  const os=await desktop.os.platform().catch(()=>"");
+  if(os!=="darwin"){say("Stay active is Mac-only for now.",true);return}
+  try{
+    const r=await desktop.childProcess.exec(`/usr/bin/osascript -l JavaScript -e ${sh1(JXA_TRUST(fromClick))}`,{timeout:15000});
+    if(String(r.stdout).trim()!=="true"){awakeHelp();return}
+  }catch(e){say(String(e.message||"").startsWith("EPERM")?"Stay active needs full access, so I can run a small script. Allow it when I ask (try again).":"I couldn't start Stay active: "+trunc(String(e.message||e),120),true);return}
+  st.awake=true;ls.set("awake",true);clearInterval(awakeT);awakeT=setInterval(awakeTick,AWAKE_MS);awakeTick();
+  if(fromClick)say("Staying active. After a minute idle I'll nudge the mouse and tap Shift. ⌥⇧A to stop.");
+  paint();sideUI();
+}
+function awakeOff(){st.awake=false;ls.set("awake",false);clearInterval(awakeT);awakeT=null;say("Stay active is off. I'll let your Mac rest.");paint();sideUI()}
+function awakeHelp(){
+  openCard();say("One more step: turn on Claude in System Settings, Privacy & Security, Accessibility. Then press Stay active again.",true);
+  desktop.childProcess.exec(`open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"`,{timeout:8000}).catch(()=>{});
+}
+async function awakeTick(){
+  if(!st.awake)return;
+  try{const r=await desktop.childProcess.exec(AWAKE_CMD,{timeout:10000});
+    if(/\bok\b/.test(r.stdout)){st.awakeN++;if(st.open)paint()}
+    else if(r.code&&r.stderr){st.awakeMsg=trunc(r.stderr.trim(),120)}}
+  catch(e){if(String(e.message||"").startsWith("EPERM")){clearInterval(awakeT);st.awake=false;paint();sideUI();say("Stay active stopped: full access was turned off.",true)}}
+}
+
+/* ---------- interaction ---------- */
+const hit=$("#lampHit");let drag=null;
+hit.addEventListener("pointerdown",e=>{hit.setPointerCapture(e.pointerId);drag={sx:e.screenX,sy:e.screenY,b:st.bounds?{...st.bounds}:null,moved:false,trail:[]};unlockAudio()});
+hit.addEventListener("pointermove",e=>{
+  const r=hit.getBoundingClientRect();
+  if(!drag){ // rubbing the flame
+    if(e.clientY-r.top<r.height*.45){const t=performance.now();st.rub.push({t,x:e.clientX,y:e.clientY});st.rub=st.rub.filter(p=>t-p.t<700);
+      let len=0;for(let i=1;i<st.rub.length;i++)len+=Math.hypot(st.rub[i].x-st.rub[i-1].x,st.rub[i].y-st.rub[i-1].y);
+      if(len>520&&t-(st.tickled||0)>6000){st.tickled=t;st.rub=[];st.flare=1;burst(26);chime(1);say(pick(["Hehe, that tickles.","Careful, I'm literally on fire.","Okay okay, I'm glowing!","That's the good kind of draught."]))}}
+    return}
+  const dx=e.screenX-drag.sx,dy=e.screenY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>4){drag.moved=true;st.dragging=true}
+  if(drag.moved&&st.float&&drag.b){const nb={x:Math.round(drag.b.x+dx),y:Math.round(drag.b.y+dy)};
+    if(!drag.raf){drag.raf=requestAnimationFrame(()=>{drag&&(drag.raf=0);desktop.window.setBounds(nb).catch(()=>{});st.bounds={...st.bounds,...nb}})}}
+  if(drag.moved){const t=performance.now();drag.trail.push({t,x:e.screenX});drag.trail=drag.trail.filter(p=>t-p.t<800);
+    let flips=0,dir=0;for(let i=1;i<drag.trail.length;i++){const v=drag.trail[i].x-drag.trail[i-1].x;if(Math.abs(v)<3)continue;const s=Math.sign(v);if(dir&&s!==dir)flips++;dir=s}
+    if(flips>=4&&t-(st.shook||0)>5000){st.shook=t;st.shiver=1.4;say(pick(["Whoa! Don't spill the oil!","Easy! Easy! I'm a lamp, not a maraca.","Ayyo, my flame!"]))}}
+});
+hit.addEventListener("pointerup",()=>{const d=drag;drag=null;st.dragging=false;if(!d)return;
+  if(!d.moved){st.open?closeCard():openCard()}else if(st.float&&st.bounds)ls.set("bounds",{x:st.bounds.x,y:st.bounds.y});mouse()});
+hit.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();st.open?closeCard():openCard()}});
+document.addEventListener("mousemove",e=>{if(!st.float||!st.bounds)st.cursor={x:e.clientX-stageRect.left,y:e.clientY-stageRect.top,local:true};else st.cursor={x:e.clientX,y:e.clientY};mouse()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&st.open)closeCard()});
+$("#bFocus").onclick=()=>{unlockAudio();st.focus?stopFocus(false):startFocus()};
+$("#bCap").onclick=()=>openCap();
+$("#bTalk").onclick=()=>{unlockAudio();claudeLine()};
+$("#bSound").onclick=()=>{st.sound=!st.sound;ls.set("sound",st.sound);if(st.sound){unlockAudio();chime(1)}paint()};
+$("#bAwake").onclick=()=>awakeToggle();
+$("#bVoice").onclick=()=>{st.voice=!st.voice;ls.set("voice",st.voice);if(st.voice)speak(st.line||"Hello. I'm Vilakku.");paint()};
+$("#cap").addEventListener("submit",e=>{e.preventDefault();capture($("#capIn").value)});
+$("#capIn").addEventListener("focus",mouse);$("#capIn").addEventListener("blur",()=>setTimeout(mouse,50));
+function openCap(){$("#cap").hidden=false;$("#capIn").focus();mouse()}
+let dict=null;
+(async()=>{try{dict=await claude.use("dictation")}catch{}if(!dict)return;const m=$("#mic");m.hidden=false;let base="";
+  dict.onPartial(({text})=>{$("#capIn").value=(base+" "+text).trim()});dict.onFinal(({text})=>{base=(base+" "+text).trim();$("#capIn").value=base});
+  dict.onState(({state})=>{m.setAttribute("aria-pressed",state==="listening");m.textContent=state==="listening"?"Stop":"Mic"});
+  m.onclick=()=>{if(m.getAttribute("aria-pressed")==="true"){dict.stop().catch(()=>{});return}base=$("#capIn").value;dict.start().catch(e=>{if(e&&e.code==="not_granted")m.hidden=true})}})();
+
+/* ---------- sound: a small temple bell ---------- */
+let ac=null;function unlockAudio(){try{ac=ac||new AudioContext();if(ac.state==="suspended")ac.resume()}catch{}}
+function chime(n=1){if(!st.sound||!ac)return;for(let k=0;k<n;k++){const t0=ac.currentTime+k*.28,base=k%2?988:784;
+  [[1,.5,2.6],[2.76,.22,1.4],[5.4,.1,.8],[8.93,.05,.5]].forEach(([r,g,dec])=>{const o=ac.createOscillator(),v=ac.createGain();o.frequency.value=base*r;
+    v.gain.setValueAtTime(0,t0);v.gain.linearRampToValueAtTime(g*.22,t0+.005);v.gain.exponentialRampToValueAtTime(1e-4,t0+dec);o.connect(v).connect(ac.destination);o.start(t0);o.stop(t0+dec+.05)})}}
+
+/* ---------- celebrations ---------- */
+function celebrate(n,mine){st.lastDone=Date.now();st.flare=1;chime(mine?2:1);burst(18);petals(reduce?8:26+n*6);
+  if(mine)say(pick(["Adipoli!","Kollaam! Another one.","Done and dusted.","The flame likes that.","Look at you go."])+` ${st.data?st.data.done_today:""} today.`)}
+function burst(n){for(let i=0;i<n;i++)st.sparks.push({x:0,y:0,vx:(Math.random()-.5)*2.4,vy:-1.5-Math.random()*2.5,life:1,big:1})}
+function petals(n){for(let i=0;i<n;i++)st.petals.push({x:Math.random()*W,y:-20-Math.random()*200,vy:.6+Math.random()*1.1,sw:Math.random()*6.28,r:Math.random()*6.28,
+  vr:(Math.random()-.5)*.08,jas:Math.random()<.6,s:.7+Math.random()*.6})}
+
+/* ---------- drawing ---------- */
+const cv=$("#c"),cx=cv.getContext("2d");let W=340,H=600,S=.3,DPR=1,stageRect={left:0,top:0},bodyC=null,litC=null;
+function size(){const r=$("#stage").getBoundingClientRect();stageRect=r;W=r.width;H=r.height;DPR=devicePixelRatio||1;cv.width=W*DPR;cv.height=H*DPR;bodyC=null}
+addEventListener("resize",size);size();
+/* The lamp is turned brass, so it is drawn like a lathe: a profile of [y, radius] pairs, in lamp units
+   (y runs up from the foot at 0 to the spire tip at -290). Rows are shaded as a polished cylinder, shelves get elliptical caps. */
+const FOOT=[[0,72],[-3,75],[-7,74],[-9,68],[-12,66],[-15,68],[-17,65],[-24,56],[-31,46],[-37,38],[-41,34],[-43,36],[-46,34],[-50,26],[-54,19],[-56,21],[-59,18],[-62,11]];
+const STEM=[[-62,9],[-78,8],[-81,12],[-83,15],[-85,12],[-88,8],[-104,7],[-107,11],[-109,16],[-111,11],[-114,7],[-132,7],[-135,11],[-137,7],[-150,6],[-154,9],[-158,15],[-161,20],[-163,24]];
+const SPIRE=[[-190,6],[-204,5],[-207,10],[-210,5],[-226,4],[-229,8],[-232,4],[-240,5],[-247,10],[-254,11],[-262,10],[-270,7],[-278,4],[-286,1]];
+const BY=-190,BR=80,SQ=.2;
+const WICKS=[90,162,18,234,306]; // the five lobe tips, in lighting order: front, left, right, back-left, back-right
+const lobeR=a=>BR*(1+.13*Math.pow(Math.max(0,Math.cos(5*(a-Math.PI/2))),6));
+function rowG(c,r){const g=c.createLinearGradient(-r,0,r,0);
+  g.addColorStop(0,"#3a2306");g.addColorStop(.1,"#77490f");g.addColorStop(.28,"#dcae52");g.addColorStop(.36,"#fff0c2");g.addColorStop(.44,"#e6ad48");
+  g.addColorStop(.7,"#9c641c");g.addColorStop(.88,"#c99038");g.addColorStop(1,"#47290a");return g}
+function capG(c,r,y){const g=c.createLinearGradient(-r,y-r*SQ,r*.6,y+r*SQ);g.addColorStop(0,"#fff3cf");g.addColorStop(.4,"#e3b35a");g.addColorStop(1,"#8a571a");return g}
+function lathe(c,P){
+  for(let i=0;i<P.length-1;i++){const [y0,r0]=P[i],[y1,r1]=P[i+1];
+    for(let y=y0;y>=y1;y-=.6){const r=r0+(r1-r0)*((y0-y)/((y0-y1)||1));c.fillStyle=rowG(c,r);c.fillRect(-r,y-1,2*r,1.4)}}
+  for(let i=1;i<P.length-1;i++){const [y,r]=P[i];if(r>P[i+1][1]+1&&r>=P[i-1][1]){c.fillStyle=capG(c,r,y);c.beginPath();c.ellipse(0,y,r,r*SQ*.85,0,0,Math.PI*2);c.fill();
+    c.strokeStyle="rgba(255,240,200,.35)";c.lineWidth=.6;c.beginPath();c.ellipse(0,y,r,r*SQ*.85,0,Math.PI*.05,Math.PI*.95);c.stroke()}}
+}
+function lobe(c,k,dy){c.beginPath();for(let i=0;i<=160;i++){const a=i/160*Math.PI*2,r=lobeR(a)*k,x=Math.cos(a)*r,y=BY+dy+Math.sin(a)*r*SQ;i?c.lineTo(x,y):c.moveTo(x,y)}c.closePath()}
+function drawBody(c){
+  c.fillStyle="rgba(30,15,0,.22)";c.beginPath();c.ellipse(0,5,84,12,0,0,Math.PI*2);c.fill();
+  c.fillStyle=rowG(c,72);c.beginPath();c.ellipse(0,0,72,13,0,0,Math.PI);c.fill();
+  lathe(c,FOOT);lathe(c,STEM);
+  for(let y=-163;y>=BY;y-=.6){const t=(-163-y)/(-163-BY),r=24+(BR-24)*Math.sin(t*Math.PI/2);c.fillStyle=rowG(c,r);c.fillRect(-r,y-1,2*r,1.4)}
+  lobe(c,1.01,3);c.fillStyle="#6d4512";c.fill();
+  lobe(c,1,0);const rg=c.createLinearGradient(-BR,BY-16,BR*.7,BY+16);rg.addColorStop(0,"#fff1c6");rg.addColorStop(.35,"#e5b257");rg.addColorStop(1,"#8d5a1b");c.fillStyle=rg;c.fill();
+  c.strokeStyle="rgba(60,30,0,.45)";c.lineWidth=.8;c.stroke();
+  lobe(c,.9,1);c.fillStyle="#3d2405";c.fill();
+  lobe(c,.86,2);const og=c.createRadialGradient(-14,BY-2,2,0,BY+2,70);og.addColorStop(0,"#e3a238");og.addColorStop(.55,"#9a5f14");og.addColorStop(1,"#4c2c06");c.fillStyle=og;c.fill();
+  lathe(c,SPIRE);
+  c.fillStyle="rgba(255,250,225,.9)";c.beginPath();c.ellipse(-2.5,-262,1.6,5,0,0,Math.PI*2);c.fill();
+}
+function wickXY(i){const a=WICKS[i]*Math.PI/180,r=lobeR(a)*.97;return{x:Math.cos(a)*r,y:BY+Math.sin(a)*r*SQ-1,k:Math.sin(a)<0?.74:i===0?1:.9,a}}
+function ensureBody(){if(bodyC)return;bodyC=document.createElement("canvas");bodyC.width=cv.width;bodyC.height=cv.height;litC=document.createElement("canvas");litC.width=cv.width;litC.height=cv.height;
+  const g=bodyC.getContext("2d");g.setTransform(DPR,0,0,DPR,0,0);g.translate(W/2,H-18);g.scale(S,S);drawBody(g)}
+function flame(c,x,y,h,w,lean,heat,t,i){
+  const tipx=x+lean*h+Math.sin(t*9.7+i*2.3)*w*.22,tipy=y-h;
+  c.globalCompositeOperation="lighter";
+  const og=c.createRadialGradient(x,y-h*.4,0,x,y-h*.4,h*1.05);og.addColorStop(0,"rgba(255,150,40,.32)");og.addColorStop(1,"rgba(255,110,20,0)");
+  c.fillStyle=og;c.beginPath();c.arc(x,y-h*.4,h*1.05,0,6.3);c.fill();c.globalCompositeOperation="source-over";
+  const path=(sx,sy,hh,ww)=>{const tx=sx+(tipx-x)*hh/h,ty=sy-hh;c.beginPath();c.moveTo(sx,sy);c.bezierCurveTo(sx-ww,sy-hh*.18,sx-ww*.5+(tx-sx)*.45,sy-hh*.7,tx,ty);c.bezierCurveTo(sx+ww*.5+(tx-sx)*.45,sy-hh*.7,sx+ww,sy-hh*.18,sx,sy)};
+  const g=c.createRadialGradient(x,y-h*.25,1,x,y-h*.4,h*.95);
+  g.addColorStop(0,"rgba(255,250,228,1)");g.addColorStop(.28,heat?"rgba(255,160,60,.97)":"rgba(255,208,96,.97)");g.addColorStop(.62,heat?"rgba(226,64,22,.85)":"rgba(246,128,30,.86)");g.addColorStop(1,"rgba(200,60,10,0)");
+  c.fillStyle=g;path(x,y,h,w);c.fill();
+  c.fillStyle="rgba(255,253,236,.92)";path(x,y-1,h*.5,w*.45);c.fill();
+  c.fillStyle="rgba(110,50,10,.35)";c.beginPath();c.ellipse(x,y-2.5,w*.22,3,0,0,6.3);c.fill();
+  c.fillStyle="rgba(90,130,255,.4)";c.beginPath();c.ellipse(x,y-1,w*.48,2.2,0,0,6.3);c.fill();
+}
+function garland(c,t){ // Friday: marigold and jasmine strung between the side lobes
+  const L=wickXY(1),R=wickXY(2);
+  for(const [sag,n,jas] of [[44,30,false],[30,24,true]]){for(let k=0;k<=n;k++){const u=k/n,x=L.x+(R.x-L.x)*u,y=L.y+6+(R.y-L.y)*u+sag*Math.sin(Math.PI*u)+Math.sin(t*1.3+u*6)*.8;
+    c.fillStyle=jas?"#fffaf0":(k%2?"#f7c948":"#ef8a0c");c.beginPath();c.arc(x,y,jas?2.1:3.6,0,6.3);c.fill();
+    if(!jas&&k%6===3){c.fillStyle="#3f7a3a";c.beginPath();c.ellipse(x,y+4,1.8,3.4,.5,0,6.3);c.fill()}}}
+  for(const P of [L,R])for(let k=0;k<5;k++){c.fillStyle=k%2?"#f7c948":"#ef8a0c";c.beginPath();c.arc(P.x,P.y+10+k*7,3.2,0,6.3);c.fill()}
+}
+let t0=performance.now(),last=t0;
+function frame(now){
+  const t=(now-t0)/1000,dt=Math.min(.05,(now-last)/1000);last=now;ensureBody();
+  cx.setTransform(DPR,0,0,DPR,0,0);cx.clearRect(0,0,W,H);
+  const LX=W/2,LY=H-18,f0=wickXY(0),front={x:LX+f0.x*S,y:LY+f0.y*S};
+  let prox=0,lt=0;
+  if(st.cursor&&st.mood!=="focus"&&st.mood!=="meeting"){const dx=st.cursor.x-front.x,dy=st.cursor.y-(front.y-20),dd=Math.hypot(dx,dy);prox=Math.max(0,1-dd/320)**1.4;lt=Math.max(-.4,Math.min(.4,dx/220))*Math.min(1,prox*1.6)}
+  const base={calm:.5,worried:.62,sleepy:.18,idle:.3,focus:.55,meeting:.16}[st.mood]||.5;
+  st.glow+=((base+(st.festival?.15:0)+.6*prox+.5*st.flare)-st.glow)*Math.min(1,dt*4);
+  st.lean+=(lt-st.lean)*Math.min(1,dt*5);st.flare=Math.max(0,st.flare-dt*.5);st.shiver=Math.max(0,st.shiver-dt*.7);
+  const heat=st.mood==="worried"?1:0,jit=(reduce?.3:1)*(st.mood==="focus"||st.mood==="meeting"?.25:st.mood==="worried"?1.7:1)+st.shiver*3;
+  const hg=cx.createRadialGradient(front.x,front.y-26,4,front.x,front.y-26,Math.max(10,(70+150*st.glow)*.55));
+  hg.addColorStop(0,`rgba(255,190,80,${.42*st.glow})`);hg.addColorStop(.45,`rgba(255,150,40,${.16*st.glow})`);hg.addColorStop(1,"rgba(255,140,30,0)");
+  cx.fillStyle=hg;cx.fillRect(0,0,W,H);
+  // the brass, lit by its own flames
+  const lc=litC.getContext("2d");lc.setTransform(1,0,0,1,0,0);lc.globalCompositeOperation="source-over";lc.clearRect(0,0,litC.width,litC.height);lc.drawImage(bodyC,0,0);
+  lc.setTransform(DPR,0,0,DPR,0,0);lc.globalCompositeOperation="source-atop";
+  lc.fillStyle=`rgba(25,12,0,${Math.max(0,.42-.5*st.glow)})`;lc.fillRect(0,0,W,H);
+  for(let i=0;i<st.lit;i++){const p=wickXY(i),x=LX+p.x*S,y=LY+(p.y-14)*S,r=(40+110*st.glow*st.wick[i])*S;const g=lc.createRadialGradient(x,y,2,x,y,r);
+    g.addColorStop(0,`rgba(255,200,110,${.5*st.glow*st.wick[i]})`);g.addColorStop(1,"rgba(255,160,60,0)");lc.fillStyle=g;lc.fillRect(x-r,y-r,2*r,2*r)}
+  cx.setTransform(1,0,0,1,0,0);cx.drawImage(litC,0,0);cx.setTransform(DPR,0,0,DPR,0,0);
+  // streak studs on the foot: one per day in a row, up to 14
+  const sk=Math.min(14,(st.data&&st.data.streak)||0);
+  for(let k=0;k<14;k++){const a=(25+130*(k+.5)/14)*Math.PI/180,x=LX+Math.cos(a)*67*S,y=LY+(-13+Math.sin(a)*67*SQ*.85)*S;
+    if(k<sk){cx.fillStyle=`rgba(255,200,90,${.25+.2*st.glow})`;cx.beginPath();cx.arc(x,y,2,0,6.3);cx.fill();cx.fillStyle="#ffe7a6";cx.beginPath();cx.arc(x,y,.9,0,6.3);cx.fill()}
+    else{cx.fillStyle="rgba(60,35,5,.55)";cx.beginPath();cx.arc(x,y,.8,0,6.3);cx.fill()}}
+  cx.save();cx.translate(LX,LY);cx.scale(S,S);
+  if(st.festival)garland(cx,t);
+  // wicks and flames: back ones first
+  for(const i of [3,4,1,2,0]){const p=wickXY(i),x=p.x,y=p.y,lit=i<st.lit;
+    cx.strokeStyle="#eadcbc";cx.lineWidth=2.4;cx.lineCap="round";cx.beginPath();cx.moveTo(x-Math.cos(p.a)*6,y+1);cx.quadraticCurveTo(x,y,x+Math.cos(p.a)*1.5,y-4);cx.stroke();
+    cx.fillStyle=lit?"#ff9a3c":"#2a1706";cx.beginPath();cx.arc(x+Math.cos(p.a)*1.5,y-4.5,1.6,0,6.3);cx.fill();
+    if(!lit)continue;st.wick[i]=Math.min(1,st.wick[i]+dt*1.2);const k=p.k*st.wick[i];if(k<.03)continue;
+    const fl=1+.07*jit*Math.sin(t*7.3+i*1.7)+.05*jit*Math.sin(t*13.1+i*3.1)+.04*jit*Math.sin(t*23.7+i);
+    const droop=st.mood==="idle"?.78:st.mood==="sleepy"?.55:st.mood==="meeting"?.6:1;
+    const h=Math.max(2,(30+34*st.glow)*k*Math.max(.4,fl)*droop),w=Math.max(1,(9+5*st.glow)*k);
+    const sway=.06*jit*Math.sin(t*2.1+i)+(st.shiver?Math.sin(t*40)*.25*st.shiver:0)+(st.mood==="idle"?-.12:0);
+    cx.fillStyle=`rgba(255,215,150,${.45*st.glow})`;cx.beginPath();cx.ellipse(p.x*.72,BY+3,7*k,1.6,0,0,6.3);cx.fill();
+    flame(cx,x,y-4,h,w,st.lean+sway,heat,t,i)}
+  cx.restore();
+  if(!reduce&&Math.random()<dt*(1+5*st.glow))st.sparks.push({x:0,y:0,vx:(Math.random()-.5)*.6,vy:-.6-Math.random()*1.2,life:1});
+  if(st.festival&&!reduce&&Math.random()<dt*.3)petals(1);
+  cx.globalCompositeOperation="lighter";
+  st.sparks=st.sparks.filter(p=>(p.life-=dt*(p.big?.7:.9))>0);
+  for(const p of st.sparks){p.x+=p.vx;p.y+=p.vy;p.vy*=.985;cx.fillStyle=`rgba(255,${180+60*p.life|0},90,${p.life})`;cx.beginPath();cx.arc(front.x+p.x*.5,front.y-16+p.y*.5,((p.big?2.2:1.3)*p.life+.3)*.7,0,6.3);cx.fill()}
+  cx.globalCompositeOperation="source-over";
+  st.petals=st.petals.filter(p=>p.y<H+20);
+  for(const p of st.petals){p.y+=p.vy*60*dt;p.sw+=dt*2;p.x+=Math.sin(p.sw)*.6;p.r+=p.vr;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);
+    cx.fillStyle=p.jas?"#fffaf0":"#f29f05";cx.strokeStyle=p.jas?"rgba(140,120,80,.35)":"rgba(150,70,0,.4)";cx.lineWidth=.6;
+    cx.beginPath();cx.ellipse(0,0,6*p.s,2.8*p.s,0,0,6.3);cx.fill();cx.stroke();cx.restore()}
+  if(st.mood==="sleepy"){cx.fillStyle="rgba(200,170,120,.7)";cx.font="600 10px "+getComputedStyle(document.body).fontFamily;
+    for(let i=0;i<3;i++){const ph=(t*.4+i/3)%1;cx.globalAlpha=1-ph;cx.fillText("z",front.x+10+ph*10,front.y-30-ph*24)}cx.globalAlpha=1}
+  if(st.focus){const f=Math.max(0,(st.focus.end-Date.now())/(25*60e3));cx.strokeStyle="rgba(255,190,90,.8)";cx.lineWidth=3;cx.lineCap="round";
+    cx.beginPath();cx.arc(LX,LY-262*S,10,-Math.PI/2,-Math.PI/2+f*Math.PI*2);cx.stroke();if(f<=0)stopFocus(true)}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* icons, drawn rather than shipped */
+function iconPng(){const c=document.createElement("canvas");c.width=c.height=256;const g=c.getContext("2d");
+  const bg=g.createRadialGradient(128,90,10,128,128,180);bg.addColorStop(0,"#5a2d0c");bg.addColorStop(1,"#1a0e05");g.fillStyle=bg;g.beginPath();g.roundRect(8,8,240,240,54);g.fill();
+  const hg=g.createRadialGradient(128,90,4,128,90,120);hg.addColorStop(0,"rgba(255,190,80,.6)");hg.addColorStop(1,"rgba(255,140,30,0)");g.fillStyle=hg;g.fillRect(0,0,256,256);
+  g.save();g.translate(128,236);g.scale(.72,.72);drawBody(g);for(const i of [3,4,1,2,0]){const p=wickXY(i);flame(g,p.x,p.y-4,44*p.k,12*p.k,0,0,0,i)}g.restore();return c.toDataURL("image/png")}
+function trayPng(){const c=document.createElement("canvas");c.width=c.height=36;const g=c.getContext("2d");g.fillStyle="#000";
+  g.beginPath();g.moveTo(18,4);g.bezierCurveTo(26,14,26,22,18,26);g.bezierCurveTo(10,22,10,14,18,4);g.fill();
+  g.fillRect(6,28,24,3);g.fillRect(15,26,6,4);return c.toDataURL("image/png")}
+
+/* ---------- boot ---------- */
+setInterval(()=>{mood();if(st.focus||st.open)paint();sideUI();checkNudges()},1000*15);
+setInterval(()=>{if(st.focus&&st.open)paint();if(st.focus)sideUI()},1000);
+setInterval(()=>{if(!st.open&&$("#card").hidden&&st.data&&Math.random()<.5)say(localLine())},1000*60*40);
+setInterval(refresh,90*1000);
+setInterval(calRefresh,5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
+(async()=>{
+  try{desktop=await claude.use("desktop")}catch{}
+  st.inApp=!!(desktop&&desktop.window);
+  if(st.inApp)setupDesktop().catch(()=>{});
+  else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"off";showSetup(s);
+    if(s!=="available"&&s!=="installed"&&desktop&&desktop.install){const iv=setInterval(async()=>{const n=await desktop.install.state().catch(()=>null);if(n==="available"||n==="installed"){clearInterval(iv);$("#setupH").textContent="Vilakku can be installed now";$("#setupP").textContent="The Claude app now offers it. Install it and the lamp floats on your desktop.";showSetup(n)}},5*60*1000)}}
+  try{mcp=await claude.use("mcp")}catch{}
+  $("#card").hidden=false;refresh();setTimeout(calRefresh,4000);
+})();
+})();
+</script>
