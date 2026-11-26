@@ -13,11 +13,13 @@ async function boot(vp,url=''){
         {id:'sh2',title:'Talk on pricing',url:'https://www.youtube.com/watch?v=abc',format:'watch',minutes:18,tags:['pricing'],status:'queued',created_at:ago(2)},
         {id:'sh3',title:'Old podcast',url:'https://open.spotify.com/episode/x',format:'listen',minutes:50,tags:[],status:'queued',created_at:ago(90)},
         {id:'sh4',title:'Half-read essay',url:'https://example.com/essay',format:'read',minutes:8,tags:['ai'],status:'started',created_at:ago(10)},
+        {id:'sh6',title:'My 2026 desk setup',url:'https://www.youtube.com/watch?v=mac',format:'watch',minutes:14,tags:[],status:'queued',author:'Ali Abdaal',site:'YouTube',summary:'The Mac apps I use every day: Raycast, Things and Obsidian.',enriched_at:ago(1),created_at:ago(4)},
         {id:'sh5',title:'Finished thing',url:'https://example.com/f',format:'read',minutes:5,tags:[],status:'done',done_at:ago(1),takeaway:'Keep it short.',created_at:ago(20)}],
       call_series:[],agenda_items:[],inputs:[],input_uses:[]};
     window.WR=[];
     const q=t=>{const o={then:(r,j)=>Promise.resolve({data:JSON.parse(JSON.stringify((DB[t]||[]).filter(x=>!o.nq||x[o.nq[0]]!==o.nq[1]))),error:null}).then(r,j),order:()=>o,limit:()=>o,gte:()=>o,neq:(k,v)=>{o.nq=[k,v];return o}};return o};
     sb.rpc=()=>Promise.resolve({data:null,error:null});
+    window.FN=[];Object.defineProperty(sb,'functions',{configurable:true,value:{invoke:(n,o)=>{FN.push([n,o?.body]);return Promise.resolve({data:{done:[]},error:null})}}});
     sb.from=t=>({select:()=>q(t),
       update:v=>({eq:(_,id)=>{WR.push([t,'update',id,v]);const r=(DB[t]||[]).find(x=>x.id===id);if(r)Object.assign(r,v);return Promise.resolve({error:null})}}),
       upsert:v=>{WR.push([t,'upsert',v.id,v]);const a=DB[t]||(DB[t]=[]);const r=a.find(x=>x.id===v.id);r?Object.assign(r,v):a.push(v);return Promise.resolve({error:null})},
@@ -42,11 +44,27 @@ await p.click('#capForm button[type="submit"], #capForm button.primary'); await 
 const ins=await p.evaluate(()=>WR.find(w=>w[0]==='shelf'&&w[1]==='insert')?.[3]);
 ok(ins&&ins.format==='watch'&&ins.minutes===12&&ins.tags.includes('health')&&ins.status==='queued'&&ins.title==='Sleep science','capture: saved to shelf → '+JSON.stringify(ins));
 await p.evaluate(()=>document.getElementById('capDlg').open&&document.getElementById('capDlg').close());
+ok(await p.evaluate(()=>FN.some(([n,b])=>n==='shelf-enrich'&&b?.id&&DB.shelf.some(x=>x.id===b.id&&x.title==='Sleep science'))),'a saved link is sent to shelf-enrich to read');
+ok(await p.evaluate(()=>FN.some(([n,b])=>n==='shelf-enrich'&&!b?.id)),'on load, links not read yet are sent to shelf-enrich');
+// content search: "mac apps" is only in the description
+await p.evaluate(()=>{S.view='later';render()}); await p.fill('#shq','mac apps'); await p.waitForTimeout(80);
+const hits=await p.evaluate(()=>[...document.querySelectorAll('#view .sh-row .sh-t')].map(x=>x.textContent));
+ok(hits.length===1&&hits[0]==='My 2026 desk setup','Later search finds a video by its description: '+hits.join(', '));
+ok(await p.evaluate(()=>document.querySelector('#shr-sh6 .sh-why').textContent.toLowerCase().includes('mac apps')&&document.activeElement.id==='shq'),'shows the matching words and keeps focus in the box');
+await p.fill('#shq','abdaal'); await p.waitForTimeout(80);
+ok(await p.evaluate(()=>[...document.querySelectorAll('#view .sh-row .sh-t')].map(x=>x.textContent).join())==='My 2026 desk setup','search by channel / author');
+await p.fill('#shq','short'); await p.waitForTimeout(80);
+ok(await p.evaluate(()=>[...document.querySelectorAll('#view .sh-row .sh-t')].map(x=>x.textContent).join())==='Finished thing','search finds a done item by its takeaway');
+await p.fill('#shq',''); await p.waitForTimeout(50);
+const g=await p.evaluate(()=>findLocal('mac apps').filter(x=>x.g==='Later').map(x=>x.title));
+ok(g.join()==='My 2026 desk setup','main search (Ctrl K) lists it under Later');
+await p.evaluate(()=>{S.view='today';render();findHits=findLocal('mac apps');document.getElementById('findDlg').showModal();findGo(findHits.findIndex(x=>x.type==='later'))}); await p.waitForTimeout(100);
+ok(await p.evaluate(()=>S.view==='later'&&!!document.getElementById('shr-sh6')),'picking it opens Later at that item');
 // view
 await p.evaluate(()=>{S.view='later';render()}); await p.waitForTimeout(100);
 const secs=await p.evaluate(()=>[...document.querySelectorAll('#view .sh h2')].map(x=>x.textContent));
 ok(JSON.stringify(secs)===JSON.stringify(['Still want these?','Started','On the shelf','Done']),'sections: '+secs.join(' | '));
-ok(await p.evaluate(()=>document.querySelector('#side [data-go="later"] .count').textContent)==='5','sidebar count shows 5 live items');
+ok(await p.evaluate(()=>document.querySelector('#side [data-go="later"] .count').textContent)==='6','sidebar count shows 6 live items');
 // I'm free: 20 min, anything → started essay first, then the 18-min talk
 await p.click('[data-shfree]'); await p.click('[data-shmin="20"]'); await p.waitForTimeout(50);
 const picks=await p.evaluate(()=>[...document.querySelectorAll('.sh-free .sh-t')].map(x=>x.textContent));

@@ -687,6 +687,10 @@ a.sh-t:hover{text-decoration:underline;color:var(--accent)}
 .sh-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
 .sh-form .opt{font-size:12px;color:var(--faint)}
 .sh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sh-search{margin:0 0 12px}
+.sh-search input{width:100%;max-width:520px;border:1px solid var(--line);background:var(--raised);color:var(--ink);border-radius:12px;padding:10px 14px;min-height:44px;font-size:16px}
+.sh-search input::placeholder{color:var(--faint)}
+.sh-row.flash{background:var(--accent-soft)}
 .sh-free{background:var(--sunken);border-radius:var(--radius-l);padding:14px 12px;margin-bottom:18px}
 .sh-free .sh-row:hover{background:var(--surface)}
 .sh-q{display:flex;flex-direction:column;gap:6px;padding:0 4px 10px}
@@ -3070,7 +3074,7 @@ function allList(){
   l=l.slice().sort(cmp);
   return l.length?`<section><div class="sh"><h2>${l.length} task${l.length===1?"":"s"}</h2></div>${l.map(row).join("")}</section>`:`<div class="empty">${q?"No tasks match that search.":"Nothing here. All clear!"}</div>`;
 }
-function render(){if(!S.ready.p||!S.ready.t)return;PM.k="";const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();renderPeek();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
+function render(){if(!S.ready.p||!S.ready.t)return;PM.k="";const a=document.activeElement,fid=a&&(a.id==="search"||a.id==="bsearch"||a.id==="shq")?a.id:null,pos=fid?a.selectionStart:0;renderSide();renderView();renderPeek();if(fid){const s=document.getElementById(fid);if(s){s.focus();s.setSelectionRange(pos,pos)}}}
 
 /* ---------- writes ---------- */
 // after a failed save, keep its message up: don't let the click's "Marked done" replace it
@@ -3320,7 +3324,7 @@ document.addEventListener("submit",async e=>{
   f.q.value="";await addTask(data);toast(tagToast(data)||"Task added");f.q.focus();
 });
 
-document.addEventListener("input",e=>{if(e.target.dataset?.cdf){S.cdF={...(S.cdF||{}),[e.target.dataset.cdf]:e.target.value};return}if(e.target.id==="bsearch"){S.bq=e.target.value;drawBrain();return}if(e.target.id==="search"){S.q=e.target.value;document.getElementById("allList").innerHTML=allList()}});
+document.addEventListener("input",e=>{if(e.target.dataset?.cdf){S.cdF={...(S.cdF||{}),[e.target.dataset.cdf]:e.target.value};return}if(e.target.id==="bsearch"){S.bq=e.target.value;drawBrain();return}if(e.target.id==="shq"){S.shQ=e.target.value;paint();return}if(e.target.id==="search"){S.q=e.target.value;document.getElementById("allList").innerHTML=allList()}});
 document.addEventListener("change",e=>{if(e.target.dataset?.whenpick&&e.target.value){const t=S.tasks.find(x=>x.id===e.target.dataset.whenpick);if(t)whenSet(t,"date",e.target.value);return}if(e.target.id==="tsort"){S.tsort=e.target.value;saveTF();render();return}if(e.target.id==="sortSel"){S.sort=e.target.value;document.getElementById("allList").innerHTML=allList()}});
 /* task dialog */
 let editing=null;
@@ -3703,6 +3707,14 @@ const shLive=x=>x.status==="queued"||x.status==="started";
 const shAll=()=>(S.shelf||[]);
 const shStale=x=>x.status==="queued"&&Date.now()-new Date(x.keptAt||x.createdAt||Date.now())>SH_STALE;
 const shCount=()=>shAll().filter(shLive).length;
+/* the shelf-enrich function reads each link (title, description, channel or author, length, text) so it can be found by what it's about */
+let shEnAt=0;
+function shEnrich(id){if(!id){if(Date.now()-shEnAt<10*6e4||!shAll().some(x=>x.url&&!x.enrichedAt&&x.status!=="dropped"))return;shEnAt=Date.now()}
+  try{sb.functions.invoke("shelf-enrich",{body:id?{id}:{}}).then(()=>soon()).catch(()=>{})}catch{}}
+const shText=x=>[x.title,x.summary,x.author,x.site,x.why,x.takeaway,(x.tags||[]).join(" "),x.content].filter(Boolean).join(" ");
+function shMatch(x,q){const w=String(q||"").toLowerCase().split(/\s+/).filter(Boolean);if(!w.length)return true;const t=shText(x).toLowerCase();return w.every(y=>t.includes(y))}
+function shSnip(x,q){const w=String(q||"").toLowerCase().split(/\s+/).filter(Boolean)[0];if(!w)return"";
+  for(const f of [x.summary,x.takeaway,x.why,x.content]){const s=String(f||"").replace(/\s+/g," "),i=s.toLowerCase().indexOf(w);if(i>=0)return(i>50?"…":"")+s.slice(Math.max(0,i-50),i+110)+(i+110<s.length?"…":"")}return""}
 function shKnownTags(){const c=new Map();for(const x of [...shAll(),...S.notes])for(const g of x.tags||[]){const k=String(g).toLowerCase();if(k.length>2)c.set(k,(c.get(k)||0)+1)}return c}
 /* "Great talk on pricing #ai 20m https://…" → title, url, tags, minutes, format */
 function shParse(raw){let s=String(raw||"").trim();const m=s.match(/https?:\/\/\S+/),url=m?m[0]:null;if(url)s=s.replace(url," ");
@@ -3717,6 +3729,7 @@ function shParse(raw){let s=String(raw||"").trim();const m=s.match(/https?:\/\/\
 async function shAdd(raw,pid){const p=shParse(raw);if(!p.title)return null;
   const dup=p.url&&shAll().find(x=>x.url===p.url&&shLive(x));if(dup){toast("Already on your Later shelf",false);return dup}
   const row=await S.db.collection("shelf").add({title:p.title,url:p.url,format:p.format,minutes:p.minutes,tags:p.tags,why:p.why,projectId:pid||null,status:"queued",source:"hub"});
+  if(row?.id&&p.url)shEnrich(row.id);
   toast(`Saved to Later · ${SHF[p.format].l} · ${p.minutes?p.minutes:"~"+SHF[p.format].m} min${p.tags.length?" · #"+p.tags.join(" #"):""}`);return row}
 function shPicks(min,fmt){const skip=S.shSkip||new Set();let pool=shAll().filter(x=>shLive(x)&&(!fmt||x.format===fmt));
   const fits=pool.filter(x=>shMin(x)<=min),rest=pool.filter(x=>!skip.has(x.id));
@@ -3726,7 +3739,7 @@ function shPicks(min,fmt){const skip=S.shSkip||new Set();let pool=shAll().filter
   if(cand.length)return{fit:true,list:cand.sort((a,b)=>sc(b)-sc(a)).slice(0,2)};
   return{fit:false,list:rest.sort((a,b)=>shMin(a)-shMin(b)).slice(0,1)}}
 function shRow(x,o={}){const p=proj(x.projectId),f=SHF[x.format]||SHF.read,host=x.url?x.url.replace(/^https?:\/\/(www\.)?/,"").split(/[/?#]/)[0]:"";
-  const meta=[x.minutes?`${x.minutes} min`:`~${f.m} min`,host,...(x.tags||[]).map(g=>"#"+g),p?fullName(p):"",x.status==="done"&&x.doneAt?"done "+ago(x.doneAt):x.status==="started"?"started":ago(x.createdAt)].filter(Boolean);
+  const meta=[x.minutes?`${x.minutes} min`:`~${f.m} min`,x.author&&x.author!==x.site?x.author:"",x.site||host,...(x.tags||[]).map(g=>"#"+g),p?fullName(p):"",x.status==="done"&&x.doneAt?"done "+ago(x.doneAt):x.status==="started"?"started":ago(x.createdAt)].filter(Boolean);
   const t=x.url?`<a class="sh-t" href="${esc(x.url)}" target="_blank" rel="noopener" data-shopen="${esc(x.id)}">${esc(x.title)}</a>`:`<span class="sh-t">${esc(x.title)}</span>`;
   let acts="";
   if(S.shEdit===x.id){const fo=Object.entries(SHF).map(([k,v])=>`<option value="${k}" ${k===x.format?"selected":""}>${v.l}</option>`).join("");
@@ -3734,9 +3747,10 @@ function shRow(x,o={}){const p=proj(x.projectId),f=SHF[x.format]||SHF.read,host=
   else if(S.shDone===x.id)acts=`<form class="sh-form" data-shtake="${esc(x.id)}"><label>What did you take from it? <span class="opt">Optional. It's saved as a note you can search.</span><textarea name="t" rows="2" placeholder="One line is plenty"></textarea></label><div class="sh-acts"><button class="btn primary">Mark done</button><button type="button" class="btn" data-shdone-x>Cancel</button></div></form>`;
   else if(x.status==="done")acts=x.takeaway?`<p class="sh-take">${esc(x.takeaway)}</p>`:"";
   else acts=`<div class="sh-acts">${o.stale?`<button class="tool" data-shkeep="${esc(x.id)}">Keep</button><button class="tool" data-shdrop="${esc(x.id)}">Drop</button>`:`<button class="tool" data-shdone="${esc(x.id)}">Done</button><button class="tool" data-shed="${esc(x.id)}">Edit</button><button class="tool" data-shdrop="${esc(x.id)}">Drop</button>`}</div>`;
-  return `<div class="sh-row${x.status==="done"?" done":""}"><span class="sh-f sh-${esc(x.format)}">${esc(f.l)}</span><div class="sh-b">${t}<span class="sh-m">${esc(meta.join(" · "))}</span>${x.why&&x.status!=="done"?`<span class="sh-why">${esc(trunc(x.why,160))}</span>`:""}${acts}</div></div>`}
-function laterView(){const all=shAll(),live=all.filter(shLive),ff=S.shF||"",ft=S.shT||"";
-  const keep=x=>(!ff||x.format===ff)&&(!ft||(x.tags||[]).includes(ft));
+  const sn=o.q?shSnip(x,o.q):"",about=sn||(x.status!=="done"?(x.why||x.summary||""):"");
+  return `<div class="sh-row${x.status==="done"?" done":""}" id="shr-${esc(x.id)}"><span class="sh-f sh-${esc(x.format)}">${esc(f.l)}</span><div class="sh-b">${t}<span class="sh-m">${esc(meta.join(" · "))}</span>${about?`<span class="sh-why">${esc(trunc(about,170))}</span>`:""}${acts}</div></div>`}
+function laterView(){const all=shAll(),live=all.filter(shLive),ff=S.shF||"",ft=S.shT||"",sq=S.shQ||"";
+  const keep=x=>(!ff||x.format===ff)&&(!ft||(x.tags||[]).includes(ft))&&shMatch(x,sq),ro={q:sq};
   let h=`<div class="head"><div><h1>Later</h1><div class="sub">Things to read, watch or listen to when you're free. Share a link to Ambalam, or Capture it as Later.</div></div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" data-go="notes">Notes</button><button class="btn" data-capture="later">Save a link</button><button class="btn primary" data-shfree aria-expanded="${!!S.shFree}">I'm free</button></div></div>`;
   if(S.shFree){const fr=S.shFree,r=shPicks(fr.min,fr.fmt);
     h+=`<section class="sh-free" aria-label="Pick something for now"><div class="sh-q"><span id="shMinL">How long have you got?</span><div class="chips" role="radiogroup" aria-labelledby="shMinL">${[10,20,30,60,90].map(m=>`<button class="chip" role="radio" aria-checked="${fr.min===m}" aria-pressed="${fr.min===m}" data-shmin="${m}">${m<60?m+" min":m/60+(m===60?" hour":" hours")}</button>`).join("")}</div></div>
@@ -3744,15 +3758,16 @@ function laterView(){const all=shAll(),live=all.filter(shLive),ff=S.shF||"",ft=S
       ${r.list.length?`${r.fit?"":`<p class="cap-line">Nothing fits in ${fr.min} minutes. The shortest one:</p>`}${r.list.map(x=>shRow(x)).join("")}<p class="cap-line"><button class="act" data-shnext>Something else</button></p>`:`<div class="empty">${live.length?"Nothing like that on the shelf. Try another mood.":"Your shelf is empty. Share a link to Ambalam to save it here."}</div>`}</section>`}
   const tc=new Map();for(const x of live)for(const g of x.tags||[])tc.set(g,(tc.get(g)||0)+1);
   const tops=[...tc].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  h+=`<div class="sh-search"><input id="shq" type="search" placeholder="Search by what it's about: “mac apps”, “sleep”, a channel…" value="${esc(sq)}" aria-label="Search the Later shelf by title, description, author or text"></div>`;
   h+=`<div class="filters one"><div class="chips">${[["","All"],["read","Read"],["watch","Watch"],["listen","Listen"]].map(([k,l])=>`<button class="chip" data-shf="${k}" aria-pressed="${ff===k}">${l} <span>${k?live.filter(x=>x.format===k).length:live.length}</span></button>`).join("")}</div></div>`;
   if(tops.length)h+=`<div class="filters one"><div class="chips">${tops.map(([g,n])=>`<button class="chip" data-sht="${esc(g)}" aria-pressed="${ft===g}">#${esc(g)} <span>${n}</span></button>`).join("")}${ft&&!tc.has(ft)?`<button class="chip" data-sht="${esc(ft)}" aria-pressed="true">#${esc(ft)}</button>`:""}</div></div>`;
   const stale=live.filter(x=>shStale(x)&&keep(x)).sort((a,b)=>String(a.keptAt||a.createdAt).localeCompare(String(b.keptAt||b.createdAt))).slice(0,5),sids=new Set(stale.map(x=>x.id));
-  if(stale.length)h+=`<section><div class="sh"><h2>Still want these?</h2><span class="n">${stale.length}</span></div><p class="cap-line">Saved over two months ago and not opened. Keep them for later, or drop them.</p>${stale.map(x=>shRow(x,{stale:true})).join("")}</section>`;
+  if(stale.length)h+=`<section><div class="sh"><h2>Still want these?</h2><span class="n">${stale.length}</span></div><p class="cap-line">Saved over two months ago and not opened. Keep them for later, or drop them.</p>${stale.map(x=>shRow(x,{stale:true,q:sq})).join("")}</section>`;
   const st=live.filter(x=>x.status==="started"&&keep(x)&&!sids.has(x.id)),q=live.filter(x=>x.status==="queued"&&keep(x)&&!sids.has(x.id)).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
-  if(st.length)h+=`<section><div class="sh"><h2>Started</h2><span class="n">${st.length}</span></div>${st.map(x=>shRow(x)).join("")}</section>`;
-  h+=`<section><div class="sh"><h2>On the shelf</h2><span class="n">${q.length||""}</span></div>${q.length?q.map(x=>shRow(x)).join(""):`<div class="empty">${live.length?"Nothing else matches that filter.":"Nothing saved yet. On your phone, share a link to Ambalam; on a computer, press C and choose Later."}</div>`}</section>`;
+  if(st.length)h+=`<section><div class="sh"><h2>Started</h2><span class="n">${st.length}</span></div>${st.map(x=>shRow(x,ro)).join("")}</section>`;
+  h+=`<section><div class="sh"><h2>On the shelf</h2><span class="n">${q.length||""}</span></div>${q.length?q.map(x=>shRow(x,ro)).join(""):`<div class="empty">${sq?`Nothing on the shelf mentions “${esc(sq)}”.`:live.length?"Nothing else matches that filter.":"Nothing saved yet. On your phone, share a link to Ambalam; on a computer, press C and choose Later."}</div>`}</section>`;
   const dn=all.filter(x=>x.status==="done"&&keep(x)).sort((a,b)=>String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
-  if(dn.length)h+=`<section><div class="sh"><h2>Done</h2><span class="n">${dn.length}</span>${dn.length>8?`<button class="act" data-shalldone>${S.shAllDone?"Show fewer":"Show all"}</button>`:""}</div>${dn.slice(0,S.shAllDone?999:8).map(x=>shRow(x)).join("")}</section>`;
+  if(dn.length)h+=`<section><div class="sh"><h2>Done</h2><span class="n">${dn.length}</span>${dn.length>8?`<button class="act" data-shalldone>${S.shAllDone?"Show fewer":"Show all"}</button>`:""}</div>${dn.slice(0,S.shAllDone||sq?999:8).map(x=>shRow(x,ro)).join("")}</section>`;
   return h}
 document.addEventListener("click",async e=>{
   const a=e.target.closest("a[data-shopen]");if(a){const x=shAll().find(y=>y.id===a.dataset.shopen);if(x&&x.status==="queued")S.db.doc("shelf/"+x.id).update({status:"started"}).catch(()=>{});return}
@@ -3822,6 +3837,7 @@ function findLocal(q){const w=q.toLowerCase().split(/\s+/).filter(Boolean);if(!w
     add({g:"Tasks",type:"task",id:t.id,title:t.title,sub:fullName(proj(t.projectId))+" · "+({todo:"To do",doing:"Started",waiting:"Waiting",suggested:"Suggested",done:"Done"}[t.status]||""),c:proj(t.projectId)?.color,b:open(t)?3:t.status==="done"?0:1},t.title,[t.notes,t.resumeNote,st,t.waitingOn,fullPath(proj(t.projectId))].join(" "),t.updatedAt||t.createdAt)}
   for(const n of S.notes){const at=n.updatedAt||n.createdAt;add({g:"Notes",type:"note",id:n.id,title:n.title,sub:(KIND[n.kind]?.l||"Note")+(at?" · "+dd(at):"")+" · "+snip(n.body||n.url||fullName(proj(n.projectId))),c:KIND[n.kind]?.c,b:1},n.title,[n.body,n.url,(n.tags||[]).join(" "),fullPath(proj(n.projectId))].join(" "),at)}
   for(const r of persons())if(!r.virtual)add({g:"People",type:"person",id:r.id,title:r.name,sub:[r.role,r.org].filter(Boolean).join(", ")||(r.circles||[]).map(c=>CIRC[c]||c).join(", "),c:"var(--accent)",b:2},r.name,[r.aliases.join(" "),r.emails.join(" "),r.org,r.role,r.howMet].join(" "),r.lastContactAt);
+  for(const x of shAll())if(x.status!=="dropped")add({g:"Later",type:"later",id:x.id,title:x.title,sub:[SHF[x.format]?.l,x.author||x.site,x.status==="done"?"done":x.minutes?x.minutes+" min":""].filter(Boolean).join(" · ")+(x.summary||x.takeaway?" · "+snip(x.takeaway||x.summary):""),c:"var(--f-blue)",b:x.status==="done"?0:1},x.title,shText(x),x.createdAt);
   for(const x of S.sources)add({g:"Calls",type:"call",id:x.id,pid:x.projectId,title:callTitle(x),sub:(x.occurredAt?dd(x.occurredAt)+" · ":"")+snip(x.summary),b:0},x.title,x.summary,x.occurredAt);
   for(const[pid,b] of Object.entries(S.briefs)){const p=proj(pid);if(p)add({g:"Project briefs",type:"brief",id:pid,pid,title:fullName(p),sub:snip(b.body),c:p.color,b:0},p.name,b.body,b.updatedAt)}
   /* rank like BM25-lite × recency: rare words count more than common ones, a title hit beats a body hit,
@@ -3830,8 +3846,8 @@ function findLocal(q){const w=q.toLowerCase().split(/\s+/).filter(Boolean);if(!w
   const idf=Object.fromEntries(w.map(x=>[x,Math.log(1+docs.length/(1+docs.filter(d=>d.tx.includes(x)).length))])),now=Date.now();
   const out=hit.map(d=>{const rel=w.reduce((a,x)=>a+idf[x]*(d.ti.includes(x)?3:1),0)+(d.ti.startsWith(w[0])?1:0);
     const age=d.at?Math.max(0,(now-new Date(d.at))/864e5):0;return{...d.x,s:(rel+d.x.b)*(0.5+0.5*Math.exp(-age/90))}});
-  const order=["People","Tasks","Notes","Calls","Project briefs"];
-  return order.flatMap(g=>out.filter(x=>x.g===g).sort((a,b)=>b.s-a.s).slice(0,g==="Tasks"||g==="Notes"?8:5))}
+  const order=["People","Tasks","Notes","Later","Calls","Project briefs"];
+  return order.flatMap(g=>out.filter(x=>x.g===g).sort((a,b)=>b.s-a.s).slice(0,g==="Tasks"||g==="Notes"||g==="Later"?8:5))}
 function drawFind(){const q=document.getElementById("findQ").value.trim(),el=document.getElementById("findRes");
   const local=findLocal(q),seen=new Set(local.filter(x=>x.type==="call").map(x=>x.id));
   findHits=[...local,...findDeep.filter(x=>!seen.has(x.id)).slice(0,5)];if(findSel>=findHits.length)findSel=0;
@@ -3846,6 +3862,8 @@ function openFind(){const d=document.getElementById("findDlg");if(d.open)return;
 function findGo(i){const x=findHits[i];if(!x)return;document.getElementById("findDlg").close();
   if(x.type==="task"){setPeek(x.id);return}
   if(x.type==="note"){const n=S.notes.find(y=>y.id===x.id);if(n?.kind==="person"){S.view="person";S.person=n.id;render();return}if(n)openNote(n);return}
+  if(x.type==="later"){S.view="later";S.pid=null;S.shF="";S.shT="";S.shQ="";const it=shAll().find(y=>y.id===x.id);if(it?.status==="done")S.shAllDone=true;render();
+    const el=document.getElementById("shr-"+x.id);if(el){el.scrollIntoView({block:"center"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}return}
   if(x.type==="person"){S.view="person";S.person=x.id;S.pid=null;render();document.querySelector("main").scrollTo(0,0);return}
   S.view=x.pid&&proj(x.pid)?"project":"attention";S.pid=x.pid&&proj(x.pid)?x.pid:null;S.day=null;
   if(x.type==="call")S.segs.filter(g=>g.sourceId===x.id).forEach(g=>S.copen.add(g.id));
@@ -3905,7 +3923,7 @@ document.getElementById("delProj").addEventListener("click",async()=>{if(!editin
 const SB_URL="https://mbbucsageoyxhekzbmyq.supabase.co";
 const SB_KEY="sb_publishable_mVoEHUZ40dF4cp-jRF__IA_hObDMvif";
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const MAP={keptAt:"kept_at",lastActivityAt:"last_activity_at",mergedInto:"merged_into",nextStep:"next_step",threadId:"thread_id",sessionId:"session_id",baseVersion:"base_version",mergedAt:"merged_at",mergedIntoVersion:"merged_into_version",pausedAt:"paused_at",owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
+const MAP={keptAt:"kept_at",enrichedAt:"enriched_at",enrichError:"enrich_error",lastActivityAt:"last_activity_at",mergedInto:"merged_into",nextStep:"next_step",threadId:"thread_id",sessionId:"session_id",baseVersion:"base_version",mergedAt:"merged_at",mergedIntoVersion:"merged_into_version",pausedAt:"paused_at",owedTo:"owed_to",renewsOn:"renews_on",everyMonths:"every_months",remindDays:"remind_days",metricId:"metric_id",draftedBy:"drafted_by",statusNote:"status_note",statusSetBy:"status_set_by",reviewedAt:"reviewed_at",periodStart:"period_start",areaId:"area_id",goalId:"goal_id",perWeek:"per_week",partOfDay:"part_of_day",habitId:"habit_id",summaryAt:"summary_at",notDoing:"not_doing",lifeArea:"life_area",noteId:"note_id",lastContactAt:"last_contact_at",cadenceDays:"cadence_days",howMet:"how_met",fromType:"from_type",fromId:"from_id",toType:"to_type",toId:"to_id",createdBy:"created_by",archivedAt:"archived_at",chatUrl:"chat_url",dueFirm:"due_firm",dueTime:"due_time",taskIds:"task_ids",highlightDay:"highlight_day",highlightWeek:"highlight_week",projectIds:"project_ids",atTime:"at_time",calendarMatch:"calendar_match",nextAt:"next_at",prepPushedFor:"prep_pushed_for",seriesId:"series_id",coveredSourceId:"covered_source_id",coveredAt:"covered_at",askTaskId:"ask_task_id",receivedAt:"received_at",inputId:"input_id",taskId:"task_id",applyTaskId:"apply_task_id",supersededBy:"superseded_by",relatedProjects:"related_projects",occurredAt:"occurred_at",sourceId:"source_id",updatedFrom:"updated_from",externalId:"external_id",refTable:"ref_table",refId:"ref_id",blockedBy:"blocked_by",waitingOn:"waiting_on",followUpOn:"follow_up_on",followUps:"follow_ups",waitingSince:"waiting_since",effortDays:"effort_days",startDate:"start_date",resumeNote:"resume_note",startedAt:"started_at",carryCount:"carry_count",parentId:"parent_id",projectId:"project_id",todayDate:"today_date",weekOf:"week_of",sourceChat:"source_chat",doneAt:"done_at",createdAt:"created_at",updatedAt:"updated_at"};
 const RMAP=Object.fromEntries(Object.entries(MAP).map(([a,b])=>[b,a]));
 const toRow=o=>{const r={};for(const[k,v]of Object.entries(o)){if(k==="updatedAt")continue;r[MAP[k]||k]=v===""&&(k==="due"||k==="todayDate"||k==="weekOf")?null:v}return r};
 const fromRow=o=>{const r={};for(const[k,v]of Object.entries(o))r[RMAP[k]||k]=v;return r};
@@ -4059,7 +4077,7 @@ async function doRefresh(){
   const pp=await ppl,ll=await lnk;
   if(!pp.error&&Array.isArray(pp.data)&&W.n===0&&W.seq===seq0)S.people=pp.data.map(fromRow);
   if(!ll.error&&Array.isArray(ll.data)&&W.n===0&&W.seq===seq0)S.links=ll.data.map(fromRow);
-  {const r=await shf;if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S.shelf=r.data.map(fromRow)}
+  {const r=await shf;if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0){S.shelf=r.data.map(fromRow);queueMicrotask(()=>shEnrich())}}
   const lf=await life;LIFE.forEach(([t],i)=>{const r=lf[i];if(!r.error&&Array.isArray(r.data)&&W.n===0&&W.seq===seq0)S[t]=r.data.map(fromRow)});
   queueMicrotask(()=>{rollRenewals();tidyReviews();if(S.tasks.some(x=>x.status==="done"&&REP[x.repeat])){HIST.begin();rollRepeats()}});
   {const r=await thr;if(!r.error&&TH.n===0){S.threads=r[0].data.map(fromRow);S.tcps=r[1].data.map(fromRow);S.tsess=(r[2].data||[]).filter(x=>x.thread_id).map(fromRow);S.thReady=true}}

@@ -13,7 +13,7 @@ Every test prints `errors []` (no page errors) and ends with exit code 0. Read t
 
 | Test | What it checks |
 |---|---|
-| `later.mjs` | Later shelf: capture parsing (format, minutes, #tags), a video link defaults to Later, sections, "I'm free" picks by time and mood, filters, opening marks started, done + takeaway note (kept out of Inbox), undo, Keep/Drop, edit, phone layout (no sideways scroll, 44px targets); screenshots go to `tests/out/` |
+| `later.mjs` | Later shelf: capture parsing (format, minutes, #tags), a video link defaults to Later, sections, "I'm free" picks by time and mood, filters, opening marks started, done + takeaway note (kept out of Inbox), undo, Keep/Drop, edit, search by content (description, channel, takeaway) in the Later box and in Ctrl K, shelf-enrich called after a save and on load, phone layout (no sideways scroll, 44px targets); screenshots go to `tests/out/` |
 | `speed.mjs` | A Done click shows in under ~200 ms with 800 ms per request; a failed save puts the task back with an error toast; a sync in flight can't undo a click; undo is instant |
 | `ui.mjs` | Quick look opens, ticks steps, "Work with Claude" link, clicking another task switches the quick look, arrow keys move, Esc closes; "On it now" cap; sidebar folds; desktop and phone screenshots go to `tests/out/` |
 | `act.mjs` | Inbox: one card at a time; keys Y (done), T, W, N, D and Drop on suggestions |
