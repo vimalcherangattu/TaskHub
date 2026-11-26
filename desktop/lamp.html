@@ -221,7 +221,7 @@ function mood(){
 }
 
 /* ---------- voice of the lamp ---------- */
-function say(text,stay){st.line=text;$("#say").textContent=text;$("#card").hidden=false;
+function say(text,stay){st.line=text;if(st.callHidden)return;$("#say").textContent=text;$("#card").hidden=false;
   if(!st.open){$("#card").classList.add("brief");clearTimeout(say.t);if(!stay)say.t=setTimeout(()=>{if(!st.open)$("#card").hidden=true},7000)}
   if(st.voice)speak(text);mouse()}
 function greet(){
@@ -316,7 +316,7 @@ async function calRefresh(){
       &&!(e.attendees||[]).some(a=>a.self&&a.responseStatus==="declined"))
       .map(e=>({id:String(e.id),title:String(e.summary||"Busy"),start:Date.parse(e.start.dateTime),end:Date.parse((e.end&&e.end.dateTime)||e.start.dateTime),link:joinLink(e)}))
       .filter(e=>!isNaN(e.start));
-    mood();paint();checkNudges()}
+    mood();paint();checkNudges();callGuard()}
   catch(e){if(["server_not_connected","not_in_manifest","blocked_by_policy","needs_reauth","selection_required"].includes(e&&e.code))st.calOff=true}
 }
 
@@ -417,8 +417,8 @@ async function pollCursor(){
 }
 let keysOn=false;
 async function keys(){if(keysOn)return;keysOn=true;
-  try{await desktop.globalShortcut.register("Alt+Shift+Space",()=>{desktop.window.show().catch(()=>{});openCard();openCap()});
-      await desktop.globalShortcut.register("Alt+Shift+L",()=>{desktop.window.show().catch(()=>{});st.open?closeCard():openCard()});
+  try{await desktop.globalShortcut.register("Alt+Shift+Space",()=>{showDuringCall();desktop.window.show().catch(()=>{});openCard();openCap()});
+      await desktop.globalShortcut.register("Alt+Shift+L",()=>{showDuringCall();desktop.window.show().catch(()=>{});st.open?closeCard():openCard()});
       await desktop.globalShortcut.register("Alt+Shift+A",()=>awakeToggle())}catch{keysOn=false}}
 let trayKey="";
 function sideUI(){
@@ -435,10 +435,10 @@ function sideUI(){
       {label:"Stay active  (⌥⇧A)",type:"checkbox",checked:st.awake,click:()=>awakeToggle()},
       {type:"separator"},
       {label:"Open Ambalam",href:APP_URL},
-      {label:"Show lamp",click:()=>desktop.window.show().catch(()=>{})},
+      {label:"Show lamp",click:()=>{showDuringCall();desktop.window.show().catch(()=>{})}},
       {label:"Hide lamp",click:()=>desktop.window.hide().catch(()=>{})}]}).catch(()=>{});
 }
-function notify(body){if(st.inApp&&ps.notifications==="granted")desktop.notification.show({body:trunc(body,300)}).catch(()=>{})}
+function notify(body){if(st.inApp&&!st.callHidden&&ps.notifications==="granted")desktop.notification.show({body:trunc(body,300)}).catch(()=>{})}
 function once(key){const k=todayStr()+":"+key,s=ls.get("told",{});if(s[k])return false;
   for(const x in s)if(!x.startsWith(todayStr()))delete s[x];s[k]=1;ls.set("told",s);return true}
 function checkNudges(){
@@ -502,6 +502,43 @@ async function awakeTick(){
     if(/\bok\b/.test(r.stdout)){st.awakeN++;if(st.open)paint()}
     else if(r.code&&r.stderr){st.awakeMsg=trunc(r.stderr.trim(),120)}}
   catch(e){if(String(e.message||"").startsWith("EPERM")){clearInterval(awakeT);st.awake=false;paint();sideUI();say("Stay active stopped: full access was turned off.",true)}}
+}
+
+/* ---------- calls: get off the screen ----------
+   From one minute before a calendar meeting until it ends, the lamp hides its window and stays silent
+   (no lines, no voice, no notifications), so it never shows up in a screen share. It comes back when the call ends.
+   If you bring it back yourself during a call (menu bar, ⌥⇧L), it stays for the rest of that call. */
+const inCallNow=()=>{const n=Date.now();return (st.events||[]).find(e=>e.start-n<=60e3&&e.end>n)||null};
+let callSeen=new Set();
+function callGuard(){
+  if(!st.inApp)return;const c=inCallNow();
+  if(c&&!callSeen.has(c.id)){callSeen.add(c.id);st.callHidden=c.id;closeCard();desktop.window.hide().catch(()=>{})}
+  else if(!c&&st.callHidden){st.callHidden=null;lastGreet=Date.now()-8*60e3;desktop.window.show().catch(()=>{});setTimeout(()=>say(pick(["Call's done. Welcome back.","Back on the desk. What's next?","That's the call. One small thing now?"])),800)}
+}
+function showDuringCall(){if(st.callHidden)st.callHidden=null}
+
+/* ---------- opening the laptop: a bell and a good word ----------
+   A heartbeat every 5 s; a gap of over 150 s means the Mac slept, so the lid just opened (or it woke).
+   Also once when the lamp starts, and at a few random times through the day (9:00 to 21:00). */
+let beat=Date.now();
+function wakeWatch(){const n=Date.now(),gap=n-beat;beat=n;if(gap>150e3)setTimeout(()=>greetWake("wake"),2500)}
+const AFFIRM=["You've done hard things before. This is one more.","Small steps, lit one by one, make a bright day.","You don't have to do it all. Just the next thing, well.",
+  "Your work matters, and so does the person doing it.","Progress, not perfection. Light one wick.","You are building something real. Keep going.",
+  "Calm mind, steady hands, clear next step.","Every task you finish is a promise kept to yourself.","Be proud of how far you've come today.",
+  "You bring more to the table than you think.","Start where you are. Use what you have. Do what you can.","Today is a fresh wick. Light it."];
+let lastGreet=0;
+async function greetWake(why){
+  const n=Date.now();if(n-lastGreet<10*60e3||st.callHidden||inCallNow())return;lastGreet=n;
+  unlockAudio();chime(why==="random"?1:2);st.flare=1;burst(20);
+  let line=pick(AFFIRM);
+  try{const sample=await claude.use("sample");if(sample){const h=new Date().getHours();
+    const r=await sample(`Write ONE short affirmation or motivating line (at most 18 words) for Vimal, who just ${why==="random"?"glanced at his desk lamp":"opened his laptop"} in the ${h<12?"morning":h<17?"afternoon":"evening"}. Warm, grounded, uplifting, not cheesy. It may be an original line or a well-known quote with its author, but only quote someone if you are certain of the wording and author. No emoji, no hashtags. Return only the line.`,{modelTier:"quick",cache:false});
+    const t=(r.text||"").trim().replace(/^["“]|["”]$/g,"");if(t&&t.length<220)line=t}}catch{}
+  say(line,true);clearTimeout(greetWake.t);greetWake.t=setTimeout(()=>{if(!st.open)$("#card").hidden=true},25e3);
+}
+function planAffirm(){
+  const ms=(70+Math.random()*110)*60e3;
+  setTimeout(()=>{const h=new Date().getHours();if(h>=9&&h<21&&!st.focus)greetWake("random");planAffirm()},ms);
 }
 
 /* ---------- interaction ---------- */
@@ -681,7 +718,8 @@ function trayPng(){const c=document.createElement("canvas");c.width=c.height=36;
   g.fillRect(6,28,24,3);g.fillRect(15,26,6,4);return c.toDataURL("image/png")}
 
 /* ---------- boot ---------- */
-setInterval(()=>{mood();if(st.focus||st.open)paint();sideUI();checkNudges()},1000*15);
+setInterval(()=>{mood();if(st.focus||st.open)paint();sideUI();checkNudges();callGuard()},1000*15);
+setInterval(wakeWatch,5000);
 setInterval(()=>{if(st.focus&&st.open)paint();if(st.focus)sideUI()},1000);
 setInterval(()=>{if(!st.open&&$("#card").hidden&&st.data&&Math.random()<.5)say(localLine())},1000*60*40);
 setInterval(refresh,90*1000);
@@ -690,7 +728,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()}
 (async()=>{
   try{desktop=await claude.use("desktop")}catch{}
   st.inApp=!!(desktop&&desktop.window);
-  if(st.inApp)setupDesktop().catch(()=>{});
+  if(st.inApp){setupDesktop().catch(()=>{});setTimeout(()=>greetWake("open"),6000);planAffirm()}
   else{const s=desktop&&desktop.install?await desktop.install.state().catch(()=>"unavailable"):"off";showSetup(s);
     if(s!=="available"&&s!=="installed"&&desktop&&desktop.install){const iv=setInterval(async()=>{const n=await desktop.install.state().catch(()=>null);if(n==="available"||n==="installed"){clearInterval(iv);$("#setupH").textContent="Vilakku can be installed now";$("#setupP").textContent="The Claude app now offers it. Install it and the lamp floats on your desktop.";showSetup(n)}},5*60*1000)}}
   try{mcp=await claude.use("mcp")}catch{}
