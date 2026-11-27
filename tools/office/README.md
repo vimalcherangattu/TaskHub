@@ -22,7 +22,28 @@ t-8061e6f4). Zenara never touches it.
 
 Nothing is open to the internet except SSH until step 3 closes it.
 
-## Set-up (about 30 minutes, once)
+## Set-up with Claude (the usual way, about 20 minutes of Vimal's time)
+
+Vimal does only what needs him; Claude does the rest from a cloud session with `provision.py`.
+
+1. **Vimal:** Hetzner account (ID check), then Cloud › the project › Security › API tokens › Read & Write.
+   Enter it in the secure form Claude opens (host `api.hetzner.cloud`); never in chat.
+2. **Vimal:** Tailscale account (Google login), then Settings › Keys › Generate access token. Same form
+   (host `api.tailscale.com`).
+3. **Claude:** `provision.py check`, then `provision.py create`. The server sets itself up (about 10 minutes),
+   joins Tailscale as `office` and `office-browser` with single-use keys, keeps public SSH shut, and starts
+   reporting to Task Hub (`office_status`).
+4. **Vimal:** on the home phone install Tailscale, sign in, **Run as exit node**, battery **Unrestricted**,
+   Wi-Fi and charging.
+5. **Claude:** `provision.py phone` approves it and prints its name; Claude sets
+   `tharavad_flags.office_exit_node` to it, and the next heartbeat switches the browser and transcript proxy
+   to the home route. Task Hub shows `home` ok when it works.
+6. **Vimal:** install Tailscale on the Mac, open `http://office-browser:3000`, log in to KDP, tick Remember
+   this device. The browser password is in `secrets.env` on the server (`tailscale ssh office@office`, then
+   `grep BROWSER /opt/office/secrets.env`).
+7. Later: Claude Code login on the server (`su - office`, `claude`) and the free-model keys (step 8 below).
+
+## Set-up by hand (about 30 minutes, once)
 
 1. **Create the server.** Hetzner Cloud › Add server: location Helsinki or Falkenstein, image Ubuntu 24.04,
    type **CAX11** (Arm), add your SSH key if you have one, and paste all of `setup.sh` into **Cloud config**.
@@ -65,6 +86,8 @@ Nothing is open to the internet except SSH until step 3 closes it.
 
 `python3 tools/office/test_office.py` pulls the free-model tool and the heartbeat out of `setup.sh` and runs
 them against a fake gateway and a fake Task Hub. It must print `office tests ok`.
+`python3 tools/office/test_provision.py` runs `provision.py` against fake Hetzner and Tailscale APIs and must
+print `provision tests ok`.
 
 ## Still to build
 

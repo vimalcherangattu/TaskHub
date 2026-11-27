@@ -22,6 +22,13 @@
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
+# provision.py puts two single-use, 1-hour Tailscale keys here; pasted by hand they stay empty
+# and you join Tailscale from the console instead (README).
+set +x
+# @@PROVISION@@
+: "${OFFICE_TS_HOST_KEY:=}" "${OFFICE_TS_HOME_KEY:=}"
+set -x
+
 # --- base system -----------------------------------------------------------
 timedatectl set-timezone Asia/Kolkata || true
 hostnamectl set-hostname office || true
@@ -47,13 +54,19 @@ systemctl enable --now docker
 # --- Tailscale on the host -------------------------------------------------
 curl -fsSL https://tailscale.com/install.sh | sh
 systemctl enable --now tailscaled
+TS_JOINED=0
+if [ -n "$OFFICE_TS_HOST_KEY" ]; then
+  set +x
+  tailscale up --authkey="$OFFICE_TS_HOST_KEY" --ssh --hostname=office && TS_JOINED=1 || true
+  set -x
+fi
 
 # Firewall: nothing open to the internet except SSH (kept until Tailscale SSH is confirmed;
 # README step 3 closes it). Everything else only on the tailnet.
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow in on tailscale0
-ufw allow 22/tcp
+[ "$TS_JOINED" = 1 ] || ufw allow 22/tcp   # joined by key: Tailscale SSH only, public SSH stays shut
 ufw allow 41641/udp
 ufw --force enable
 
@@ -74,6 +87,7 @@ BROWSER_PASSWORD=$(openssl rand -base64 18)
 # Once the home phone is approved as an exit node (README step 5), set e.g.
 # TS_HOME_ARGS=--exit-node=home-phone   then: docker compose --env-file secrets.env up -d
 TS_HOME_ARGS=
+TS_HOME_AUTHKEY=$OFFICE_TS_HOME_KEY
 GEMINI_API_KEY=
 GROQ_API_KEY=
 LITELLM_MASTER_KEY=sk-office-$(openssl rand -hex 16)
@@ -95,6 +109,8 @@ services:
       TS_USERSPACE: "false"
       # Empty until the phone is ready; then --exit-node=<phone> (fail-closed when it is offline)
       TS_EXTRA_ARGS: ${TS_HOME_ARGS:-}
+      # single-use key from provision.py; only needed for the first login, the state volume keeps it
+      TS_AUTHKEY: ${TS_HOME_AUTHKEY:-}
     volumes: ["./ts-home:/var/lib/tailscale"]
     ports: ["127.0.0.1:1080:1080"]
 
@@ -363,10 +379,20 @@ mem="$(free | awk '/^Mem:/ {printf "%d", ($2-$7)*100/$2}')"
 report="$(jq -nc --argjson home_ok "$home_ok" --argjson disk "${disk:-0}" --argjson mem "${mem:-0}" \
   --arg load "$(cut -d' ' -f1 /proc/loadavg)" --arg down "${down[*]:-}" \
   '{home_ok:$home_ok, disk_pct:$disk, mem_pct:$mem, load:$load, down:($down|split(" ")|map(select(length>0)))}')"
-curl -sf -m 20 -X POST "$SB_URL/rest/v1/rpc/office_heartbeat" \
+resp="$(curl -sf -m 20 -X POST "$SB_URL/rest/v1/rpc/office_heartbeat" \
   -H "apikey: $SB_KEY" -H "Content-Type: application/json" \
-  -d "$(jq -nc --arg t "$TOKEN" --argjson r "$report" '{p_token:$t, p_report:$r}')" >/dev/null \
-  && echo "heartbeat ok $report" || { echo "heartbeat failed $report"; exit 1; }
+  -d "$(jq -nc --arg t "$TOKEN" --argjson r "$report" '{p_token:$t, p_report:$r}')")" \
+  || { echo "heartbeat failed $report"; exit 1; }
+echo "heartbeat ok $report"
+
+# The one setting Task Hub sends back: which Tailscale node is the home exit (Claude sets it once the
+# phone is approved). Only a plain node name is accepted.
+exit_want="$(jq -r 'if type=="string" then fromjson else . end | .exit_node // empty' <<<"$resp" 2>/dev/null || true)"
+if [[ "$exit_want" =~ ^[A-Za-z0-9._-]{1,63}$ ]] && [ "--exit-node=$exit_want" != "$(val TS_HOME_ARGS)" ]; then
+  sed -i "s|^TS_HOME_ARGS=.*|TS_HOME_ARGS=--exit-node=$exit_want|" secrets.env
+  ${DOCKER_COMPOSE:-docker compose} --env-file secrets.env up -d --force-recreate ts-home browser homeproxy \
+    && echo "home route set to $exit_want"
+fi
 OFFICE_HEARTBEAT
 chmod 755 /opt/office/heartbeat.sh
 

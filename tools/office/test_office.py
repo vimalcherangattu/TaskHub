@@ -32,6 +32,7 @@ open(os.path.join(home, "secrets.env"), "w").write(
     "LITELLM_MASTER_KEY=sk-test\nOFFICE_HEARTBEAT_TOKEN=" + "f" * 64 + "\nTS_HOME_ARGS=\nGEMINI_API_KEY=x\nGROQ_API_KEY=\n")
 
 seen = []
+EXIT = [None]
 
 
 class Fake(http.server.BaseHTTPRequestHandler):
@@ -45,7 +46,7 @@ class Fake(http.server.BaseHTTPRequestHandler):
             out = {"model": "gemini/gemini-2.5-flash",
                    "choices": [{"message": {"content": "TAGS: crochet, gift"}}]}
         else:
-            out = "ok"
+            out = json.dumps({"ok": True, "exit_node": EXIT[0]})   # PostgREST sends the text result as a JSON string
         data = json.dumps(out).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -107,7 +108,7 @@ if len(out) == 4:
 
 # heartbeat with a fake `docker compose`: browser is not running
 fake = os.path.join(home, "fake-compose")
-open(fake, "w").write("#!/bin/sh\nprintf 'ts-home\\nhomeproxy\\n'\n")
+open(fake, "w").write("#!/bin/sh\necho \"$@\" >> %s/compose.log\nprintf 'ts-home\\nhomeproxy\\n'\n" % home)
 os.chmod(fake, 0o755)
 seen.clear()
 r = run(["bash", os.path.join(home, "heartbeat.sh")], e=dict(env, DOCKER_COMPOSE=fake))
@@ -120,6 +121,19 @@ if hb:
     ok(sorted(rep["down"]) == ["browser", "llm"] and rep["home_ok"] is False and isinstance(rep["disk_pct"], int),
        "heartbeat report: " + json.dumps(rep))
     ok(not re.search(r"\d+\.\d+\.\d+\.\d+", json.dumps(hb[0][2])), "heartbeat must not send an IP")
+
+ok("up -d" not in open(os.path.join(home, "compose.log")).read(), "no exit node set: nothing restarted")
+
+# Task Hub names the phone: the heartbeat switches the home route once, then leaves it
+EXIT[0] = "pixel-home"
+for _ in range(2):
+    r = run(["bash", os.path.join(home, "heartbeat.sh")], e=dict(env, DOCKER_COMPOSE=fake))
+    ok(r.returncode == 0, "heartbeat with exit node: " + r.stdout + r.stderr)
+ok("TS_HOME_ARGS=--exit-node=pixel-home\n" in open(os.path.join(home, "secrets.env")).read(), "exit node saved")
+ok(open(os.path.join(home, "compose.log")).read().count("--force-recreate") == 1, "ts-home recreated exactly once")
+EXIT[0] = "bad; rm -rf /"
+r = run(["bash", os.path.join(home, "heartbeat.sh")], e=dict(env, DOCKER_COMPOSE=fake))
+ok("pixel-home" in open(os.path.join(home, "secrets.env")).read(), "a bad exit-node name is ignored")
 
 srv.shutdown()
 if fails:
