@@ -10,6 +10,14 @@ t-8061e6f4). Zenara never touches it.
   transcript proxy send all their traffic through it, so Amazon and YouTube see the home connection.
   It fails closed: if the phone is offline, those two get no internet rather than the datacenter address.
 - **Free-model gateway:** LiteLLM on `127.0.0.1:4000` (Gemini + Groq free tiers), started only once keys exist.
+- **Free-model tool:** `free-llm ask "…"` on the server, and an MCP tool `free_llm` that Claude Code there can
+  call for bulk, low-stakes jobs. It refuses Zenara (and Healio) by name, anything in `llm/guard.txt`, and any
+  prompt with an email address or phone number; every answer comes back marked as a draft for Claude to check.
+  It logs sizes to `llm/usage.jsonl`, never the text.
+- **Heartbeat:** every 10 minutes the server tells Task Hub it is alive (`office_heartbeat`), with yes/no for
+  the home route, services not running and disk %. Task Hub's 15-minute alarm job pushes to the phone (ntfy)
+  when it stops for 35 minutes (`office_down`), when the home route breaks (`home_route_down`, only once it
+  has worked), when a service is down (`office_service`) or the disk passes 90% (`office_disk`).
 - **Claude Code** for the `office` user, for scheduled browser jobs (the Sunday KDP draft run moves here).
 
 Nothing is open to the internet except SSH until step 3 closes it.
@@ -39,6 +47,11 @@ Nothing is open to the internet except SSH until step 3 closes it.
 8. **Free models (later):** create a Gemini key (Google AI Studio) and a Groq key, put them in `secrets.env`
    on the server (never in chat or the repo), then `docker compose --env-file secrets.env --profile llm up -d`.
    Check the model names in `llm/config.yaml` against each provider's current free models first.
+   Test: `free-llm ask "Say hi in five words"`. In Claude Code (`su - office`, `claude`), `/mcp` lists `free-llm`.
+9. **Check the heartbeat:** `systemctl start office-heartbeat && journalctl -u office-heartbeat -n 3` should
+   say `heartbeat ok`. The first heartbeat binds the server's token (`OFFICE_HEARTBEAT_TOKEN` in `secrets.env`)
+   to Task Hub; after that only this server can report. To move to a new server, ask Claude in a chat to run
+   `update office_status set token_hash = null where id = 'office';`.
 
 ## Rules
 
@@ -48,8 +61,12 @@ Nothing is open to the internet except SSH until step 3 closes it.
 - Free models never see Zenara, private notes or customer data (Fyule schools, Hey Jini children).
 - Secrets live only in `/opt/office/secrets.env` (mode 600). Never print, paste or commit them.
 
+## Testing the scripts without a server
+
+`python3 tools/office/test_office.py` pulls the free-model tool and the heartbeat out of `setup.sh` and runs
+them against a fake gateway and a fake Task Hub. It must print `office tests ok`.
+
 ## Still to build
 
-- A heartbeat to Task Hub alarms (phone push if the server or the home route stops).
 - The KDP draft job on the server, with a Book 3 dry run before 5 Dec.
 - Later: Etsy stats, KDP report parsing, Filow win-backs, Small Fish digest; Postiz (resize to 8 GB), OpenSEO.
