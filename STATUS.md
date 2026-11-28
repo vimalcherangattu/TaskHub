@@ -1,8 +1,12 @@
 # Status
 
-**Last updated:** 26 Nov 2026 (Later shelf; earlier: Threads view in the app, 25 Nov; earlier: Tharavad stack review and strategy run queued, 23 Nov)
+**Last updated:** 28 Nov 2026 (portfolio strategy sitting, day 1; earlier: Later shelf, 26 Nov; Threads view, 25 Nov)
 
 ## Current state
+- **Portfolio strategy sitting, day 1 (28 Nov, no app change):** run from a chat on a private agenda page (https://claude.ai/artifact/E3nRWNMPZkUJvBPe1nCKV5) whose own database holds the agenda, open points, decisions and four research reports (`research/*`). All decisions are in the hub as decision notes and briefs, and in thread `group-hq:strategy-sitting` (v2).
+  - Decided: Publishing fully automated with no human review, 2 books a week, calendar to April (`n-b7351875`); Etsy starts now with a full agent team (`n-c849a65e`); Media changes (`n-d0d5f862`); Hey Jini goes, shape pending (`n-8a07a75c`); Filow has ~26 real users (`n-fec7648c`); consulting is Vimal personally, workshops first (`n-df08ede6`).
+  - Day 2 on 29 Nov (task `t-1ef6f909`): Small Fish product or park, Hey Jini shape, Filow test, books under Vimal's name, then resourcing, tooling, scheduling and a command of intent per product.
+  - Still on Vimal: office server + KDP login by 4 Dec (away 5-22 Dec), plan-upgrade call 3 Dec, agent and run prompts updated to the new rules by 2 Dec (`t-29238954`).
 - **Later shelf (26 Nov, app + new table + skill):** a place for resources to read, watch or listen to when free. New table `shelf` (RLS "owner full access", `touch_updated_at` trigger, in the realtime publication; ids `sh-…`). Nothing existing changed in the schema.
   - **Saving:** Capture has a new kind, Later (second button). A video or podcast link picks it on its own; a link shared from another app (the share sheet) opens on Later; ordinary typed links still default to Link. Text like `#ai 20m` or `1.5h` sets tags and minutes; the format comes from the link (YouTube/Vimeo/TED → Watch, Spotify/Apple Podcasts/Overcast → Listen, else Read); up to 2 existing tags that appear in the title are added. Duplicate live URLs are refused.
   - **Notes › Later** (`laterView`; also in the sidebar under the places, with a count, and in the phone's More sheet): format and tag filters, "Still want these?" (queued and untouched 60 days: Keep sets `kept_at`, Drop sets `dropped`), Started, On the shelf, Done (with takeaways). Opening a queued link marks it started. Edit changes title, link, type, minutes, tags and project.
